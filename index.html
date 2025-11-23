@@ -142,7 +142,7 @@
             </button>
 
             <!-- 以下の href="" の中身を、あなたのGitHub WikiのURLに書き換えてください -->
-            <a href="https://github.com/あなたのユーザー名/リポジトリ名/wiki" target="_blank" rel="noopener noreferrer" class="p-2 text-gray-600 transition-colors rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 flex items-center justify-center" title="ヘルプ / ドキュメント">
+            <a href="https://github.com/himais0giiiin/easy-bdc/wiki/Docs" target="_blank" rel="noopener noreferrer" class="p-2 text-gray-600 transition-colors rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 flex items-center justify-center" title="ヘルプ / ドキュメント">
                 <i data-lucide="circle-help" class="w-5 h-5"></i>
             </a>
 
@@ -208,11 +208,6 @@
             <category name="Bot設定" colour="#9b59b6">
                 <block type="set_bot_status"></block>
                 <block type="wait_seconds"></block>
-            </category>
-
-            <category name="データ保存" colour="#e67e22">
-                <block type="save_to_json"></block>
-                <block type="load_from_json"></block>
             </category>
 
             <category name="管理機能" colour="#e74c3c">
@@ -286,57 +281,6 @@
                 <div class="flex items-center gap-2">
                     <div class="p-1.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
                         <i data-lucide="file-code" class="w-5 h-5"></i>
-                <!-- Intents -->
-                <div>
-                    <label class="block text-sm font-medium mb-2">インテント設定 <span class="text-xs text-gray-500 dark:text-gray-400">(必要なものにチェック)</span></label>
-                    <div id="intentsContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <!-- Intents will be populated here -->
-                    </div>
-                </div>
-
-                <!-- Command Definitions (Simple) -->
-                <div>
-                    <label class="block text-sm font-medium mb-2">スラッシュコマンド定義 (簡易)</label>
-                    <div id="commandsContainer" class="space-y-3">
-                        <!-- Command inputs will be added here -->
-                    </div>
-                    <button id="addCommandBtn" class="mt-3 w-full py-2 px-4 border border-indigo-500 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-gray-700 transition duration-150 flex items-center justify-center space-x-2">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                        <span>コマンドを追加</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Output / Info Card -->
-            <div class="lg:col-span-1 space-y-6">
-                <!-- Actions -->
-                <div class="card bg-white dark:bg-gray-800 p-6 rounded-xl space-y-4">
-                    <h2 class="text-xl font-semibold text-indigo-600 dark:text-indigo-400">アクション</h2>
-                    <button id="showCodeBtn" class="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition duration-150 shadow-lg shadow-indigo-500/50 flex items-center justify-center space-x-2">
-                        <i data-lucide="code" class="w-5 h-5"></i>
-                        <span>Pythonコードを表示</span>
-                    </button>
-                    <button id="downloadXMLBtn" class="w-full py-3 px-4 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition duration-150 shadow-lg shadow-gray-500/50 flex items-center justify-center space-x-2">
-                        <i data-lucide="download" class="w-5 h-5"></i>
-                        <span>XMLファイルダウンロード (Bot Designer For Discord形式)</span>
-                    </button>
-                </div>
-
-                <!-- Info / Help -->
-                <div class="card bg-white dark:bg-gray-800 p-6 rounded-xl space-y-4">
-                    <h2 class="text-xl font-semibold text-indigo-600 dark:text-indigo-400">ヘルプとドキュメント</h2>
-                    <p class="text-sm">このツールは、Discord.py (Nextcord互換) を使用したシンプルなDiscordボットのセットアップを支援します。</p>
-                    <a id="docsLink" href="https://github.com/himais0giiiin/easy-bdc/wiki/Docs" target="_blank" rel="noopener noreferrer" 
-                       class="w-full py-2 px-4 border border-indigo-500 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-gray-700 transition duration-150 flex items-center justify-center space-x-2 text-sm font-medium">
-                        <i data-lucide="book-open" class="w-4 h-4"></i>
-                        <!-- ドキュメント URL を更新 -->
-                        <span>公式ドキュメントを見る</span>
-                    </a>
-                    <div class="flex items-start space-x-2 text-sm pt-2 border-t dark:border-gray-700">
-                        <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-1"></i>
-                        <p class="text-gray-700 dark:text-gray-300">
-                            **注意:** トークンは秘密情報です。生成されたコードを公開リポジトリに直接コミットしないでください。環境変数を使用することを強く推奨します。
-                        </p>
                     </div>
                     <h2 class="text-lg font-bold text-gray-800 dark:text-white">Botコード (Python)</h2>
                 </div>
@@ -739,29 +683,6 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(260);
-                }
-            };
-
-            // --- JSON Data Blocks ---
-            Blockly.Blocks['save_to_json'] = {
-                init: function() {
-                    this.appendValueInput("KEY").setCheck("String").appendField("💾 データを保存 キー:");
-                    this.appendValueInput("VALUE").setCheck(null).appendField("値:");
-                    this.setInputsInline(true);
-                    this.setPreviousStatement(true, null);
-                    this.setNextStatement(true, null);
-                    this.setColour(30);
-                    this.setTooltip("指定したキーと値をJSONファイルに保存します。");
-                }
-            };
-
-            Blockly.Blocks['load_from_json'] = {
-                init: function() {
-                    this.appendValueInput("KEY").setCheck("String").appendField("📂 データを読み込み キー:");
-                    this.setInputsInline(true);
-                    this.setOutput(true, null);
-                    this.setColour(30);
-                    this.setTooltip("保存されたJSONファイルから指定したキーの値を取得します。");
                 }
             };
 
@@ -1215,18 +1136,6 @@ if _ch:
                 return `await asyncio.sleep(${sec})\n`;
             };
 
-            // --- JSON Data Generators ---
-            Blockly.Python['save_to_json'] = function(block) {
-                const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '"key"';
-                const value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || 'None';
-                return `_save_data(${key}, ${value})\n`;
-            };
-
-            Blockly.Python['load_from_json'] = function(block) {
-                const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '"key"';
-                return [`_get_data(${key})`, Blockly.Python.ORDER_ATOMIC];
-            };
-
             Blockly.Python['create_embed'] = function(block) {
                 const embedVarName = Blockly.Python.variableDB_.getDistinctName('embed', Blockly.Names.VARIABLE_NAME);
                 let code = `
@@ -1555,8 +1464,6 @@ import random
 import asyncio
 import datetime
 import math
-import json
-import os
 
 intents = discord.Intents.default()
 intents.message_content = True 
@@ -1565,34 +1472,11 @@ intents.members = True
 # Botの作成
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# --- データ保存用ヘルパー関数 ---
-DATA_FILE = "bot_data.json"
-
-def _load_all_data():
-    if not os.path.exists(DATA_FILE):
-        return {}
-    try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {}
-
-def _save_data(key, value):
-    data = _load_all_data()
-    data[str(key)] = value
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-def _get_data(key):
-    data = _load_all_data()
-    return data.get(str(key))
-# ------------------------------
-
 # --- ユーザー作成ロジック ---
 ${cleanedCode}
 # --------------------------
 
-bot.run('TOKEN') # 実行時はここにTokenを入れてください
+# bot.run('TOKEN') # 実行時はここにTokenを入れてください
 `;
             return boilerplate.trim();
         };
