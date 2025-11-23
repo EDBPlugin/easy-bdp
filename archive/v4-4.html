@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Easy Discord Bot Builder v5.0</title>
+    <title>Easy Discord Bot Builder v4.3</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='16' fill='%234f46e5' /%3E%3Ccircle cx='22' cy='26' r='6' fill='white' /%3E%3Ccircle cx='42' cy='26' r='6' fill='white' /%3E%3Cpath d='M20 42 Q32 52 44 42' stroke='white' stroke-width='4' fill='none' stroke-linecap='round' /%3E%3C/svg%3E">
 
@@ -125,7 +125,7 @@
                 <i data-lucide="bot" class="w-6 h-6 text-white"></i>
             </div>
             <div>
-                <h1 class="text-xl font-bold text-gray-800 dark:text-white leading-tight">Easy Discord Bot Builder v5.0</h1>
+                <h1 class="text-xl font-bold text-gray-800 dark:text-white leading-tight">Easy Discord Bot Builder v4.3</h1>
                 <p class="text-xs font-medium text-indigo-600 dark:text-indigo-400">Create by himais0giiiin!</p>
             </div>
         </div>
@@ -196,14 +196,6 @@
             <category name="高度な操作" colour="#535c68">
                 <block type="wait_for_message"></block>
                 <block type="print_to_console"></block>
-            </category>
-
-            <category name="データ保存 (JSON)" colour="#d35400">
-                <block type="json_load"></block>
-                <block type="json_save"></block>
-                <block type="dict_create"></block>
-                <block type="dict_get"></block>
-                <block type="dict_set"></block>
             </category>
 
             <category name="チャンネル・ボイス" colour="#00a8ff">
@@ -368,8 +360,6 @@
 
             Blockly.Python.INDENT = '    ';
             
-            // --- イベントブロック ---
-
             Blockly.Blocks['on_ready'] = {
                 init: function() {
                     this.appendDummyInput().appendField("🏁 Botが起動したとき");
@@ -432,8 +422,6 @@
                     this.setTooltip("コマンドと一緒に送られたデータ（引数）を取得します。");
                 }
             };
-
-            // --- 情報取得ブロック ---
 
             Blockly.Blocks['get_user_info'] = {
                 init: function() {
@@ -511,8 +499,6 @@
                     this.setColour(260);
                 }
             };
-
-            // --- メッセージブロック ---
 
             Blockly.Blocks['reply_message'] = {
                 init: function() {
@@ -636,63 +622,6 @@
                 }
             };
 
-            // --- JSON/辞書操作ブロック ---
-            
-            Blockly.Blocks['json_load'] = {
-                init: function() {
-                    this.appendValueInput("FILENAME").setCheck("String").appendField("📂 JSONファイルを読み込む (");
-                    this.appendDummyInput().appendField(")");
-                    this.setOutput(true, null); // Dictionary or List
-                    this.setColour(30);
-                    this.setTooltip("指定したJSONファイルを読み込んで辞書データとして返します。ファイルがない場合は空の辞書を返します。");
-                }
-            };
-
-            Blockly.Blocks['json_save'] = {
-                init: function() {
-                    this.appendValueInput("DATA").setCheck(null).appendField("💾 データを保存: ");
-                    this.appendValueInput("FILENAME").setCheck("String").appendField(" ファイル名(");
-                    this.appendDummyInput().appendField(")");
-                    this.setPreviousStatement(true, null);
-                    this.setNextStatement(true, null);
-                    this.setColour(30);
-                    this.setTooltip("辞書やリストのデータをJSONファイルとして保存します。");
-                }
-            };
-
-            Blockly.Blocks['dict_create'] = {
-                init: function() {
-                    this.appendDummyInput().appendField("📦 空の辞書(データ)を作成");
-                    this.setOutput(true, null);
-                    this.setColour(30);
-                }
-            };
-
-            Blockly.Blocks['dict_get'] = {
-                init: function() {
-                    this.appendValueInput("DICT").setCheck(null).appendField("辞書");
-                    this.appendValueInput("KEY").setCheck("String").appendField("からキー");
-                    this.appendDummyInput().appendField("の値を取得");
-                    this.setOutput(true, null);
-                    this.setColour(30);
-                }
-            };
-
-            Blockly.Blocks['dict_set'] = {
-                init: function() {
-                    this.appendValueInput("DICT").setCheck(null).appendField("辞書");
-                    this.appendValueInput("KEY").setCheck("String").appendField("のキー");
-                    this.appendValueInput("VALUE").setCheck(null).appendField("に値");
-                    this.appendDummyInput().appendField("を設定");
-                    this.setPreviousStatement(true, null);
-                    this.setNextStatement(true, null);
-                    this.setColour(30);
-                }
-            };
-
-
-            // --- ボイス/チャンネルブロック ---
-
             Blockly.Blocks['join_voice_channel'] = {
                 init: function() {
                     this.appendDummyInput().appendField("🔊 実行者のボイスチャンネルに参加");
@@ -730,8 +659,6 @@
                     this.setColour(340);
                 }
             };
-
-            // --- その他ブロック ---
 
             Blockly.Blocks['set_bot_status'] = {
                 init: function() {
@@ -926,8 +853,6 @@
                 }
                 return code;
             };
-
-            // --- Code Generators ---
 
             Blockly.Python['on_ready'] = function(block) {
                 const branch = getBranchCode(block, 'DO');
@@ -1165,37 +1090,6 @@ except Exception:
                 const text = Blockly.Python.valueToCode(block, 'TEXT', Blockly.Python.ORDER_NONE) || '""';
                 return `print(${text})\n`;
             };
-
-            // --- JSON/Dict Generators ---
-
-            Blockly.Python['json_load'] = function(block) {
-                const filename = Blockly.Python.valueToCode(block, 'FILENAME', Blockly.Python.ORDER_NONE) || '"data.json"';
-                return [`_load_json_data(${filename})`, Blockly.Python.ORDER_FUNCTION_CALL];
-            };
-
-            Blockly.Python['json_save'] = function(block) {
-                const data = Blockly.Python.valueToCode(block, 'DATA', Blockly.Python.ORDER_NONE) || '{}';
-                const filename = Blockly.Python.valueToCode(block, 'FILENAME', Blockly.Python.ORDER_NONE) || '"data.json"';
-                return `_save_json_data(${filename}, ${data})\n`;
-            };
-
-            Blockly.Python['dict_create'] = function(block) {
-                return ['{}', Blockly.Python.ORDER_ATOMIC];
-            };
-
-            Blockly.Python['dict_get'] = function(block) {
-                const dict = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || '{}';
-                const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
-                return [`${dict}.get(${key})`, Blockly.Python.ORDER_FUNCTION_CALL];
-            };
-
-            Blockly.Python['dict_set'] = function(block) {
-                const dict = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || 'data';
-                const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
-                const value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || 'None';
-                return `${dict}[${key}] = ${value}\n`;
-            };
-
 
             Blockly.Python['join_voice_channel'] = function(block) {
                 return `
@@ -1556,6 +1450,11 @@ ${returnCode.trimEnd()}
             if (!workspace) return '';
             let rawCode = Blockly.Python.workspaceToCode(workspace);
             
+            const rootIndent = Blockly.Python.INDENT;
+            let cleanedCode = rawCode.split('\n')
+                .map(line => line.startsWith(rootIndent) ? line.substring(rootIndent.length) : line)
+                .join('\n').trim();
+
             const boilerplate = `
 # 必要なライブラリのインポート
 import discord
@@ -1565,8 +1464,6 @@ import random
 import asyncio
 import datetime
 import math
-import json
-import os
 
 intents = discord.Intents.default()
 intents.message_content = True 
@@ -1575,27 +1472,8 @@ intents.members = True
 # Botの作成
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# --- 便利な関数 (JSON操作) ---
-def _load_json_data(filename):
-    if not os.path.exists(filename):
-        return {}
-    try:
-        with open(filename, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"JSON Load Error: {e}")
-        return {}
-
-def _save_json_data(filename, data):
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        print(f"JSON Save Error: {e}")
-# ----------------------------
-
 # --- ユーザー作成ロジック ---
-${rawCode}
+${cleanedCode}
 # --------------------------
 
 # bot.run('TOKEN') # 実行時はここにTokenを入れてください
