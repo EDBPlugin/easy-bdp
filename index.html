@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Easy Discord Bot Builder v4</title>
+    <title>Easy Discord Bot Builder v4.1</title>
     
     <!-- Favicon (SVG Data URI) -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='16' fill='%234f46e5' /%3E%3Ccircle cx='22' cy='26' r='6' fill='white' /%3E%3Ccircle cx='42' cy='26' r='6' fill='white' /%3E%3Cpath d='M20 42 Q32 52 44 42' stroke='white' stroke-width='4' fill='none' stroke-linecap='round' /%3E%3C/svg%3E">
@@ -135,7 +135,7 @@
                 <i data-lucide="bot" class="w-6 h-6 text-white"></i>
             </div>
             <div>
-                <h1 class="text-xl font-bold text-gray-800 dark:text-white leading-tight">Easy Discord Bot Builder v4</h1>
+                <h1 class="text-xl font-bold text-gray-800 dark:text-white leading-tight">Easy Discord Bot Builder v4.1</h1>
                 <p class="text-xs font-medium text-indigo-600 dark:text-indigo-400">create by himais0giiiin!</p>
             </div>
         </div>
@@ -306,6 +306,7 @@
                         <i data-lucide="info" class="w-4 h-4"></i> 実行方法
                     </h3>
                     <ol class="space-y-1 text-sm list-decimal list-inside text-indigo-700 dark:text-indigo-300">
+                        <li>まず、 <code class="px-1 py-0.5 rounded border dark:bg-gray-800 bg-white border-indigo-200 dark:border-indigo-700">python</code> をデバイスにインストールしてください。</li>                        
                         <li>以下のコードを <code class="px-1 py-0.5 rounded border dark:bg-gray-800 bg-white border-indigo-200 dark:border-indigo-700">bot.py</code> という名前で保存します。</li>
                         <li>ターミナルで <code class="px-1 py-0.5 rounded border select-all dark:bg-gray-800 bg-white border-indigo-200 dark:border-indigo-700">pip install discord.py</code> を実行します。</li>
                         <li>ボイス機能を使う場合: <code class="px-1 py-0.5 rounded border select-all dark:bg-gray-800 bg-white border-indigo-200 dark:border-indigo-700">pip install "discord.py[voice]"</code></li>
@@ -1520,7 +1521,7 @@ ${returnCode.trimEnd()}
                 .join('\n').trim();
 
             const boilerplate = `
-# 必要なライブラリのインポート
+# ライブラリインポート
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -1533,14 +1534,14 @@ intents = discord.Intents.default()
 intents.message_content = True 
 intents.members = True 
 
-# Botの作成
+# Bot
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# --- ユーザー作成ロジック ---
+# コマンド部分
 ${cleanedCode}
 # --------------------------
 
-# bot.run('TOKEN') # 実行時はここにTokenを入れてください
+# bot.run('TOKEN') # TOKEN部分をBotトークンに置き換えてください！
 `;
             return boilerplate.trim();
         };
