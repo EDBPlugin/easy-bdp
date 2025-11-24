@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Easy Discord Bot Builder v5.2</title>
+    <title>Easy Discord Bot Builder v5.3.3</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='16' fill='%236366f1' /%3E%3Cpath d='M20 42 Q32 52 44 42' stroke='white' stroke-width='4' fill='none' stroke-linecap='round' /%3E%3Ccircle cx='22' cy='26' r='6' fill='white' /%3E%3Ccircle cx='42' cy='26' r='6' fill='white' /%3E%3C/svg%3E">
 
@@ -67,7 +67,7 @@
             <div class="flex flex-col">
                 <h1 class="text-xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight flex items-center gap-3">
                     Easy Discord Bot Builder 
-                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-mono font-bold">v5.2</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-mono font-bold">v5.3.3</span>
                 </h1>
                 <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
                     Create by himais0giiiin!
@@ -102,7 +102,7 @@
                     <i data-lucide="download" class="w-4.5 h-4.5"></i>
                 </button>
                 
-                <!-- NEW: Documentation Button -->
+                <!-- Documentation Button -->
                 <a href="https://github.com/himais0giiiin/easy-bdc/wiki/Docs" target="_blank" rel="noopener noreferrer" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800" title="Documentation">
                     <i data-lucide="book-open" class="w-4.5 h-4.5"></i>
                 </a>
@@ -153,7 +153,7 @@
             </div>
         </div>
 
-        <!-- Toolbox Definition (内容変更なし) -->
+        <!-- Toolbox Definition -->
         <xml id="toolbox" style="display: none">
             <category name="イベント" colour="#e67e22">
                 <block type="on_ready"></block>
@@ -162,6 +162,19 @@
                 <block type="prefix_command"></block>
                 <block type="get_message_content"></block>
                 <block type="get_command_arg"></block>
+            </category>
+            
+            <category name="ボタン・フォーム" colour="#d63031">
+                <block type="send_button_message"></block>
+                <block type="on_button_click"></block>
+                <block type="show_modal"></block>
+                <block type="on_modal_submit"></block>
+                <block type="get_input_value"></block>
+            </category>
+
+            <category name="リアクション" colour="#e17055">
+                <block type="on_reaction_add"></block>
+                <block type="add_reaction"></block>
             </category>
             
             <category name="情報取得" colour="#8e44ad">
@@ -182,7 +195,6 @@
                 <block type="delete_message"></block>
                 <block type="purge_messages"></block>
                 <block type="pin_message"></block>
-                <block type="add_reaction"></block>
                 <block type="create_thread"></block>
             </category>
             
@@ -326,7 +338,6 @@
             </div>
         </div>
     </div>
-
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

@@ -2,8 +2,6 @@ Blockly.Python['custom_python_code'] = function (block) {
   const code = block.getFieldValue('CODE');
   return code + '\n';
 };
-
-// Existing Block Definitions (内容変更なし)
 Blockly.Blocks['on_ready'] = {
   init: function () {
     this.appendDummyInput().appendField('🏁 Botが起動したとき');
@@ -995,33 +993,6 @@ Blockly.Python['controls_if'] = function (block) {
   }
   return code;
 };
-Blockly.Python['json_load'] = function (block) {
-  const filename =
-    Blockly.Python.valueToCode(block, 'FILENAME', Blockly.Python.ORDER_NONE) || '"data.json"';
-  return [`_load_json_data(${filename})`, Blockly.Python.ORDER_FUNCTION_CALL];
-};
-Blockly.Python['json_save'] = function (block) {
-  const data = Blockly.Python.valueToCode(block, 'DATA', Blockly.Python.ORDER_NONE) || '{}';
-  const filename =
-    Blockly.Python.valueToCode(block, 'FILENAME', Blockly.Python.ORDER_NONE) || '"data.json"';
-  return `_save_json_data(${filename}, ${data})\n`;
-};
-Blockly.Python['dict_create'] = function (block) {
-  return ['{}', Blockly.Python.ORDER_ATOMIC];
-};
-Blockly.Python['dict_get'] = function (block) {
-  const dict = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || '{}';
-  const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
-  return [`${dict}.get(${key})`, Blockly.Python.ORDER_FUNCTION_CALL];
-};
-Blockly.Python['dict_set'] = function (block) {
-  const dict = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || 'data';
-  const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
-  const value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || 'None';
-  return `${dict}[${key}] = ${value}\n`;
-};
-
-// New Generators
 Blockly.Python['on_reaction_add'] = function (block) {
   const msgId = block.getFieldValue('MESSAGE_ID');
   const emoji = block.getFieldValue('EMOJI');
