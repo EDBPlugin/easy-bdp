@@ -150,6 +150,59 @@ if __name__ == "__main__":
   return boilerplate.trim();
 };
 
+const generateJSCode = () => {
+  if (!workspace) return '';
+  let rawCode = Blockly.JavaScript.workspaceToCode(workspace);
+
+  const boilerplate = `
+// Easy Discord Bot Builderによって作成されました！ 製作：@himais0giiiin, @aiubrew!
+// Created with Easy Discord Bot Builder! created by @himais0giiiin, @aiubrew!
+
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const fs = require('fs');
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+  ],
+  partials: [Partials.Channel],
+});
+
+// ---JSON操作---
+function _load_json_data(filename) {
+    if (!fs.existsSync(filename)) {
+        return {};
+    }
+    try {
+        const data = fs.readFileSync(filename, 'utf-8');
+        return JSON.parse(data);
+    } catch (e) {
+        console.error(\`JSON Load Error: \${e}\`);
+        return {};
+    }
+}
+
+function _save_json_data(filename, data) {
+    try {
+        fs.writeFileSync(filename, JSON.stringify(data, null, 4), 'utf-8');
+    } catch (e) {
+        console.error(\`JSON Save Error: \${e}\`);
+    }
+}
+// ----------------------------
+
+// --- ユーザー作成部分 ---
+${rawCode}
+// --------------------------
+
+client.login('TOKEN'); // 実行時はここにTokenを入れてください!
+`;
+  return boilerplate.trim();
+};
+
 const updateLivePreview = () => {
   const code = generatePythonCode();
   const preview = document.getElementById('codePreviewContent');
@@ -176,6 +229,7 @@ const initializeApp = () => {
   const themeToggle = document.getElementById('themeToggle');
   // ヘッダーのコード生成ボタン
   const showCodeBtn = document.getElementById('showCodeBtn');
+  const showJsCodeBtn = document.getElementById('showJsCodeBtn');
   // モーダル関連
   const codeModal = document.getElementById('codeModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
@@ -376,6 +430,23 @@ const initializeApp = () => {
     codeModal.classList.remove('hidden');
     codeModal.classList.add('flex');
     // Force reflow
+    void codeModal.offsetWidth;
+    codeModal.classList.add('show-modal');
+  });
+
+  showJsCodeBtn.addEventListener('click', () => {
+    showJsCodeBtn.blur();
+    if (workspace) Blockly.hideChaff();
+    const code = generateJSCode();
+    document.getElementById('codeOutput').textContent = code;
+    document.querySelector('#codeModal h2').textContent = 'Botコード (JavaScript)';
+    document.querySelector('#codeModal ol').innerHTML = `
+      <li>以下のコードを <code class="px-1.5 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-mono">bot.js</code> という名前で保存します。</li>
+      <li>ターミナルで <code class="px-1.5 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-mono select-all">npm install discord.js</code> を実行します。</li>
+      <li><code class="px-1.5 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-mono select-all">node bot.js</code> を実行してBotを起動します。</li>
+    `;
+    codeModal.classList.remove('hidden');
+    codeModal.classList.add('flex');
     void codeModal.offsetWidth;
     codeModal.classList.add('show-modal');
   });
