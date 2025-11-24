@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Easy Discord Bot Builder v5.2</title>
+    <title>Easy Discord Bot Builder v5.3</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='16' fill='%236366f1' /%3E%3Cpath d='M20 42 Q32 52 44 42' stroke='white' stroke-width='4' fill='none' stroke-linecap='round' /%3E%3Ccircle cx='22' cy='26' r='6' fill='white' /%3E%3Ccircle cx='42' cy='26' r='6' fill='white' /%3E%3C/svg%3E">
 
@@ -249,7 +249,7 @@
             <div class="flex flex-col">
                 <h1 class="text-xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight flex items-center gap-3">
                     Easy Discord Bot Builder 
-                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-mono font-bold">v5.2</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-mono font-bold">v5.3</span>
                 </h1>
                 <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
                     Create by himais0giiiin!
@@ -284,7 +284,7 @@
                     <i data-lucide="download" class="w-4.5 h-4.5"></i>
                 </button>
                 
-                <!-- NEW: Documentation Button -->
+                <!-- Documentation Button -->
                 <a href="https://github.com/himais0giiiin/easy-bdc/wiki/Docs" target="_blank" rel="noopener noreferrer" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800" title="Documentation">
                     <i data-lucide="book-open" class="w-4.5 h-4.5"></i>
                 </a>
@@ -335,7 +335,7 @@
             </div>
         </div>
 
-        <!-- Toolbox Definition (内容変更なし) -->
+        <!-- Toolbox Definition -->
         <xml id="toolbox" style="display: none">
             <category name="イベント" colour="#e67e22">
                 <block type="on_ready"></block>
@@ -344,6 +344,19 @@
                 <block type="prefix_command"></block>
                 <block type="get_message_content"></block>
                 <block type="get_command_arg"></block>
+            </category>
+            
+            <category name="ボタン・フォーム" colour="#d63031">
+                <block type="send_button_message"></block>
+                <block type="on_button_click"></block>
+                <block type="show_modal"></block>
+                <block type="on_modal_submit"></block>
+                <block type="get_input_value"></block>
+            </category>
+
+            <category name="リアクション" colour="#e17055">
+                <block type="on_reaction_add"></block>
+                <block type="add_reaction"></block>
             </category>
             
             <category name="情報取得" colour="#8e44ad">
@@ -364,7 +377,6 @@
                 <block type="delete_message"></block>
                 <block type="purge_messages"></block>
                 <block type="pin_message"></block>
-                <block type="add_reaction"></block>
                 <block type="create_thread"></block>
             </category>
             
@@ -635,7 +647,15 @@
             Blockly.Blocks['random_integer'] = { init: function() { this.appendValueInput("FROM").setCheck("Number").appendField("🎲 乱数 (最小"); this.appendValueInput("TO").setCheck("Number").appendField("〜 最大"); this.appendDummyInput().appendField(")"); this.setInputsInline(true); this.setOutput(true, "Number"); this.setColour(230); } };
             Blockly.Blocks['text_replace'] = { init: function() { this.appendValueInput("TEXT").setCheck("String").appendField("テキスト"); this.appendValueInput("FROM").setCheck("String").appendField("の中の"); this.appendValueInput("TO").setCheck("String").appendField("を"); this.appendDummyInput().appendField("に置換する"); this.setInputsInline(true); this.setOutput(true, "String"); this.setColour(160); } };
 
-            // Code Generators (Include previous ones) - ロジック変更なし
+            // New Blocks
+            Blockly.Blocks['on_reaction_add'] = { init: function() { this.appendDummyInput().appendField("⭐ リアクションが付いたとき"); this.appendDummyInput().appendField("メッセージID(任意):").appendField(new Blockly.FieldTextInput(""), "MESSAGE_ID"); this.appendDummyInput().appendField("絵文字(任意):").appendField(new Blockly.FieldTextInput(""), "EMOJI"); this.appendStatementInput("DO").setCheck(null).appendField("実行する処理"); this.setColour(30); } };
+            Blockly.Blocks['send_button_message'] = { init: function() { this.appendValueInput("MESSAGE").setCheck("String").appendField("🔘 ボタン付きメッセージ送信"); this.appendDummyInput().appendField("ボタン名").appendField(new Blockly.FieldTextInput("Click Me"), "LABEL"); this.appendDummyInput().appendField("ボタンID").appendField(new Blockly.FieldTextInput("button_1"), "CUSTOM_ID"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setColour(350); } };
+            Blockly.Blocks['on_button_click'] = { init: function() { this.appendDummyInput().appendField("🖱️ ボタンがクリックされたとき"); this.appendDummyInput().appendField("ボタンID:").appendField(new Blockly.FieldTextInput("button_1"), "CUSTOM_ID"); this.appendStatementInput("DO").setCheck(null).appendField("実行する処理"); this.setColour(350); } };
+            Blockly.Blocks['show_modal'] = { init: function() { this.appendDummyInput().appendField("📝 モーダル(入力フォーム)を表示"); this.appendDummyInput().appendField("タイトル:").appendField(new Blockly.FieldTextInput("My Form"), "TITLE"); this.appendDummyInput().appendField("フォームID:").appendField(new Blockly.FieldTextInput("modal_1"), "CUSTOM_ID"); this.appendDummyInput().appendField("入力項目1:").appendField(new Blockly.FieldTextInput("Name"), "LABEL1"); this.appendDummyInput().appendField("入力項目2(任意):").appendField(new Blockly.FieldTextInput(""), "LABEL2"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setColour(350); } };
+            Blockly.Blocks['on_modal_submit'] = { init: function() { this.appendDummyInput().appendField("📩 モーダルが送信されたとき"); this.appendDummyInput().appendField("フォームID:").appendField(new Blockly.FieldTextInput("modal_1"), "CUSTOM_ID"); this.appendStatementInput("DO").setCheck(null).appendField("実行する処理"); this.setColour(350); } };
+            Blockly.Blocks['get_input_value'] = { init: function() { this.appendDummyInput().appendField("入力項目").appendField(new Blockly.FieldDropdown([ ["1つ目", "0"], ["2つ目", "1"] ]), "INDEX").appendField("の値"); this.setOutput(true, "String"); this.setColour(350); } };
+
+            // Code Generators (Include previous ones)
             const getBranchCode = (block, name) => {
                 let code = Blockly.Python.statementToCode(block, name);
                 if (!code || code.trim() === '') return Blockly.Python.INDENT + 'pass\n';
@@ -701,6 +721,14 @@
             Blockly.Python['dict_get'] = function(block) { const dict = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || '{}'; const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""'; return [`${dict}.get(${key})`, Blockly.Python.ORDER_FUNCTION_CALL]; };
             Blockly.Python['dict_set'] = function(block) { const dict = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || 'data'; const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""'; const value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || 'None'; return `${dict}[${key}] = ${value}\n`; };
 
+            // New Generators
+            Blockly.Python['on_reaction_add'] = function(block) { const msgId = block.getFieldValue('MESSAGE_ID'); const emoji = block.getFieldValue('EMOJI'); const branch = getBranchCode(block, 'DO'); return `\n@bot.event\nasync def on_raw_reaction_add(payload):\n    if payload.user_id == bot.user.id:\n        return\n    if '${msgId}' and str(payload.message_id) != '${msgId}':\n        return\n    if '${emoji}' and str(payload.emoji) != '${emoji}':\n        return\n    channel = bot.get_channel(payload.channel_id)\n    message = await channel.fetch_message(payload.message_id)\n    user = payload.member or bot.get_user(payload.user_id)\n    ctx = message\n${branch.trimEnd()}\n`; };
+            Blockly.Python['send_button_message'] = function(block) { const msg = Blockly.Python.valueToCode(block, 'MESSAGE', Blockly.Python.ORDER_NONE) || '""'; const label = block.getFieldValue('LABEL'); const customId = block.getFieldValue('CUSTOM_ID'); return `\nview = discord.ui.View()\nview.add_item(discord.ui.Button(label="${label}", custom_id="${customId}"))\nif 'ctx' in locals():\n    if isinstance(ctx, discord.Interaction):\n        await ctx.response.send_message(content=${msg}, view=view)\n    else:\n        await ctx.send(content=${msg}, view=view)\n`; };
+            Blockly.Python['on_button_click'] = function(block) { const customId = block.getFieldValue('CUSTOM_ID'); const branch = getBranchCode(block, 'DO'); return `\n# BUTTON_EVENT:${customId}\nasync def on_button_${customId}(interaction):\n    ctx = interaction\n    user = interaction.user\n    await interaction.response.defer()\n${branch.trimEnd()}\n`; };
+            Blockly.Python['show_modal'] = function(block) { const title = block.getFieldValue('TITLE'); const customId = block.getFieldValue('CUSTOM_ID'); const label1 = block.getFieldValue('LABEL1'); const label2 = block.getFieldValue('LABEL2'); let inputs = `[{"label": "${label1}", "id": "input_0"}]`; if(label2) inputs = `[{"label": "${label1}", "id": "input_0"}, {"label": "${label2}", "id": "input_1"}]`; return `\nif isinstance(ctx, discord.Interaction):\n    await ctx.response.send_modal(EasyModal(title="${title}", custom_id="${customId}", inputs=${inputs}))\n`; };
+            Blockly.Python['on_modal_submit'] = function(block) { const customId = block.getFieldValue('CUSTOM_ID'); const branch = getBranchCode(block, 'DO'); return `\n# MODAL_EVENT:${customId}\nasync def on_modal_${customId}(interaction):\n    ctx = interaction\n    user = interaction.user\n    await interaction.response.defer()\n${branch.trimEnd()}\n`; };
+            Blockly.Python['get_input_value'] = function(block) { const idx = block.getFieldValue('INDEX'); return [`interaction.data['components'][0]['components'][${idx}]['value']`, Blockly.Python.ORDER_ATOMIC]; };
+
             return { modernLightTheme, modernDarkTheme };
         };
         
@@ -711,6 +739,33 @@
             if (!workspace) return '';
             let rawCode = Blockly.Python.workspaceToCode(workspace);
             
+            // --- Event Handlers for Dynamic Components ---
+            let componentEvents = "";
+            let modalEvents = "";
+            
+            // Parse raw code to extract event handlers
+            const lines = rawCode.split('\n');
+            let filteredLines = [];
+            let currentEventName = null;
+            let currentEventBody = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                if (line.includes('# BUTTON_EVENT:')) {
+                    currentEventName = line.split(':')[1].trim();
+                    componentEvents += `        if interaction.data.get('custom_id') == '${currentEventName}':\n            await on_button_${currentEventName}(interaction)\n`;
+                    filteredLines.push(line); // Keep definition
+                } else if (line.includes('# MODAL_EVENT:')) {
+                    currentEventName = line.split(':')[1].trim();
+                    modalEvents += `        if interaction.data.get('custom_id') == '${currentEventName}':\n            await on_modal_${currentEventName}(interaction)\n`;
+                    filteredLines.push(line);
+                } else {
+                    filteredLines.push(line);
+                }
+            }
+            
+            rawCode = filteredLines.join('\n');
+
             // --- Optimized Boilerplate ---
             const boilerplate = `
 # Easy Discord Bot Builderによって作成されました！ 製作：@himais0giiiin
@@ -720,6 +775,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from discord import ui
 import random
 import asyncio
 import datetime
@@ -729,7 +785,6 @@ import os
 import logging
 
 # ロギング設定 (Logging Setup)
-# INFOレベル以上のログをコンソールに出力します
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 intents = discord.Intents.default()
@@ -742,13 +797,9 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # グローバルエラーハンドラー
 @bot.event
 async def on_command_error(ctx, error):
-    # コマンドが見つからないエラーは無視する (他のBotと競合しないように)
     if isinstance(error, commands.CommandNotFound):
         return
-    # その他のエラーはログに出力
     logging.error(f"Command Error: {error}")
-    # 開発用にメッセージを返すことも可能です (運用時はコメントアウト推奨)
-    # await ctx.send(f"⚠️ エラーが発生しました: {error}")
 
 # ---JSON操作---
 def _load_json_data(filename):
@@ -767,6 +818,25 @@ def _save_json_data(filename, data):
             json.dump(data, f, ensure_ascii=False, indent=4)
     except Exception as e:
         logging.error(f"JSON Save Error: {e}")
+
+# --- モーダルクラス ---
+class EasyModal(discord.ui.Modal):
+    def __init__(self, title, custom_id, inputs):
+        super().__init__(title=title, timeout=None, custom_id=custom_id)
+        for item in inputs:
+            self.add_item(discord.ui.TextInput(label=item['label'], custom_id=item['id']))
+
+# --- インタラクションハンドラー ---
+@bot.event
+async def on_interaction(interaction):
+    try:
+        if interaction.type == discord.InteractionType.component:
+${componentEvents || '            pass'}
+        elif interaction.type == discord.InteractionType.modal_submit:
+${modalEvents || '            pass'}
+    except Exception as e:
+        print(f"Interaction Error: {e}")
+
 # ----------------------------
 
 # --- ユーザー作成部分 ---
@@ -824,17 +894,29 @@ if __name__ == "__main__":
             if (savedTheme === 'dark') html.classList.add('dark');
             const initialTheme = savedTheme === 'dark' ? modernDarkTheme : modernLightTheme;
 
+            // --- パレット固定化の強制適用 (Zoom Fix) ---
+            // フライアウト（パレット）のスケールを常に1に固定するオーバーライド
+            Blockly.VerticalFlyout.prototype.getFlyoutScale = function() {
+                return 1;
+            };
+
             workspace = Blockly.inject(blocklyDiv, {
                 toolbox: toolbox,
                 horizontalLayout: false,
                 trashcan: true,
-                zoom: { controls: true, wheel: true, startScale: 1.0, maxScale: 3, minScale: 0.3, scaleSpeed: 1.2 },
+                zoom: { 
+                    controls: true, 
+                    wheel: true, 
+                    startScale: 1.0, 
+                    maxScale: 3, 
+                    minScale: 0.3, 
+                    scaleSpeed: 1.2 
+                },
                 renderer: 'zelos',
                 theme: initialTheme
             });
 
             // --- パレット（フライアウト）の固定設定 ---
-            // ブロックをドラッグした後もパレットが閉じないように設定
             if (workspace.getToolbox()) {
                 const flyout = workspace.getToolbox().getFlyout();
                 if (flyout) {
