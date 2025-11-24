@@ -1,5 +1,4 @@
-import Blocks from '../blocks';
-lucide.createIcons();
+import Blocks from './blocks.js';
 
 let workspace;
 const STORAGE_KEY = 'discord_bot_builder_workspace_v5';
@@ -215,6 +214,7 @@ const toggleTheme = (modernLightTheme, modernDarkTheme) => {
 };
 
 const initializeApp = () => {
+  lucide.createIcons();
   const { modernLightTheme, modernDarkTheme } = setupBlocklyEnvironment();
 
   const blocklyDiv = document.getElementById('blocklyDiv');
