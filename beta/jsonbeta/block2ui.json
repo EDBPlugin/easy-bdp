@@ -62,14 +62,13 @@
   },
 
   "on_command_executed": {
-    "title": "⚡ スラッシュコマンド /… を使われたとき",
+    "version": 2,
+    "title": "", 
     "type": "statement",
-    "fields": [
-      {
-        "name": "COMMAND_NAME",
-        "inputType": "text",
-        "default": "hello"
-      }
+    "fields":[
+      {"kind":"label", "text":"⚡ スラッシュコマンド /"},
+      { "inputType": "text", "name": "COMMAND_NAME", "default": "ping" },
+      {"kind":"label", "text":"を実行したとき"}
     ],
     "statements": ["DO"],
     "statementLabels": { "DO": "実行する処理" },
@@ -79,14 +78,13 @@
   },
 
   "prefix_command": {
-    "title": "🗣️ プレフィックスコマンド … を実行したとき",
+    "version": 2,
+    "title": "",
     "type": "statement",
     "fields": [
-      {
-        "name": "COMMAND_NAME",
-        "inputType": "text",
-        "default": "!ping"
-      }
+      {"kind":"label", "text":"🗣️ プレフィックスコマンド /"},
+      { "inputType": "text", "name": "COMMAND_NAME", "default": "ping" },
+      {"kind":"label", "text":"を実行したとき"}
     ],
     "statements": ["DO"],
     "statementLabels": { "DO": "実行する処理" },
@@ -96,23 +94,24 @@
   },
 
   "get_command_arg": {
-    "title": "コマンド引数 … の値",
+    "version": 2,
+    "title": "",
     "type": "output",
     "fields": [
-      {
-        "name": "ARG_NAME",
-        "inputType": "text",
-        "default": "name"
-      }
+      {"kind":"label", "text":"コマンド引数"},
+      { "inputType": "text", "name": "ARG_NAME", "default": "name" },
+      {"kind":"label", "text":"の値"}
     ],
     "output": ["String", "Number"],
     "color": 230
   },
 
   "get_user_info": {
-    "title": "👤 実行者(対象)の …",
+    "version": 2,
+    "title": "",
     "type": "output",
     "fields": [
+      { "kind": "label", "text": "実行者(対象)の" },
       {
         "name": "TYPE",
         "inputType": "dropdown",
@@ -129,9 +128,11 @@
   },
 
   "get_member_detail": {
+    "version": 2,
     "title": "👤 実行者(対象)の詳細:",
     "type": "output",
     "fields": [
+      {"kind":"label", "text":"実行者(対象)の"},
       {
         "name": "TYPE",
         "inputType": "dropdown",
@@ -147,9 +148,11 @@
     "color": 260
   },
 "get_channel_info": {
-    "title": "📺 現在の …",
+  "version": 2,
+    "title": "",
     "type": "output",
     "fields": [
+      { "kind": "label", "text": "現在の" },
       {
         "name": "TYPE",
         "inputType": "dropdown",
@@ -165,9 +168,11 @@
   },
 
   "get_server_info": {
-    "title": "🌐 サーバーの …",
+    "version": 2,
+    "title": "",
     "type": "output",
     "fields": [
+      { "kind": "label", "text": "サーバーの" },
       {
         "name": "TYPE",
         "inputType": "dropdown",
@@ -183,11 +188,14 @@
   },
 
   "member_has_role": {
-    "title": "❓ ユーザー がロール(ID) を持っている",
+    "version": 2,
+    "title": "",
     "type": "output",
-    "inputs": [
-      { "name": "USER", "check": "String" },
-      { "name": "ROLE_ID", "check": "String" }
+    "fields":[
+      { "kind": "label", "text": "ユーザー" },
+      { "kind": "value", "name": "USER", "check": "String" },
+      { "kind": "label", "text": "がロール(ID) を持っている" },
+      { "kind": "value", "name": "ROLE_ID", "check": "String" }
     ],
     "output": "Boolean",
     "color": 260
