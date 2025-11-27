@@ -1,5 +1,6 @@
 import Blocks from './blocks.js';
 import WorkspaceStorage from './storage.js';
+import { initShareFeature } from "./share.js";
 
 let workspace;
 let storage;
@@ -266,6 +267,12 @@ const initializeApp = () => {
   // --- ワークスペース保存クラスの初期化 ---
   storage = new WorkspaceStorage(workspace);
 
+  // --- Blocklyのブロック定義 ---
+  const { applySharedLayoutFromQuery } = initShareFeature({
+    workspace,
+    storage,
+  });
+
   // --- パレット（フライアウト）の固定設定 ---
   if (workspace.getToolbox()) {
     const flyout = workspace.getToolbox().getFlyout();
@@ -393,7 +400,10 @@ const initializeApp = () => {
   });
 
   // --- Load Saved Data ---
-  storage?.load();
+  const sharedApplied = applySharedLayoutFromQuery();
+  if (!sharedApplied) {
+    storage?.load();
+  }
 
   themeToggle.addEventListener('click', () => toggleTheme(modernLightTheme, modernDarkTheme));
 
