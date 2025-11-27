@@ -381,8 +381,8 @@
     "description": "文字列から指定位置の文字を取得",
     "category": "text",
     "return": "expression",
-    "placeholders": ["TEXT", "INDEX"],
-    "template": "{{TEXT}}[{{INDEX}}]"
+    "placeholders": ["VALUE", "WHERE", "AT"],
+    "template": "(lambda _text, _where, _at_raw: (lambda _at: (_text[int(_at) - 1] if _where == 'FROM_START' else (_text[0] if _where == 'FIRST' else (_text[-1] if _where == 'LAST' else (_text[-int(_at)] if _where == 'FROM_END' else _text[0])))))(_at_raw if str(_at_raw).strip() not in ('', 'None') else 1))({{VALUE}}, '{{WHERE}}', {{AT}})"
   },
 
   "controls_if": {

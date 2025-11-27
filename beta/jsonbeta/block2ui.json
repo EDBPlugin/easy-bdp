@@ -62,14 +62,13 @@
   },
 
   "on_command_executed": {
-    "title": "⚡ スラッシュコマンド /… を使われたとき",
+    "version": 2,
+    "title": "", 
     "type": "statement",
-    "fields": [
-      {
-        "name": "COMMAND_NAME",
-        "inputType": "text",
-        "default": "hello"
-      }
+    "fields":[
+      {"kind":"label", "text":"⚡ スラッシュコマンド /"},
+      { "inputType": "text", "name": "COMMAND_NAME", "default": "ping" },
+      {"kind":"label", "text":"を実行したとき"}
     ],
     "statements": ["DO"],
     "statementLabels": { "DO": "実行する処理" },
@@ -79,14 +78,13 @@
   },
 
   "prefix_command": {
-    "title": "🗣️ プレフィックスコマンド … を実行したとき",
+    "version": 2,
+    "title": "",
     "type": "statement",
     "fields": [
-      {
-        "name": "COMMAND_NAME",
-        "inputType": "text",
-        "default": "!ping"
-      }
+      {"kind":"label", "text":"🗣️ プレフィックスコマンド /"},
+      { "inputType": "text", "name": "COMMAND_NAME", "default": "ping" },
+      {"kind":"label", "text":"を実行したとき"}
     ],
     "statements": ["DO"],
     "statementLabels": { "DO": "実行する処理" },
@@ -96,23 +94,24 @@
   },
 
   "get_command_arg": {
-    "title": "コマンド引数 … の値",
+    "version": 2,
+    "title": "",
     "type": "output",
     "fields": [
-      {
-        "name": "ARG_NAME",
-        "inputType": "text",
-        "default": "name"
-      }
+      {"kind":"label", "text":"コマンド引数"},
+      { "inputType": "text", "name": "ARG_NAME", "default": "name" },
+      {"kind":"label", "text":"の値"}
     ],
     "output": ["String", "Number"],
     "color": 230
   },
 
   "get_user_info": {
-    "title": "👤 実行者(対象)の …",
+    "version": 2,
+    "title": "",
     "type": "output",
     "fields": [
+      { "kind": "label", "text": "実行者(対象)の" },
       {
         "name": "TYPE",
         "inputType": "dropdown",
@@ -129,9 +128,11 @@
   },
 
   "get_member_detail": {
+    "version": 2,
     "title": "👤 実行者(対象)の詳細:",
     "type": "output",
     "fields": [
+      {"kind":"label", "text":"実行者(対象)の"},
       {
         "name": "TYPE",
         "inputType": "dropdown",
@@ -147,9 +148,11 @@
     "color": 260
   },
 "get_channel_info": {
-    "title": "📺 現在の …",
+  "version": 2,
+    "title": "",
     "type": "output",
     "fields": [
+      { "kind": "label", "text": "現在の" },
       {
         "name": "TYPE",
         "inputType": "dropdown",
@@ -165,9 +168,11 @@
   },
 
   "get_server_info": {
-    "title": "🌐 サーバーの …",
+    "version": 2,
+    "title": "",
     "type": "output",
     "fields": [
+      { "kind": "label", "text": "サーバーの" },
       {
         "name": "TYPE",
         "inputType": "dropdown",
@@ -183,11 +188,14 @@
   },
 
   "member_has_role": {
-    "title": "❓ ユーザー がロール(ID) を持っている",
+    "version": 2,
+    "title": "",
     "type": "output",
-    "inputs": [
-      { "name": "USER", "check": "String" },
-      { "name": "ROLE_ID", "check": "String" }
+    "fields":[
+      { "kind": "label", "text": "ユーザー" },
+      { "kind": "value", "name": "USER", "check": "String" },
+      { "kind": "label", "text": "がロール(ID) を持っている" },
+      { "kind": "value", "name": "ROLE_ID", "check": "String" }
     ],
     "output": "Boolean",
     "color": 260
@@ -610,10 +618,13 @@
   },
 
   "create_role": {
+    "version" : "2",
     "title": "🔰 新規ロール作成",
     "type": "statement",
-    "inputs": [
-      { "name": "NAME", "check": "String" }
+    "fields" : [
+      {"kind" : "label", "text":"(名前"},
+      {"kind" : "value","name":"NAME", "check":"String"},
+      {"kind" : "label", "text":")"}
     ],
     "previous": true,
     "next": true,
@@ -621,11 +632,15 @@
   },
 
   "change_nickname": {
+    "version" : "2",
     "title": "🏷️ ニックネーム変更",
     "type": "statement",
-    "inputs": [
-      { "name": "USER_ID", "check": "String" },
-      { "name": "NAME", "check": "String" }
+    "fields" : [
+      {"kind" : "label", "text":"(ユーザーID"},
+      {"kind" : "value","name":"USER_ID", "check":"String"},
+      {"kind" : "label", "text":"、新しいニックネーム"},
+      {"kind" : "value","name":"NAME", "check":"String"},
+      {"kind" : "label", "text":")"}
     ],
     "previous": true,
     "next": true,
@@ -633,11 +648,15 @@
   },
 
   "lists_append_to": {
-    "title": "リストに項目を追加",
+    "version":2,
+    "title": "",
     "type": "statement",
-    "inputs": [
-      { "name": "LIST", "check": "Array" },
-      { "name": "ITEM", "check": null }
+    "fields" : [
+      {"kind" : "label", "text":"リスト"},
+      {"kind" : "value","name":"LIST", "check":"Array"},
+      {"kind" : "label", "text":"に項目"},
+      {"kind" : "value","name":"ITEM", "check":null},
+      {"kind" : "label", "text":"を追加"}
     ],
     "previous": true,
     "next": true,
@@ -645,46 +664,59 @@
   },
 
   "random_choice": {
-    "title": "🎲 リストからランダムに1つ選ぶ",
+    "version":2,
+    "title": "",
     "type": "output",
-    "inputs": [
-      { "name": "LIST", "check": "Array" }
+    "fields" : [
+      {"kind" : "label", "text":"🎲 リスト"},
+      {"kind" : "value","name":"LIST", "check":"Array"},
+      {"kind" : "label", "text":"からランダムに1つ選ぶ"}
     ],
     "output": null,
     "color": 230
   },
 
   "random_integer": {
-    "title": "🎲 乱数(最小〜最大)",
+    "version":2,
+    "title": "",
     "type": "output",
-    "inputs": [
-      { "name": "FROM", "check": "Number" },
-      { "name": "TO", "check": "Number" }
+    "fields" : [
+      {"kind" : "label", "text":"🎲 乱数(最小"},
+      {"kind" : "value","name":"FROM", "check":"Number"},
+      {"kind" : "label", "text":"～最大"},
+      {"kind" : "value","name":"TO", "check":"Number"},
+      {"kind" : "label", "text":")"}
     ],
     "output": "Number",
     "color": 230
   },
 
   "text_replace": {
-    "title": "テキストの置換",
+    "version":2,
+    "title": "",
     "type": "output",
-    "inputs": [
-      { "name": "TEXT", "check": "String" },
-      { "name": "FROM", "check": "String" },
-      { "name": "TO", "check": "String" }
+    "inline": ["TEXT", "FROM", "TO"],
+    "fields": [
+      { "kind": "label", "text": "テキスト " },
+      {"kind":"value","name":"TEXT", "check":"String"},
+      { "kind": "label", "text": "の中の" },
+      {"kind":"value","name":"FROM", "check":"String"},
+      { "kind": "label", "text": "を" },
+      {"kind":"value","name":"TO", "check":"String"},
+      { "kind": "label", "text": "に置換" }
     ],
+
     "output": "String",
     "color": 160
   },
 
   "text_charAt": {
-    "title": "テキストの文字取得",
+    "version": 2,
     "type": "output",
-    "inputs": [
-      { "name": "VALUE", "check": "String" },
-      { "name": "AT", "check": "Number" }
-    ],
     "fields": [
+      { "kind": "label", "text": "テキスト" },
+      { "kind": "value", "name": "VALUE", "check": "String" },
+      { "kind": "label", "text": " の " },
       {
         "name": "WHERE",
         "inputType": "dropdown",
@@ -694,7 +726,9 @@
           ["最初", "FIRST"],
           ["最後", "LAST"]
         ]
-      }
+      },
+      { "kind": "value", "name": "AT", "check": "Number" },
+      { "kind": "label", "text": " 文字" }
     ],
     "output": "String",
     "color": 160
