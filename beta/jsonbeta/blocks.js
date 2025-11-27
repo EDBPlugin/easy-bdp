@@ -76,6 +76,10 @@ export function generateBlocks() {
           }
 
           merged.forEach(f => {
+            if (f && f.kind === "\n") {
+              this._dummyLine = null;
+              return;
+            }
             const kind = f.kind || "input";
             if (kind === "label" || kind === "input") {
               if (!this._dummyLine) this._dummyLine = this.appendDummyInput();

@@ -209,12 +209,12 @@
   },
 
   "reply_message": {
-    "title": "↩️ 返信する",
+    "version": 2,
+    "title": "↩️",
     "type": "statement",
-    "inputs": [
-      { "name": "MESSAGE", "check": ["String", "Embed"] }
-    ],
     "fields": [
+      { "kind": "label", "text": "返信する" },
+      { "kind": "value", "name": "MESSAGE", "check": ["String", "Embed"] },
       {
         "name": "EPHEMERAL",
         "inputType": "checkbox",
@@ -228,11 +228,15 @@
   },
 
   "send_dm": {
-    "title": "📩 DMを送信",
+    "version": 2,
+    "title": "📩",
     "type": "statement",
-    "inputs": [
-      { "name": "USER_ID", "check": "String" },
-      { "name": "MESSAGE", "check": ["String", "Embed"] }
+    "fields": [
+      { "kind": "label", "text": "DMを送信(ユーザーID" },
+      { "kind": "value", "name": "USER_ID", "check": "String" },
+      { "kind": "label", "text": "メッセージ" },
+      { "kind": "value", "name": "MESSAGE", "check": ["String", "Embed"] },
+      {"kind":"label", "text":")"}
     ],
     "previous": true,
     "next": true,
@@ -255,10 +259,12 @@
     "color": 160
   },
   "edit_reply": {
-    "title": "✏️ 返信を編集する",
+    "version": 2,
+    "title": "✏️",
     "type": "statement",
-    "inputs": [
-      { "name": "MESSAGE", "check": ["String", "Embed"] }
+    "fields": [
+      { "kind": "label", "text": "返信を編集する" },
+      { "kind": "value", "name": "MESSAGE", "check": ["String", "Embed"] }
     ],
     "previous": true,
     "next": true,
@@ -266,12 +272,16 @@
   },
 
   "edit_message_by_id": {
-    "title": "✏️ メッセージを編集 (ID指定)",
+    "version": 2,
+    "title": "✏️",
     "type": "statement",
-    "inputs": [
-      { "name": "CHANNEL_ID", "check": "String" },
-      { "name": "MESSAGE_ID", "check": "String" },
-      { "name": "CONTENT", "check": "String" }
+    "fields": [
+      { "kind": "label", "text": "チャンネルID" },
+      { "kind": "value", "name": "CHANNEL_ID", "check": "String" },
+      { "kind": "label", "text": "メッセージID" },
+      { "kind": "value", "name": "MESSAGE_ID", "check": "String" },
+      { "kind": "label", "text": "新しい内容" },
+      { "kind": "value", "name": "CONTENT", "check": "String" }
     ],
     "previous": true,
     "next": true,
