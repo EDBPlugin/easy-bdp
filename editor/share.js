@@ -1,6 +1,13 @@
 // 共有用のクエリキーとステータス表示時間
 const SHARE_QUERY_KEY = 'share';
 const SHARE_STATUS_SHOW_MS = 2500;
+const BLOCKLY_CAPTURE_EXTRA_CSS = [
+  // 通常CSSでは対応しきれないBlocklyキャプチャ用の追加スタイル (SVGはfillで指定する必要があるため、ここで上書き)
+  ".blocklyText { fill:#fff !important; }",
+  ".blocklyEditableText { fill: #fff !important; }",
+  ".blocklyEditableText .blocklyText:not(.blocklyDropdownText) { fill:#000 !important; }",
+].join('');
+let blocklyOverrideCssCache = '';
 
 // クエリやハッシュを除いた共有用URLを生成
 // origin/pathname を組み立て直して「今開いているページの土台」を必ず使う
@@ -101,60 +108,51 @@ export const initShareFeature = ({
 
   const captureWorkspaceThumbnail = async () => {
     if (!workspace) throw new Error('WORKSPACE_NOT_READY');
-    const canvasSvg =
-      typeof workspace.getCanvas === 'function'
-        ? workspace.getCanvas()
-        : workspace.svgBlockCanvas_;
+
+    const canvasSvg = workspace.getCanvas?.() ?? workspace.svgBlockCanvas_;
     if (!canvasSvg) throw new Error('CANVAS_NOT_FOUND');
 
+    const blocks = workspace.getAllBlocks(false);
+    if (!blocks.length) throw new Error('NO_BLOCKS_FOUND');
+
     const clonedCanvas = canvasSvg.cloneNode(true);
-    clonedCanvas.removeAttribute('width');
-    clonedCanvas.removeAttribute('height');
-    clonedCanvas.removeAttribute('transform');
+    ['width', 'height', 'transform'].forEach((attr) =>
+      clonedCanvas.removeAttribute(attr)
+    );
 
-    const styleElem = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-    const cssPayload = Array.isArray(window.Blockly?.Css?.CONTENT)
-      ? window.Blockly.Css.CONTENT.join('')
-      : '';
-    styleElem.textContent =
-      cssPayload +
-      ".blocklyToolboxDiv {background: rgba(0, 0, 0, 0.05);} .blocklyMainBackground {stroke:none !important;} .blocklyTreeLabel, .blocklyText, .blocklyHtmlInput {font-family:'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;} .blocklyText { font-size:1rem !important;} .rtl .blocklyText {text-align:right;} .blocklyTreeLabel { font-size:1.25rem !important;} .blocklyCheckbox {fill: #ff3030 !important;text-shadow: 0px 0px 6px #f00;font-size: 17pt !important;}";
-    clonedCanvas.insertBefore(styleElem, clonedCanvas.firstChild);
+    const cssPayload = (window.Blockly?.Css?.CONTENT || []).join('') + BLOCKLY_CAPTURE_EXTRA_CSS;
+    clonedCanvas.insertAdjacentHTML('afterbegin', `<style>${cssPayload}</style>`);
 
-    let bbox;
-    try {
-      bbox = canvasSvg.getBBox();
-    } catch (error) {
-      bbox = { x: 0, y: 0, width: 0, height: 0 };
-    }
-    const hasBlocks = workspace.getAllBlocks(false).length > 0;
+    const bbox = canvasSvg.getBBox();
     const padding = 32;
     const minDimension = 64;
-    const bboxWidth = hasBlocks ? bbox.width : 480;
-    const bboxHeight = hasBlocks ? bbox.height : 320;
-    const viewWidth = Math.max(minDimension, Math.ceil(bboxWidth + padding * 2));
-    const viewHeight = Math.max(minDimension, Math.ceil(bboxHeight + padding * 2));
-    const viewX = hasBlocks ? bbox.x - padding : -padding;
-    const viewY = hasBlocks ? bbox.y - padding : -padding;
+    const viewWidth = Math.max(minDimension, Math.ceil(bbox.width + padding * 2));
+    const viewHeight = Math.max(minDimension, Math.ceil(bbox.height + padding * 2));
+    const viewX = bbox.x - padding;
+    const viewY = bbox.y - padding;
 
-    const serializer = new XMLSerializer();
-    const xml = serializer.serializeToString(clonedCanvas);
-    const svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${viewWidth}" height="${viewHeight}" viewBox="${viewX} ${viewY} ${viewWidth} ${viewHeight}"><rect width="100%" height="100%" fill="white"></rect>${xml}</svg>`;
+    const xml = new XMLSerializer().serializeToString(clonedCanvas);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${viewWidth}" height="${viewHeight}" viewBox="${viewX} ${viewY} ${viewWidth} ${viewHeight}">${xml}</svg>`;
+
+    // // DEBUG: コメントアウト解除して直接SVGを表示 (デバッグ用)
+    // shareThumbnailWrapper.innerHTML = svg;
+
     const svgDataUrl = toBase64Svg(svg);
     const scaleFactor = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
 
     return await new Promise((resolve, reject) => {
-      const img = document.createElement('img');
+      const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = Math.ceil(viewWidth * scaleFactor);
         canvas.height = Math.ceil(viewHeight * scaleFactor);
         const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('CANVAS_CONTEXT_NOT_AVAILABLE'));
         ctx.scale(scaleFactor, scaleFactor);
         ctx.drawImage(img, 0, 0);
         resolve(canvas.toDataURL('image/png'));
       };
-      img.onerror = (error) => reject(error);
+      img.onerror = reject;
       img.src = svgDataUrl;
     });
   };
