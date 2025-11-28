@@ -1,8 +1,17 @@
-# Easy Discord Bot Builder (EDBB)
+<div align="center">
 
+
+<h1><img src="https://github.com/user-attachments/assets/85370508-c684-4084-b979-51e918d7e0e8" alt="EDBB Icon" style="width: 1em; height: 1em;"">Easy Discord Bot Builder (EDBB)</h1>
+  
+![EDBBCounter](https://count.getloli.com/@easybdc)
+
+![Skills](https://skillicons.dev/icons?i=discord,js,py,html,css,tailwind)<br><br>
 ![Discord](https://badgen.net/discord/members/CmEGugrsje)  
-![MIT](https://badgen.net/static/license/MIT/blue)  
-Easy Discord Bot Builder は、ブラウザ上でブロックを組み合わせて、誰でも簡単に Discord Bot を作成できるビジュアルプログラミングツールです。
+![MIT](https://badgen.net/static/license/MIT/blue)
+
+</div>
+
+<i><b>Easy Discord Bot Builder は、ブラウザ上でブロックを組み合わせて、誰でも簡単に Discord Bot を作成できるビジュアルプログラミングツールです。</i></b>
 
 ## 🚀 概要
 
@@ -50,11 +59,15 @@ cd easy-bdc-forked
 
 このプロジェクトは [MIT License](LICENSE) の下で公開されています。
 
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=himais0giiiin/easy-bdc&type=date&legend=top-left)](https://www.star-history.com/?repos=journey-ad/Moe-Counter&type=Date#himais0giiiin/easy-bdc&type=date&legend=top-left)
+
 ## 💻 貢献するためには?
 
 1. 開発者に金を貢ぎましょう。ドメイン代って高いんですよ。
 2. issue を送り付けましょう。仕事が増えます。
 3. 開発に協力してみましょう。
 
-ko-fiはこちら
+ko-fi はこちら
 https://ko-fi.com/himais0giiiin
