@@ -394,6 +394,19 @@ const initializeApp = () => {
     setTimeout(updatePinState, 50);
   };
   document.getElementById('blocklyDiv').appendChild(pinBtn);
+  // ピン留めボタンの表示/非表示切り替え
+  const syncPinVisibility = (isViewOnly = shareFeature.isShareViewMode()) => {
+    pinBtn.classList.toggle('hidden', isViewOnly);
+    pinBtn.setAttribute('aria-hidden', isViewOnly ? 'true' : 'false');
+  };
+  // 共有リンクの閲覧モードではユーザーにツールボックス表示切替を触らせない
+  shareFeature.onShareViewModeChange((isViewOnly) => {
+    syncPinVisibility(isViewOnly);
+    if (!isViewOnly) {
+      setTimeout(updatePinState, 50);
+    }
+  });
+  syncPinVisibility();
   setTimeout(updatePinState, 100);
   window.addEventListener('resize', () => {
     Blockly.svgResize(workspace);

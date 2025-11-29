@@ -64,6 +64,7 @@ export const initShareFeature = ({
   let shareStatusTimer;
   let pendingShareEncoded = '';
   let shareViewMode = false;
+  const shareViewModeListeners = new Set();
   // モーダル内のテキストボックスでURLの先頭(https...)が常に見えるようにする小技
   // setSelectionRangeを使えるブラウザでは0~lengthを選択して即座にコピーできる状態にする
   const ensureUrlVisible = () => {
@@ -108,6 +109,13 @@ export const initShareFeature = ({
   const setShareViewMode = (enabled) => {
     shareViewMode = enabled;
     applyShareViewUiState();
+    shareViewModeListeners.forEach((listener) => {
+      try {
+        listener(shareViewMode);
+      } catch (error) {
+        console.error('share view mode listener failed', error);
+      }
+    });
   };
 
   const toBase64Svg = (svgString) =>
@@ -328,18 +336,16 @@ export const initShareFeature = ({
     if (!encoded) return false;
 
     pendingShareEncoded = encoded;
-    shareViewMode = true;
     try {
       importSharedLayoutPayload(encoded);
-      applyShareViewUiState();
+      setShareViewMode(true);
       showShareStatus('共有レイアウトを閲覧専用で開いています', 'info');
       return true;
     } catch (error) {
       console.warn('Failed to read shared layout', error);
       showShareStatus('共有データを適用できませんでした', 'error');
       pendingShareEncoded = '';
-      shareViewMode = false;
-      applyShareViewUiState();
+      setShareViewMode(false);
       if (typeof window.history.replaceState === 'function') {
         window.history.replaceState({}, '', window.location.pathname);
       }
@@ -508,5 +514,15 @@ export const initShareFeature = ({
   return {
     applySharedLayoutFromQuery,
     isShareViewMode: () => shareViewMode,
+    onShareViewModeChange: (listener) => {
+      if (typeof listener !== 'function') return () => {};
+      shareViewModeListeners.add(listener);
+      try {
+        listener(shareViewMode);
+      } catch (error) {
+        console.error('share view mode listener failed', error);
+      }
+      return () => shareViewModeListeners.delete(listener);
+    },
   };
 };
