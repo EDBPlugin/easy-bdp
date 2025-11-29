@@ -2,6 +2,28 @@
 const SHARE_QUERY_KEY = 'share';
 const SHARE_STATUS_SHOW_MS = 2500;
 const SHARE_SHORTENER_ENDPOINT = 'https://share.himais0giiiin.com/share/create';
+const SHARE_IMPORT_SKIP_KEY = 'share_import_dialog_skip';
+
+// 共有インポート確認ダイアログの表示設定を取得・保存
+const getShareImportSkipPreference = () => {
+  try {
+    return window.localStorage?.getItem(SHARE_IMPORT_SKIP_KEY) === '1';
+  } catch (error) {
+    return false;
+  }
+};
+
+const setShareImportSkipPreference = (shouldSkip) => {
+  try {
+    if (shouldSkip) {
+      window.localStorage?.setItem(SHARE_IMPORT_SKIP_KEY, '1');
+    } else {
+      window.localStorage?.removeItem(SHARE_IMPORT_SKIP_KEY);
+    }
+  } catch (error) {
+    // localStorage may be unavailable (private mode等)
+  }
+};
 const BLOCKLY_CAPTURE_EXTRA_CSS = [
   // 通常CSSでは対応しきれないBlocklyキャプチャ用の追加スタイル (SVGはfillで指定する必要があるため、ここで上書き)
   ".blocklyText { fill:#fff !important; }",
@@ -53,6 +75,7 @@ export const initShareFeature = ({
   const shareImportDownloadBtn = document.getElementById('shareImportDownloadBtn');
   const shareImportConfirmBtn = document.getElementById('shareImportConfirmBtn');
   const shareImportCancelBtn = document.getElementById('shareImportCancelBtn');
+  const shareImportSkipCheckbox = document.getElementById('shareImportSkipCheckbox');
   const shareViewOverlay = document.getElementById('shareViewOverlay');
   const shareViewStartEditingBtn = document.getElementById('shareViewStartEditingBtn');
   const shareThumbnailWrapper = document.getElementById('shareThumbnailWrapper');
@@ -253,6 +276,9 @@ export const initShareFeature = ({
 
   const showShareImportModal = () => {
     if (!shareImportModal) return;
+    if (shareImportSkipCheckbox) {
+      shareImportSkipCheckbox.checked = getShareImportSkipPreference();
+    }
     shareImportModal.setAttribute('aria-hidden', 'false');
     shareImportModal.classList.remove('hidden');
     shareImportModal.classList.add('flex');
@@ -480,6 +506,10 @@ export const initShareFeature = ({
   if (shareViewStartEditingBtn) {
     shareViewStartEditingBtn.addEventListener('click', () => {
       if (!shareViewMode) return;
+      if (getShareImportSkipPreference()) {
+        handleShareImportConfirm();
+        return;
+      }
       showShareImportModal();
     });
   }
@@ -497,6 +527,11 @@ export const initShareFeature = ({
   }
   if (shareImportModalClose) {
     shareImportModalClose.addEventListener('click', handleShareImportCancel);
+  }
+  if (shareImportSkipCheckbox) {
+    shareImportSkipCheckbox.addEventListener('change', (event) => {
+      setShareImportSkipPreference(Boolean(event.target.checked));
+    });
   }
   if (shareImportModal) {
     shareImportModal.addEventListener('click', (event) => {
