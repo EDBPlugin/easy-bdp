@@ -212,9 +212,8 @@ export const initShareFeature = ({
     if (!window.LZString || typeof window.LZString.compressToEncodedURIComponent !== 'function') {
       throw new Error('LZSTRING_NOT_AVAILABLE');
     }
-    const xml = Blockly.Xml.workspaceToDom(workspace);
-    const xmlText = Blockly.Xml.domToText(xml);
-    const encoded = window.LZString.compressToEncodedURIComponent(xmlText);
+    const serialized = storage.exportText({ pretty: false });
+    const encoded = window.LZString.compressToEncodedURIComponent(serialized);
     if (!encoded) throw new Error('ENCODE_FAILED');
     return `${getBaseShareUrl()}?${SHARE_QUERY_KEY}=${encoded}`;
   };
