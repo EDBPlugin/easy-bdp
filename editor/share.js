@@ -161,7 +161,7 @@ export const initShareFeature = ({
     shareThumbnailDataUrl = '';
     if (shareThumbnailCopyBtn) shareThumbnailCopyBtn.disabled = true;
     if (state === 'loading') {
-      shareThumbnailMessage.textContent = 'ワークスペースを撮影しています...';
+      shareThumbnailMessage.textContent = 'ブロックエリアを撮影しています...';
     } else if (state === 'error') {
       shareThumbnailMessage.textContent = 'サムネイルの生成に失敗しました。再試行してください。';
     } else {
@@ -363,7 +363,7 @@ export const initShareFeature = ({
     try {
       importSharedLayoutPayload(encoded);
       setShareViewMode(true);
-      showShareStatus('共有レイアウトを閲覧専用で開いています', 'info');
+      showShareStatus('共有ブロックを閲覧専用で開いています', 'info');
       return true;
     } catch (error) {
       console.warn('Failed to read shared layout', error);
@@ -388,7 +388,7 @@ export const initShareFeature = ({
     }
     try {
       importSharedLayoutPayload(pendingShareEncoded);
-      showShareStatus('共有レイアウトの編集を開始します', 'success');
+      showShareStatus('共有ブロックの編集を開始します', 'success');
       finalizeShareImport(true);
     } catch (error) {
       console.warn('Failed to read shared layout', error);
@@ -404,7 +404,7 @@ export const initShareFeature = ({
 
   const handleShareImportCancel = () => {
     if (!isShareImportModalOpen()) return;
-    showShareStatus('共有レイアウトの読み込みをキャンセルしました', 'info');
+    showShareStatus('共有ブロックの読み込みをキャンセルしました', 'info');
     finalizeShareImport(false);
   };
 
