@@ -1,3 +1,64 @@
+// 共有リンク用にワークスペースのJSONを極小化・圧縮するクラス
+// IDデータを削除し、LZStringで圧縮してURLエンコード可能な形式に変換する
+class WorkspaceShareCodec {
+  static compress(workspace) {
+    if (!workspace) return '';
+    const lz = typeof window !== 'undefined' ? window.LZString : undefined;
+    if (!lz?.compressToEncodedURIComponent) {
+      console.error('LZStringが利用できないため圧縮できません。');
+      return '';
+    }
+    try {
+      // 生のBlocklyデータからIDを間引いたうえでJSON→LZ圧縮する
+      const raw = Blockly.serialization.workspaces.save(workspace);
+      const stripped = WorkspaceShareCodec.#stripIds(raw);
+      const payload = JSON.stringify(stripped);
+      const compressed = lz.compressToEncodedURIComponent(payload);
+      if (!compressed) throw new Error('圧縮に失敗しました。');
+      return compressed;
+    } catch (error) {
+      console.error('ワークスペースの圧縮に失敗しました。', error);
+      return '';
+    }
+  }
+
+  static decompress(encoded, workspace) {
+    if (!workspace || !encoded) return false;
+    const lz = typeof window !== 'undefined' ? window.LZString : undefined;
+    if (!lz?.decompressFromEncodedURIComponent) {
+      console.error('LZStringが利用できないため復号できません。');
+      return false;
+    }
+    try {
+      const text = lz.decompressFromEncodedURIComponent(encoded);
+      if (!text) throw new Error('データを展開できませんでした。');
+      // 復号後はJSONを戻してそのままBlocklyへ読み込む
+      const payload = JSON.parse(text);
+      Blockly.serialization.workspaces.load(payload, workspace);
+      return true;
+    } catch (error) {
+      console.error('圧縮ワークスペースの読み込みに失敗しました。', error);
+      return false;
+    }
+  }
+
+  static #stripIds(value) {
+    if (Array.isArray(value)) {
+      return value.map((item) => WorkspaceShareCodec.#stripIds(item));
+    }
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+    // ブロック間の参照に不要なidだけを落としてサイズ削減
+    const result = {};
+    for (const [key, val] of Object.entries(value)) {
+      if (key === 'id') continue;
+      result[key] = WorkspaceShareCodec.#stripIds(val);
+    }
+    return result;
+  }
+}
+
 export default class WorkspaceStorage {
   static STORAGE_KEY = 'discord_bot_builder_workspace_v5';
   static DOWNLOAD_NAME = 'bot-project.json';
@@ -53,6 +114,16 @@ export default class WorkspaceStorage {
     } catch (error) {
       return false;
     }
+  }
+
+  // 共有URL向けの極小データを生成
+  exportMinified() {
+    return WorkspaceShareCodec.compress(this.#workspace);
+  }
+
+  // 極小データを復元
+  importMinified(encoded) {
+    return WorkspaceShareCodec.decompress(encoded, this.#workspace);
   }
 
   // 現在のワークスペース状態をlocalStorageへ保存

@@ -206,14 +206,9 @@ export const initShareFeature = ({
   };
 
   // ワークスペースをURI安全な文字列にして共有URLを返却
-  // LZStringのEncodedURIComponent版を使うことで=や/を含まない短いクエリに圧縮できる
   const generateShareUrl = () => {
-    if (!workspace) throw new Error('WORKSPACE_NOT_READY');
-    if (!window.LZString || typeof window.LZString.compressToEncodedURIComponent !== 'function') {
-      throw new Error('LZSTRING_NOT_AVAILABLE');
-    }
-    const serialized = storage.exportText({ pretty: false });
-    const encoded = window.LZString.compressToEncodedURIComponent(serialized);
+    if (!workspace || !storage) throw new Error('WORKSPACE_NOT_READY');
+    const encoded = storage.exportMinified();
     if (!encoded) throw new Error('ENCODE_FAILED');
     return `${getBaseShareUrl()}?${SHARE_QUERY_KEY}=${encoded}`;
   };
@@ -225,16 +220,10 @@ export const initShareFeature = ({
     const encoded = params.get(SHARE_QUERY_KEY);
     if (!encoded) return false;
 
-    if (!window.LZString || typeof window.LZString.decompressFromEncodedURIComponent !== 'function') {
-      showShareStatus('共有データの読み込みに失敗しました', 'error');
-      return false;
-    }
-
     try {
-      const xmlText = window.LZString.decompressFromEncodedURIComponent(encoded);
-      if (!xmlText) throw new Error('DECODE_RESULT_EMPTY');
-      const loaded = storage?.importText(xmlText);
-      if (!loaded) throw new Error('LOAD_FAILED');
+      if (!storage || !storage.importMinified(encoded)) {
+        throw new Error('LOAD_FAILED');
+      }
       showShareStatus('共有レイアウトを読み込みました', 'success');
       if (typeof window.history.replaceState === 'function') {
         window.history.replaceState({}, '', window.location.pathname);
