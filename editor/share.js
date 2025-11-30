@@ -3,6 +3,7 @@ const SHARE_QUERY_KEY = 'share';
 const SHARE_STATUS_SHOW_MS = 2500;
 const SHARE_SHORTENER_ENDPOINT = '/share/create';
 const SHARE_IMPORT_SKIP_KEY = 'share_import_dialog_skip';
+const SHARE_CANONICAL_ORIGIN = 'https://share.himais0giiiin.com';
 const BLOCKLY_CAPTURE_EXTRA_CSS = [
   '.blocklyText { fill:#fff !important; }',
   '.blocklyEditableText { fill: #fff !important; }',
@@ -907,10 +908,17 @@ class ShareFeature {
 
   // 共有URLを組み立て
   buildShareUrl(encoded) {
-    const { origin, pathname } = window.location;
+    const { origin, pathname, host } = window.location;
+    const shouldUseCanonical =
+      typeof host === 'string' &&
+      (host === 'himais0giiiin.com' || host.endsWith('.himais0giiiin.com'));
+    const baseOrigin =
+      shouldUseCanonical && origin !== SHARE_CANONICAL_ORIGIN
+        ? SHARE_CANONICAL_ORIGIN
+        : origin;
     const base =
-      origin && origin !== 'null'
-        ? `${origin}${pathname}`
+      baseOrigin && baseOrigin !== 'null'
+        ? `${baseOrigin}${pathname}`
         : window.location.href.split('?')[0].split('#')[0];
     return `${base}?${SHARE_QUERY_KEY}=${encoded}`;
   }
