@@ -468,36 +468,36 @@ const initializeApp = () => {
 
   // --- Initialize Plugin Manager ---
   pluginManager = new PluginManager(workspace, Blockly);
-  
+
   // --- EDBP Plugin Loader Modal Logic ---
   const edbpBtn = document.getElementById('edbpBtn');
   const edbpModal = document.getElementById('edbpModal');
   const closeEdpbModalBtn = document.getElementById('closeEdpbModalBtn');
-  
+
   // Tab switching
   const tabButtons = document.querySelectorAll('.edbp-tab-btn');
   const tabContents = document.querySelectorAll('.edbp-tab-content');
-  
+
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const targetTab = btn.getAttribute('data-tab');
-      
+
       // Update active state
       tabButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      
+
       // Show corresponding content
       tabContents.forEach(content => {
         content.classList.add('hidden');
       });
-      
+
       // Map tab names to content IDs
       const tabContentMap = {
         'list': 'edbpContentList',
         'dl': 'edbpContentDL',
         'shop': 'edbpContentShop'
       };
-      
+
       const contentId = tabContentMap[targetTab];
       if (contentId) {
         const contentElement = document.getElementById(contentId);
@@ -505,7 +505,7 @@ const initializeApp = () => {
           contentElement.classList.remove('hidden');
         }
       }
-      
+
       // Load content based on tab
       if (targetTab === 'list') {
         loadPluginList();
@@ -515,12 +515,12 @@ const initializeApp = () => {
       // DLタブは既にHTMLにコンテンツがあるので、特別な読み込みは不要
     });
   });
-  
+
   // Load plugin list
   const loadPluginList = () => {
     const plugins = pluginManager.loadInstalledPlugins();
     const listContainer = document.getElementById('edbpPluginList');
-    
+
     if (plugins.length === 0) {
       listContainer.innerHTML = `
         <div class="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -531,20 +531,20 @@ const initializeApp = () => {
       lucide.createIcons();
       return;
     }
-    
+
     listContainer.innerHTML = plugins.map(plugin => {
       const isLoaded = pluginManager.loadedPlugins.has(plugin.id);
       const isEnabled = plugin.enabled !== false;
-      
+
       return `
       <div class="edbp-plugin-card">
         <div class="flex items-center justify-between">
           <div class="flex-grow min-w-0">
             <div class="flex items-center gap-2 mb-1">
               <h4 class="font-bold text-slate-800 dark:text-white text-base">${plugin.name}</h4>
-              ${plugin.official ? '<span class="edbp-plugin-official"><i data-lucide="shield-check" class="w-3 h-3"></i>公式</span>' : 
-                plugin.approved ? '<span class="edbp-plugin-approved"><i data-lucide="shield" class="w-3 h-3"></i>公認</span>' : 
-                '<span class="edbp-plugin-unofficial"><i data-lucide="alert-triangle" class="w-3 h-3"></i>非公式</span>'}
+              ${plugin.official ? '<span class="edbp-plugin-official"><i data-lucide="shield-check" class="w-3 h-3"></i>公式</span>' :
+          plugin.approved ? '<span class="edbp-plugin-approved"><i data-lucide="shield" class="w-3 h-3"></i>公認</span>' :
+            '<span class="edbp-plugin-unofficial"><i data-lucide="alert-triangle" class="w-3 h-3"></i>非公式</span>'}
             </div>
             <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">${plugin.description || '説明なし'}</p>
             <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-500">
@@ -557,9 +557,6 @@ const initializeApp = () => {
               <input type="checkbox" class="edbp-plugin-toggle sr-only peer" data-plugin-id="${plugin.id}" ${isEnabled ? 'checked' : ''}>
               <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-purple-600"></div>
             </label>
-            <button class="edbp-load-plugin-btn p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors" data-plugin-id="${plugin.id}" title="読み込む">
-              <i data-lucide="play" class="w-4 h-4"></i>
-            </button>
             <button class="edbp-uninstall-plugin-btn p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors" data-plugin-id="${plugin.id}" title="アンインストール">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
@@ -568,9 +565,9 @@ const initializeApp = () => {
       </div>
     `;
     }).join('');
-    
+
     lucide.createIcons();
-    
+
     // Event listeners for plugin actions
     document.querySelectorAll('.edbp-load-plugin-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -585,7 +582,7 @@ const initializeApp = () => {
         }
       });
     });
-    
+
     document.querySelectorAll('.edbp-uninstall-plugin-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const pluginId = btn.getAttribute('data-plugin-id');
@@ -596,20 +593,20 @@ const initializeApp = () => {
         }
       });
     });
-    
+
     // Toggle switch handlers
     document.querySelectorAll('.edbp-plugin-toggle').forEach(toggle => {
       toggle.addEventListener('change', async (e) => {
         const pluginId = toggle.getAttribute('data-plugin-id');
         const isEnabled = toggle.checked;
         const plugin = pluginManager.plugins.get(pluginId);
-        
+
         if (!plugin) return;
-        
+
         // プラグインの有効/無効状態を更新
         plugin.enabled = isEnabled;
         pluginManager.savePlugins();
-        
+
         if (isEnabled) {
           // 有効化: プラグインを読み込む
           const result = await pluginManager.loadPlugin(pluginId);
@@ -627,15 +624,15 @@ const initializeApp = () => {
           pluginManager.unloadPlugin(pluginId);
           Blockly.svgResize(workspace);
         }
-        
+
         loadPluginList(); // リストを更新
       });
     });
   };
-  
+
   // Shop plugins data storage
   let shopPluginsData = [];
-  
+
   // Load shop plugins
   const loadShopPlugins = async () => {
     const shopContainer = document.getElementById('edbpShopList');
@@ -646,7 +643,7 @@ const initializeApp = () => {
       </div>
     `;
     lucide.createIcons();
-    
+
     try {
       shopPluginsData = await pluginManager.fetchGitHubPlugins();
       renderShopPlugins(shopPluginsData);
@@ -660,11 +657,11 @@ const initializeApp = () => {
       lucide.createIcons();
     }
   };
-  
+
   // Render shop plugins with filtering
   const renderShopPlugins = (plugins) => {
     const shopContainer = document.getElementById('edbpShopList');
-    
+
     if (plugins.length === 0) {
       shopContainer.innerHTML = `
         <div class="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -675,11 +672,11 @@ const initializeApp = () => {
       lucide.createIcons();
       return;
     }
-    
+
     shopContainer.innerHTML = plugins.map(plugin => {
       const isInstalled = pluginManager.plugins.has(plugin.id);
       const canInstall = plugin.official || plugin.approved; // 公式または公認はインストール可能
-      
+
       // バッジの決定: 公式 > 公認 > なし
       let badgeHtml = '';
       if (plugin.official) {
@@ -687,7 +684,7 @@ const initializeApp = () => {
       } else if (plugin.approved) {
         badgeHtml = '<span class="edbp-plugin-approved"><i data-lucide="shield" class="w-3 h-3"></i>公認</span>';
       }
-      
+
       return `
         <div class="edbp-plugin-card" data-plugin-name="${plugin.name.toLowerCase()}" data-plugin-author="${plugin.author.toLowerCase()}" data-plugin-description="${(plugin.description || '').toLowerCase()}">
           <div class="flex items-start justify-between">
@@ -713,34 +710,34 @@ const initializeApp = () => {
               </div>
             </div>
             <div class="flex items-center gap-2 ml-4">
-              ${isInstalled 
-                ? '<span class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm rounded-lg">インストール済み</span>'
-                : canInstall
-                  ? `<button class="edbp-install-shop-plugin-btn px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors flex items-center gap-1" data-plugin-url="${plugin.downloadUrl}" data-plugin-id="${plugin.id}">
+              ${isInstalled
+          ? '<span class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm rounded-lg">インストール済み</span>'
+          : canInstall
+            ? `<button class="edbp-install-shop-plugin-btn px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors flex items-center gap-1" data-plugin-url="${plugin.downloadUrl}" data-plugin-id="${plugin.id}">
                       <i data-lucide="download" class="w-4 h-4"></i>
                       <span>インストール</span>
                     </button>`
-                  : '<span class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm rounded-lg opacity-50">表示のみ</span>'
-              }
+            : '<span class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm rounded-lg opacity-50">表示のみ</span>'
+        }
             </div>
           </div>
         </div>
       `;
     }).join('');
-    
+
     lucide.createIcons();
-    
+
     // Install button handlers
     document.querySelectorAll('.edbp-install-shop-plugin-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const pluginUrl = btn.getAttribute('data-plugin-url');
         const pluginId = btn.getAttribute('data-plugin-id');
-        
+
         if (!pluginUrl) {
           alert('ダウンロードURLが設定されていません');
           return;
         }
-        
+
         // インストール情報をLocalStorageに保存（自動インストール用）
         const installInfo = {
           url: pluginUrl,
@@ -748,21 +745,21 @@ const initializeApp = () => {
           timestamp: Date.now()
         };
         localStorage.setItem('edbp_pending_install', JSON.stringify(installInfo));
-        
+
         btn.disabled = true;
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';
         lucide.createIcons();
-        
+
         try {
           let response;
           let fetchUrl = pluginUrl;
-          
+
           // Cloudflare Workerのプロキシ経由で取得を試みる
           // 現在のドメインからプロキシにアクセス
           const currentOrigin = window.location.origin;
           const proxyUrl = `${currentOrigin}/proxy/${encodeURIComponent(pluginUrl)}`;
-          
+
           try {
             // まずプロキシ経由で試す
             response = await fetch(proxyUrl, {
@@ -770,7 +767,7 @@ const initializeApp = () => {
               mode: 'cors',
               cache: 'no-cache'
             });
-            
+
             // プロキシが404やエラーを返した場合は直接取得を試す
             if (!response.ok && response.status !== 200) {
               throw new Error('Proxy failed');
@@ -791,13 +788,13 @@ const initializeApp = () => {
               throw directError;
             }
           }
-          
+
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
           const blob = await response.blob();
           const file = new File([blob], `${pluginId}.zip`, { type: 'application/zip' });
-          
+
           // プログレス表示用のモーダルを作成
           const progressModal = document.createElement('div');
           progressModal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm';
@@ -815,20 +812,20 @@ const initializeApp = () => {
           `;
           document.body.appendChild(progressModal);
           lucide.createIcons();
-          
+
           const progressText = document.getElementById('shopProgressText');
           const progressBar = document.getElementById('shopProgressBar');
-          
+
           const result = await pluginManager.installFromZip(file, (progress) => {
             if (progressText) progressText.textContent = progress.step;
             if (progressBar) progressBar.style.width = `${progress.progress}%`;
           });
-          
+
           progressModal.remove();
-          
+
           // インストール成功したらLocalStorageから削除
           localStorage.removeItem('edbp_pending_install');
-          
+
           if (result.success) {
             alert(`プラグイン「${result.plugin.name}」をインストールしました`);
             loadShopPlugins();
@@ -846,23 +843,23 @@ const initializeApp = () => {
         }
       });
     });
-    
+
     // README表示ボタンのハンドラー
     document.querySelectorAll('.edbp-read-readme-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const repoUrl = btn.getAttribute('data-repo-url');
         if (!repoUrl) return;
-        
+
         // GitHubのREADME URLを生成
         const repoMatch = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
         if (!repoMatch) {
           alert('GitHubリポジトリのURLを取得できませんでした');
           return;
         }
-        
+
         const [, owner, repo] = repoMatch;
         const readmeUrl = `https://api.github.com/repos/${owner}/${repo}/readme`;
-        
+
         // README表示モーダル
         const readmeModal = document.createElement('div');
         readmeModal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm';
@@ -886,27 +883,27 @@ const initializeApp = () => {
         `;
         document.body.appendChild(readmeModal);
         lucide.createIcons();
-        
+
         const closeBtn = readmeModal.querySelector('.edbp-close-readme-btn');
         closeBtn.addEventListener('click', () => {
           readmeModal.remove();
         });
-        
+
         readmeModal.addEventListener('click', (e) => {
           if (e.target === readmeModal) {
             readmeModal.remove();
           }
         });
-        
+
         try {
           const response = await fetch(readmeUrl);
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
-          
+
           const data = await response.json();
           const readmeContent = atob(data.content);
-          
+
           // MarkdownをHTMLに変換（簡易版）
           const readmeHtml = readmeContent
             .replace(/^# (.*$)/gim, '<h1>$1</h1>')
@@ -918,7 +915,7 @@ const initializeApp = () => {
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
             .replace(/`(.*?)`/g, '<code>$1</code>')
             .replace(/\n/g, '<br>');
-          
+
           document.getElementById('edbpReadmeContent').innerHTML = `
             <div class="markdown-body">
               ${readmeHtml}
@@ -937,40 +934,40 @@ const initializeApp = () => {
       });
     });
   };
-  
+
   // Search functionality
   const shopSearchInput = document.getElementById('edbpShopSearch');
   if (shopSearchInput) {
     shopSearchInput.addEventListener('input', (e) => {
       const searchTerm = e.target.value.toLowerCase().trim();
-      
+
       if (!searchTerm) {
         renderShopPlugins(shopPluginsData);
         return;
       }
-      
+
       const filtered = shopPluginsData.filter(plugin => {
         return plugin.name.toLowerCase().includes(searchTerm) ||
-               plugin.author.toLowerCase().includes(searchTerm) ||
-               (plugin.description || '').toLowerCase().includes(searchTerm);
+          plugin.author.toLowerCase().includes(searchTerm) ||
+          (plugin.description || '').toLowerCase().includes(searchTerm);
       });
-      
+
       renderShopPlugins(filtered);
     });
   }
-  
+
   // DL tab: ZIP file installation
   const zipInput = document.getElementById('edbpZipInput');
   const selectZipBtn = document.getElementById('edbpSelectZipBtn');
   const installStatus = document.getElementById('edbpInstallStatus');
   const dropZone = document.getElementById('edbpDropZone');
-  
+
   // File upload handler
   if (selectZipBtn && zipInput) {
     selectZipBtn.addEventListener('click', () => {
       zipInput.click();
     });
-    
+
     zipInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -978,7 +975,7 @@ const initializeApp = () => {
       e.target.value = '';
     });
   }
-  
+
   // Drag and Drop handler
   if (dropZone) {
     // ドラッグオーバー時のスタイル
@@ -987,18 +984,18 @@ const initializeApp = () => {
       e.stopPropagation();
       dropZone.classList.add('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/20');
     });
-    
+
     dropZone.addEventListener('dragleave', (e) => {
       e.preventDefault();
       e.stopPropagation();
       dropZone.classList.remove('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/20');
     });
-    
+
     dropZone.addEventListener('drop', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       dropZone.classList.remove('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/20');
-      
+
       const files = e.dataTransfer.files;
       if (files.length > 0) {
         const file = files[0];
@@ -1018,7 +1015,7 @@ const initializeApp = () => {
       }
     });
   }
-  
+
   // Install plugin from file
   const installPluginFromFile = async (file) => {
     // プログレス表示
@@ -1034,15 +1031,15 @@ const initializeApp = () => {
       </div>
     `;
     lucide.createIcons();
-    
+
     const progressText = document.getElementById('edbpProgressText');
     const progressBar = document.getElementById('edbpProgressBar');
-    
+
     const result = await pluginManager.installFromZip(file, (progress) => {
       if (progressText) progressText.textContent = progress.step;
       if (progressBar) progressBar.style.width = `${progress.progress}%`;
     });
-    
+
     if (result.success) {
       installStatus.innerHTML = `
         <div class="bg-white dark:bg-slate-900 rounded-lg p-4 border border-green-200 dark:border-green-800">
@@ -1069,8 +1066,8 @@ const initializeApp = () => {
     }
     lucide.createIcons();
   };
-  
-  
+
+
   // Refresh shop button
   const refreshShopBtn = document.getElementById('edbpRefreshShop');
   if (refreshShopBtn) {
@@ -1099,13 +1096,13 @@ const initializeApp = () => {
       edbpModal.classList.add('hidden');
     }, 300);
   });
-  
+
   // Load all plugins on startup
   pluginManager.loadAllPlugins().then(results => {
     console.log('Loaded plugins:', results);
     Blockly.svgResize(workspace);
   });
-  
+
   // Check for pending installation (from web/other sources)
   const checkPendingInstall = async () => {
     const pendingInstall = localStorage.getItem('edbp_pending_install');
@@ -1125,7 +1122,7 @@ const initializeApp = () => {
               </div>
             `;
             lucide.createIcons();
-            
+
             // URLからのインストールは現在禁止されているため、エラーメッセージを表示
             installStatus.innerHTML = `
               <div class="bg-white dark:bg-slate-900 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
@@ -1151,7 +1148,7 @@ const initializeApp = () => {
       }
     }
   };
-  
+
   // Check for pending install on modal open
   edbpBtn.addEventListener('click', () => {
     setTimeout(checkPendingInstall, 100);
