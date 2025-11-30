@@ -675,7 +675,7 @@ const initializeApp = () => {
 
     shopContainer.innerHTML = plugins.map(plugin => {
       const isInstalled = pluginManager.plugins.has(plugin.id);
-      const canInstall = plugin.official || plugin.approved; // 公式または公認はインストール可能
+      const canInstall = true; // すべてのプラグインがインストール可能（非公式でも警告表示は維持）
 
       // バッジの決定: 公式 > 公認 > なし
       let badgeHtml = '';
