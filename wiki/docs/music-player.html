@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial 04: 音楽プレイヤー | EDBB Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 antialiased">
+  <header class="border-b border-gray-900 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950">
+    <div class="max-w-5xl mx-auto px-6 py-8 space-y-3">
+      <div class="text-sm text-gray-400 flex flex-wrap gap-2">
+        <a href="./index.html" class="hover:text-white transition">docs</a>
+        <span>/</span>
+        <span class="text-gray-300">tutorial-04</span>
+        <span class="hidden md:inline">・</span>
+        <a href="../wiki.html" class="text-blue-300 hover:text-white transition">Wiki トップへ戻る</a>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-extrabold text-white">Tutorial 04: 音楽プレイヤー</h1>
+      <p class="text-gray-300">ボイスチャンネル参加と音源再生/停止を行うシンプルな音楽 Bot の作り方。</p>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-10 space-y-10">
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3">
+      <h2 class="text-xl font-semibold text-white">前提</h2>
+      <ul class="list-disc list-inside text-gray-300 space-y-1 text-sm">
+        <li>実行環境に FFmpeg がインストール済みでパスが通っていること。</li>
+        <li>Bot に「ボイスチャンネルへ接続」「発言」権限が付与されていること。</li>
+        <li>音源ファイルはサーバー上の絶対/相対パス、もしくはストリーミング URL を指定可能。</li>
+      </ul>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
+      <div class="flex items-center gap-2 text-amber-200 text-sm">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span> Flow
+      </div>
+      <h2 class="text-xl font-semibold text-white">構築手順</h2>
+      <ol class="list-decimal list-inside space-y-2 text-gray-300 text-sm leading-relaxed">
+        <li><strong>コマンド</strong>: プレフィックス <code>!play</code> またはスラッシュ <code>/play</code> を作成し、引数に「音源パス」を用意。</li>
+        <li><strong>VC 参加</strong>: 「ボイスチャンネルに参加」ブロックを最初に配置。呼び出しユーザーが VC に居るときのみ成功する。</li>
+        <li><strong>再生</strong>: 「音楽ファイルを再生」ブロックに引数を接続。URL/パスをそのまま渡せる。</li>
+        <li><strong>停止</strong>: 別コマンド <code>/stop</code> または <code>!stop</code> を用意し、「ボイスチャンネルから退出」を実行。</li>
+        <li><strong>状態メッセージ</strong>: 再生開始・停止時に「返信する」ブロックで曲名/パスを表示するとユーザーに親切。</li>
+      </ol>
+      <div class="bg-gray-800/60 border border-gray-800 rounded-xl p-4 text-xs text-gray-200 space-y-1">
+        <p class="font-semibold text-white">簡単なガード例</p>
+        <p><code>if not user.voice</code> → 「先に VC に参加してから実行してね」メッセージを送信。</p>
+        <p>再生中に二重再生させない場合: <code>if ctx.guild.voice_client.is_playing():</code> で条件分岐。</p>
+      </div>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3">
+      <h2 class="text-xl font-semibold text-white">チェックポイント</h2>
+      <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm">
+        <li>FFmpeg 実行ファイルにパスが通っているか。Windows なら <code>where ffmpeg</code>、Mac/Linux なら <code>which ffmpeg</code> で確認。</li>
+        <li>複数サーバーで使う場合は接続・切断の前後に <code>await wait_seconds</code> を入れると安定しやすい。</li>
+        <li>音源 URL が再生できない場合は https かつ直接音声を返す URL かを確認。YouTube は別ライブラリが必要。</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

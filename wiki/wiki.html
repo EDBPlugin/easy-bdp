@@ -1,0 +1,360 @@
+﻿<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDBB Wiki | Easy Discord Bot Builder</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%233b82f6'/%3E%3Cpath d='M18 40 Q32 52 46 40' stroke='white' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='24' cy='26' r='6' fill='white'/%3E%3Ccircle cx='40' cy='26' r='6' fill='white'/%3E%3C/svg%3E">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .bg-grid { background-image: linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 42px 42px; }
+    .section-card { background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(147,51,234,0.08)); }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 antialiased">
+  <header class="relative overflow-hidden border-b border-gray-800">
+    <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+    <div class="absolute -left-10 -top-14 w-72 h-72 bg-blue-600 blur-3xl opacity-20"></div>
+    <div class="absolute -right-16 top-10 w-72 h-72 bg-purple-600 blur-3xl opacity-20"></div>
+    <div class="max-w-6xl mx-auto px-6 py-8 relative z-10">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-gray-900 border border-gray-800 rounded-2xl flex items-center justify-center text-lg font-bold text-blue-400 shadow-lg shadow-blue-900/30">ED</div>
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-gray-400">Easy Discord Bot Builder</p>
+            <p class="text-lg font-semibold text-white">Wiki / ドキュメント</p>
+          </div>
+        </div>
+        <div class="hidden md:flex items-center gap-3">
+          <a href="./index.html" class="px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-sm text-gray-200 hover:border-blue-500/60 transition">ホーム</a>
+          <a href="./docs/index.html" class="px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-sm text-gray-200 hover:border-blue-500/60 transition">チュートリアル</a>
+          <a href="./editor/index.html" class="px-4 py-2 rounded-lg bg-blue-600 text-sm font-semibold text-white shadow hover:bg-blue-500 transition">エディタ</a>
+          <a href="https://beta-edbb.himaiso.workers.dev/editor/" class="px-4 py-2 rounded-lg bg-purple-600/20 border border-purple-500/50 text-sm text-purple-100 hover:bg-purple-600/30 transition">ベータ</a>
+          <a href="https://github.com/himais0giiiin/easy-bdc" class="px-4 py-2 rounded-lg bg-gray-900 border border-gray-800 text-sm text-gray-200 hover:border-gray-600 transition">GitHub</a>
+        </div>
+      </div>
+
+      <div class="mt-12 text-center space-y-6">
+        <span class="inline-flex items-center gap-2 px-4 py-1 text-sm bg-white/5 border border-gray-800 rounded-full text-gray-200">Documented Guide <span class="text-blue-300">/</span> Wiki</span>
+        <h1 class="text-4xl md:text-5xl font-extrabold text-white leading-tight">Easy Discord Bot Builder Wiki</h1>
+        <div class="flex flex-col md:flex-row items-center justify-center gap-3">
+          <a href="./editor/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-900/30 hover:bg-blue-500 transition"><span class="text-lg">▶</span> エディタを開く</a>
+          <a href="#index" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 border border-gray-800 text-gray-100 hover:border-blue-500/60 transition">Wiki を読む</a>
+          <a href="./docs/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 border border-gray-800 text-gray-100 hover:border-purple-500/60 transition">チュートリアルを開く</a>
+        </div>
+        <div class="flex flex-wrap justify-center gap-3 text-sm text-gray-300">
+          <span class="px-3 py-1 rounded-full bg-gray-900 border border-gray-800" id="last-updated">更新日: --</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 pb-16 space-y-16">
+    <section id="index" class="pt-10">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl md:text-3xl font-bold text-white">Wiki インデックス</h2>
+        <span class="text-sm text-gray-400">最初に気になるところへジャンプ</span>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <a href="#about" class="section-card border border-gray-800 rounded-2xl p-5 hover:border-blue-500/50 transition block">
+          <p class="text-sm text-blue-200 mb-1">Overview</p>
+          <p class="text-lg font-semibold text-white">EDBB とは</p>
+          <p class="text-sm text-gray-300 mt-1">特徴・できること・向いている人をまとめました。</p>
+        </a>
+        <a href="#getting-started" class="section-card border border-gray-800 rounded-2xl p-5 hover:border-purple-500/50 transition block">
+          <p class="text-sm text-purple-200 mb-1">Guide</p>
+          <p class="text-lg font-semibold text-white">使い方の流れ</p>
+          <p class="text-sm text-gray-300 mt-1">ブロック配置から Bot 起動までの 4 ステップ。</p>
+        </a>
+        <a href="#blocks" class="section-card border border-gray-800 rounded-2xl p-5 hover:border-amber-500/50 transition block">
+          <p class="text-sm text-amber-200 mb-1">Blocks</p>
+          <p class="text-lg font-semibold text-white">主要ブロック</p>
+          <p class="text-sm text-gray-300 mt-1">よく使うブロックと活用ポイント。</p>
+        </a>
+        <a href="#examples" class="section-card border border-gray-800 rounded-2xl p-5 hover:border-green-500/50 transition block">
+          <p class="text-sm text-green-200 mb-1">Examples</p>
+          <p class="text-lg font-semibold text-white">制作例ギャラリー</p>
+          <p class="text-sm text-gray-300 mt-1">URL を差し替えて掲載できるサンプル集。</p>
+        </a>
+      </div>
+    </section>
+
+    <section id="about" class="bg-gray-900/50 border border-gray-800 rounded-3xl p-8 space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 rounded-full bg-blue-600/10 border border-blue-500/40 text-blue-100 text-sm">About</span>
+        <h2 class="text-2xl md:text-3xl font-bold text-white">EDBB でできること</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="space-y-4">
+          <p class="text-gray-200 leading-relaxed">Easy Discord Bot Builder は、ブラウザだけで Discord Bot のロジックをブロックとして並べ、Python (discord.py) コードを自動生成するツールです。コピペやトークン設定だけで動かせるので、初めての Bot 制作にも教材にも向いています。</p>
+          <ul class="space-y-2 text-gray-300">
+            <li class="flex items-start gap-2"><span class="text-blue-400 mt-1">•</span><span>ドラッグ&ドロップでイベントや処理を組み立て、コードを書かずに構築できます。</span></li>
+            <li class="flex items-start gap-2"><span class="text-blue-400 mt-1">•</span><span>メッセージ、スラッシュコマンド、Embed、VC、ロール管理など主要機能を網羅。</span></li>
+            <li class="flex items-start gap-2"><span class="text-blue-400 mt-1">•</span><span>出力された Python コードはそのまま実行可能で、学習や改造のベースに使えます。</span></li>
+          </ul>
+        </div>
+        <div class="grid gap-4">
+          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+            <p class="text-sm text-gray-400 mb-2">こんな人におすすめ</p>
+            <ul class="space-y-2 text-gray-200">
+              <li class="flex items-center gap-2"><span class="text-green-400">✔</span> コードを書かずに Bot を作りたい</li>
+              <li class="flex items-center gap-2"><span class="text-green-400">✔</span> 学習用にロジックを可視化したい</li>
+              <li class="flex items-center gap-2"><span class="text-green-400">✔</span> イベント処理のひな形をすぐ欲しい</li>
+            </ul>
+          </div>
+          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+            <p class="text-sm text-gray-400 mb-2">よくある用途</p>
+            <div class="flex flex-wrap gap-2 text-sm text-gray-200">
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">歓迎メッセージ</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">管理・モデレーション</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">音楽再生</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">カスタムコマンド</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">学習教材</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="getting-started" class="space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 rounded-full bg-purple-600/10 border border-purple-500/40 text-purple-100 text-sm">Guide</span>
+        <h2 class="text-2xl md:text-3xl font-bold text-white">使い方の流れ</h2>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-400">Step 1</span>
+            <span class="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-100 font-semibold flex items-center justify-center">1</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white">ブロックを配置</h3>
+          <p class="text-sm text-gray-300 leading-relaxed">左のパレットからイベント・処理ブロックをドラッグし、ワークスペースに並べます。</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-400">Step 2</span>
+            <span class="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-100 font-semibold flex items-center justify-center">2</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white">イベントを設定</h3>
+          <p class="text-sm text-gray-300 leading-relaxed">「Bot が起動したとき」「スラッシュコマンドが呼ばれたとき」などのイベントを軸に処理を繋げます。</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-400">Step 3</span>
+            <span class="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-100 font-semibold flex items-center justify-center">3</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white">コードを確認</h3>
+          <p class="text-sm text-gray-300 leading-relaxed">右側に生成される Python コードをコピー。必要なら一部を直接追記できます。</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-400">Step 4</span>
+            <span class="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-100 font-semibold flex items-center justify-center">4</span>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Bot を起動</h3>
+          <p class="text-sm text-gray-300 leading-relaxed">トークンや権限を設定し、ローカルやホスティング先で実行します。</p>
+        </div>
+      </div>
+      <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-4 text-sm text-gray-300">
+        <p class="font-semibold text-white mb-2">セットアップのヒント</p>
+        <ul class="list-disc list-inside space-y-1">
+          <li>Discord Developer Portal で Bot トークンを取得し、環境変数や設定ファイルに保存してください。</li>
+          <li>スラッシュコマンドを使う場合は Guild/Global の登録に数分かかることがあります。</li>
+          <li>音楽ブロックを使う場合は FFmpeg が実行環境にインストールされていることを確認してください。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="blocks" class="space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 rounded-full bg-amber-600/10 border border-amber-500/40 text-amber-100 text-sm">Blocks</span>
+        <h2 class="text-2xl md:text-3xl font-bold text-white">主要ブロックと活用ポイント</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
+          <div class="flex items-center gap-2 text-sm text-amber-200">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span> イベント系
+          </div>
+          <p class="text-gray-200">Bot 起動・メッセージ受信・メンバー参加・リアクションなどを起点に処理を開始します。複数イベントを並べて並行動作させることも可能。</p>
+          <div class="flex flex-wrap gap-2 text-xs text-gray-200">
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">on_ready</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">on_message</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">on_command</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">on_member_join</span>
+          </div>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
+          <div class="flex items-center gap-2 text-sm text-green-200">
+            <span class="w-2 h-2 rounded-full bg-green-400"></span> 応答・UI 系
+          </div>
+          <p class="text-gray-200">メッセージ送信、Embed 作成、ボタンやモーダルの表示、DM 送信、リアクション追加など、ユーザーと対話するためのブロック。</p>
+          <div class="flex flex-wrap gap-2 text-xs text-gray-200">
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">reply</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">send_dm</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">create_embed</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">button / modal</span>
+          </div>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
+          <div class="flex items-center gap-2 text-sm text-blue-200">
+            <span class="w-2 h-2 rounded-full bg-blue-400"></span> 管理・モデレーション
+          </div>
+          <p class="text-gray-200">キック・BAN・ロール付与、メッセージ削除、スレッド作成などサーバー運用で使うブロック群。権限不足によるエラーを避けるため、Bot 権限設定も確認してください。</p>
+          <div class="flex flex-wrap gap-2 text-xs text-gray-200">
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">kick/ban</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">add_role</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">delete_message</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">create_thread</span>
+          </div>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
+          <div class="flex items-center gap-2 text-sm text-purple-200">
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span> データ・ロジック
+          </div>
+          <p class="text-gray-200">リスト操作、ランダム、辞書、JSON 読み書き、待機、条件分岐などの基礎ブロック。挙動を安定させたいときはここを整えると効果的です。</p>
+          <div class="flex flex-wrap gap-2 text-xs text-gray-200">
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">if / else</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">wait</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">json_save/load</span>
+            <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">random_choice</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="examples" class="space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 rounded-full bg-green-600/10 border border-green-500/40 text-green-100 text-sm">Examples</span>
+        <h2 class="text-2xl md:text-3xl font-bold text-white">制作例ギャラリー</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <article class="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden group hover:border-blue-500/50 transition">
+          <div class="relative h-40 bg-gradient-to-r from-blue-600/50 via-indigo-600/40 to-purple-600/40">
+            <div class="absolute inset-0 bg-grid opacity-20"></div>
+          </div>
+          <div class="p-6 space-y-3">
+            <p class="text-xs uppercase tracking-wide text-blue-200">Example 01</p>
+            <h3 class="text-xl font-semibold text-white">挨拶スラッシュコマンド</h3>
+            <p class="text-gray-300 text-sm">`/hello` で名前付きの挨拶を返す基本形。まずは応答確認や書式の練習に。</p>
+            <div class="flex flex-wrap gap-2 text-xs text-gray-200">
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">slash command</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">embed</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">reply</span>
+            </div>
+            <div class="flex flex-wrap gap-3 pt-2">
+              <a href="https://share.himais0giiiin.com/dlFQyJg" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition">デモを見る</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden group hover:border-emerald-500/50 transition">
+          <div class="relative h-40 bg-gradient-to-r from-emerald-600/50 via-teal-600/40 to-cyan-600/40">
+            <div class="absolute inset-0 bg-grid opacity-20"></div>
+          </div>
+          <div class="p-6 space-y-3">
+            <p class="text-xs uppercase tracking-wide text-emerald-200">Example 02</p>
+            <h3 class="text-xl font-semibold text-white">モデレーション & ログ</h3>
+            <p class="text-gray-300 text-sm">メッセージ削除、リアクション監視、Kick/BAN などの管理系をまとめたテンプレ。権限チェック付き。</p>
+            <div class="flex flex-wrap gap-2 text-xs text-gray-200">
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">moderation</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">logs</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">roles</span>
+            </div>
+            <div class="flex flex-wrap gap-3 pt-2">
+              <a href="https://share.himais0giiiin.com/5GfF1S1" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition">デモを見る</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden group hover:border-pink-500/50 transition">
+          <div class="relative h-40 bg-gradient-to-r from-pink-600/50 via-rose-600/40 to-orange-500/40">
+            <div class="absolute inset-0 bg-grid opacity-20"></div>
+          </div>
+          <div class="p-6 space-y-3">
+            <p class="text-xs uppercase tracking-wide text-pink-200">Example 03</p>
+            <h3 class="text-xl font-semibold text-white">音楽プレイヤー</h3>
+            <p class="text-gray-300 text-sm">VC に参加し、指定パスの音楽ファイルを再生・停止するシンプルな例。FFmpeg が必要です。</p>
+            <div class="flex flex-wrap gap-2 text-xs text-gray-200">
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">voice</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">audio</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">commands</span>
+            </div>
+            <div class="flex flex-wrap gap-3 pt-2">
+              <a href="https://share.himais0giiiin.com/vGiI0xt" data-demo-url="挿入してください" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-600 text-white text-sm font-semibold hover:bg-pink-500 transition">デモを見る</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden group hover:border-yellow-500/50 transition">
+          <div class="relative h-40 bg-gradient-to-r from-yellow-500/40 via-amber-500/40 to-lime-500/40">
+            <div class="absolute inset-0 bg-grid opacity-20"></div>
+          </div>
+          <div class="p-6 space-y-3">
+            <p class="text-xs uppercase tracking-wide text-amber-200">Example 04</p>
+            <h3 class="text-xl font-semibold text-white">ボタン & モーダル収集</h3>
+            <p class="text-gray-300 text-sm">ボタンでモーダルを表示し、入力値をそのまま返信します。問い合わせフォームに流用できます。</p>
+            <div class="flex flex-wrap gap-2 text-xs text-gray-200">
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">button</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">modal</span>
+              <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700">forms</span>
+            </div>
+            <div class="flex flex-wrap gap-3 pt-2">
+              <a href="https://share.himais0giiiin.com/0r1tQWG" data-demo-url="挿入してください" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-gray-900 text-sm font-semibold hover:bg-amber-400 transition">デモを見る</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="faq" class="space-y-6">
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-gray-200 text-sm">FAQ</span>
+        <h2 class="text-2xl md:text-3xl font-bold text-white">FAQ / よくある質問</h2>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl divide-y divide-gray-800">
+        <div class="p-5 space-y-2">
+          <p class="text-sm font-semibold text-white">Q. 生成コードをどこに貼ればいいですか？</p>
+          <p class="text-sm text-gray-300">A. 任意の Python 実行環境で `.py` ファイルとして保存し、`pip install -U discord.py` など必要ライブラリを入れて実行してください。</p>
+        </div>
+        <div class="p-5 space-y-2">
+          <p class="text-sm font-semibold text-white">Q. 権限不足で失敗します。</p>
+          <p class="text-sm text-gray-300">A. Bot に「メッセージの管理」「ロールの管理」など対象機能に必要な権限が付与されているか確認してください。サーバー側のロール順序も影響します。</p>
+        </div>
+        <div class="p-5 space-y-2">
+          <p class="text-sm font-semibold text-white">Q. スラッシュコマンドが出てきません。</p>
+          <p class="text-sm text-gray-300">A. コマンド登録は最大数分かかります。開発段階は Guild 限定にすると反映が早いです。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-gradient-to-r from-blue-600/20 via-indigo-600/15 to-purple-600/20 border border-gray-800 rounded-3xl p-8 text-center space-y-4">
+      <h2 class="text-3xl font-bold text-white">さあ、Bot を作ってみましょう</h2>
+      <p class="text-gray-200">Wiki を参考にしながら、気になるブロックを試してみてください。制作例のリンクを差し替えるだけでもすぐに公開できます。</p>
+      <div class="flex flex-col md:flex-row gap-3 justify-center items-center">
+        <a href="./editor/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-900/30 hover:bg-blue-500 transition">エディタを開く</a>
+        <a href="https://github.com/himais0giiiin/easy-bdc" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 border border-gray-800 text-gray-100 hover:border-gray-600 transition">GitHub でソースを見る</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-gray-950 border-t border-gray-900 py-10">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-4 text-sm text-gray-400">
+      <span>&copy; 2025 Easy Discord Bot Builder.</span>
+      <div class="flex gap-4">
+        <a href="./index.html" class="hover:text-white transition">トップへ戻る</a>
+        <a href="https://x.com/himais0giiiin" class="hover:text-white transition">X(旧Twitter)</a>
+        <a href="https://github.com/himais0giiiin/easy-bdc" class="hover:text-white transition">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const last = document.getElementById('last-updated');
+      if (last) {
+        last.textContent = '更新日: ' + new Date().toISOString().slice(0, 10);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial 02: ボタン・モーダル付きフォーム | EDBB Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 antialiased">
+  <header class="border-b border-gray-900 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950">
+    <div class="max-w-5xl mx-auto px-6 py-8 space-y-3">
+      <div class="text-sm text-gray-400 flex flex-wrap gap-2">
+        <a href="./index.html" class="hover:text-white transition">docs</a>
+        <span>/</span>
+        <span class="text-gray-300">tutorial-02</span>
+        <span class="hidden md:inline">・</span>
+        <a href="../wiki.html" class="text-blue-300 hover:text-white transition">Wiki トップへ戻る</a>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-extrabold text-white">Tutorial 02: ボタン・モーダル付きフォーム</h1>
+      <p class="text-gray-300">ボタンを押すとモーダルで入力を集め、Embed でまとめる問い合わせ/アンケート用の構成例。</p>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-10 space-y-10">
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3">
+      <h2 class="text-xl font-semibold text-white">使用する主なブロック</h2>
+      <div class="grid md:grid-cols-2 gap-3 text-sm text-gray-300">
+        <ul class="list-disc list-inside space-y-1">
+          <li>⚡ スラッシュコマンド (例: <code>/contact</code>)</li>
+          <li>✨ 新しい埋め込み(Embed)作成 + 項目追加</li>
+          <li>ボタン表示 (<code>send_button_message</code>)</li>
+        </ul>
+        <ul class="list-disc list-inside space-y-1">
+          <li>モーダル表示 (<code>show_modal</code>)</li>
+          <li>モーダル送信イベント (<code>on_modal_submit</code>)</li>
+          <li>返信/編集 (<code>reply_message</code> / <code>edit_reply</code>)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
+      <div class="flex items-center gap-2 text-purple-200 text-sm">
+        <span class="w-2 h-2 rounded-full bg-purple-400"></span> Flow
+      </div>
+      <h2 class="text-xl font-semibold text-white">組み立て手順</h2>
+      <ol class="list-decimal list-inside space-y-2 text-gray-300 text-sm leading-relaxed">
+        <li><strong>コマンド入口</strong>: <code>/contact</code> を作成し、最初に「応答を保留」を置いて待機表示。</li>
+        <li><strong>案内 Embed</strong>: Embed を作り、タイトル「お問い合わせ」、説明に注意事項を入れて返信。</li>
+        <li><strong>ボタン追加</strong>: 「ボタン付きメッセージを送信」ブロックで <code>label="入力する"</code>, <code>custom_id="contact_open"</code> を設定。</li>
+        <li><strong>ボタンイベント</strong>: <code>custom_id=contact_open</code> のイベントを置き、「モーダルを表示」ブロックを接続。タイトル「お問い合わせ」、フィールド1=「お名前」、フィールド2=「内容」など。</li>
+        <li><strong>モーダル送信イベント</strong>: <code>custom_id=contact_open</code> の送信イベントを置き、<code>get_input_value 0/1</code> で入力を取得。</li>
+        <li><strong>結果をまとめる</strong>: 新規 Embed を作り、フィールドに「名前」「内容」を追加して返信/編集する。</li>
+      </ol>
+      <div class="bg-gray-800/60 border border-gray-800 rounded-xl p-4 text-xs text-gray-200 space-y-2">
+        <p class="font-semibold text-white">ポイント</p>
+        <ul class="list-disc list-inside space-y-1">
+          <li>同じ <code>custom_id</code> をボタンとモーダルイベントで揃える。</li>
+          <li>入力を他人に見せないなら「返信を自分だけに表示」をオン。</li>
+          <li>回答をログに残したい場合は、追加で「チャンネルIDに送信」を挿入。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3">
+      <h2 class="text-xl font-semibold text-white">権限と動作チェック</h2>
+      <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm">
+        <li>Bot に「メッセージ送信」「埋め込みリンク」「ボタン/モーダル」用のアプリコマンド権限があるか確認。</li>
+        <li>テストは Guild 限定スラッシュコマンドで行うと反映が早い。</li>
+        <li>モーダルの入力は 4000 文字まで。長文は添付リンクで対応すると安定。</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

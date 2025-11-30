@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial 03: モデレーション & ログ | EDBB Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 antialiased">
+  <header class="border-b border-gray-900 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950">
+    <div class="max-w-5xl mx-auto px-6 py-8 space-y-3">
+      <div class="text-sm text-gray-400 flex flex-wrap gap-2">
+        <a href="./index.html" class="hover:text-white transition">docs</a>
+        <span>/</span>
+        <span class="text-gray-300">tutorial-03</span>
+        <span class="hidden md:inline">・</span>
+        <a href="../wiki.html" class="text-blue-300 hover:text-white transition">Wiki トップへ戻る</a>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-extrabold text-white">Tutorial 03: モデレーション & ログ</h1>
+      <p class="text-gray-300">削除・リアクション監視・Kick/BAN・スレッド・ロール付与をまとめた管理テンプレート。</p>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-10 space-y-10">
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3">
+      <h2 class="text-xl font-semibold text-white">使用ブロック</h2>
+      <div class="grid md:grid-cols-2 gap-3 text-sm text-gray-300">
+        <ul class="list-disc list-inside space-y-1">
+          <li>イベント: on_message, on_reaction_add, on_member_join/leave</li>
+          <li>メッセージ系: delete_message, purge_messages, create_thread</li>
+          <li>権限: member_has_role, get_user_info</li>
+        </ul>
+        <ul class="list-disc list-inside space-y-1">
+          <li>アクション: kick_user, ban_user, add_user_role, remove_user_role</li>
+          <li>ログ送信: send_channel_message, create_embed, add_embed_field</li>
+          <li>待機/判定: controls_if, wait_seconds</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
+      <div class="flex items-center gap-2 text-emerald-200 text-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Flow
+      </div>
+      <h2 class="text-xl font-semibold text-white">構成例</h2>
+      <ol class="list-decimal list-inside space-y-2 text-gray-300 text-sm leading-relaxed">
+        <li><strong>ログ用チャンネルID</strong> を変数や定数にしておき、ログ送信ブロックの引数に使う。</li>
+        <li><strong>メッセージ削除</strong>: on_message 内で NG ワードを判定し、hit したら <code>delete_message</code> とログ送信。</li>
+        <li><strong>リアクション監視</strong>: 特定メッセージID + 絵文字を on_reaction_add で検知し、役職付与やスレッド作成。</li>
+        <li><strong>Kick/BAN</strong>: スラッシュコマンドまたはプレフィックスコマンドでユーザーIDを受け取り、理由を添えて kick/ban。ログへ Embed 送信。</li>
+        <li><strong>退出検知</strong>: on_member_remove で「さようなら」メッセージを送り、同時にロール情報をログに記録。</li>
+      </ol>
+      <div class="bg-gray-800/60 border border-gray-800 rounded-xl p-4 text-xs text-gray-200 space-y-1">
+        <p class="font-semibold text-white">Embed ログのひな形</p>
+        <p><code>create_embed</code> → 「タイトル = Moderation Log」→ フィールドに「ユーザー」「操作」「理由」「実行者」を追加 → 「チャンネルIDに送信」。</p>
+      </div>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3">
+      <h2 class="text-xl font-semibold text-white">権限と安全策</h2>
+      <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm">
+        <li>Bot ロールが対象ユーザーより上位にあること（ロール付与/剥奪やキック/BAN）。</li>
+        <li>「メッセージの管理」「ロールの管理」「メンバーをキック/ BAN」権限を付与。</li>
+        <li>誤操作防止に <code>controls_if</code> で <code>member_has_role</code> をチェックし、許可ロールのみ実行。</li>
+        <li>大量削除 <code>purge_messages</code> は 100 件以内でテストし、上限を変数で管理すると安全。</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,72 @@
+﻿<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tutorial 01: はじめての Bot | EDBB Docs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 antialiased">
+  <header class="border-b border-gray-900 bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950">
+    <div class="max-w-5xl mx-auto px-6 py-8 space-y-3">
+      <div class="text-sm text-gray-400 flex flex-wrap gap-2">
+        <a href="./index.html" class="hover:text-white transition">docs</a>
+        <span>/</span>
+        <span class="text-gray-300">tutorial-01</span>
+        <span class="hidden md:inline">・</span>
+        <a href="../wiki.html" class="text-blue-300 hover:text-white transition">Wiki トップへ戻る</a>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-extrabold text-white">Tutorial 01: はじめての Bot</h1>
+      <p class="text-gray-300">スラッシュコマンドで挨拶する最小構成を作り、生成コードを動かすまでの手順。</p>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-10 space-y-10">
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3">
+      <h2 class="text-xl font-semibold text-white">前提と準備</h2>
+      <ul class="list-disc list-inside text-gray-300 space-y-1 text-sm">
+        <li>Discord Developer Portal で Bot を作成し、トークンをメモ。</li>
+        <li>Bot に「アプリコマンドを作成」「メッセージ送信」権限を付与した招待 URL を発行。</li>
+        <li>ローカルで動かす場合は Python 3.10+ と <code>pip install -U discord.py</code> を用意。</li>
+      </ul>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
+      <div class="flex items-center gap-2 text-blue-200 text-sm">
+        <span class="w-2 h-2 rounded-full bg-blue-400"></span> Step 1
+      </div>
+      <h2 class="text-xl font-semibold text-white">エディタでブロックを配置</h2>
+      <ol class="list-decimal list-inside space-y-2 text-gray-300 text-sm leading-relaxed">
+        <li><strong>イベント</strong>: 左の「イベント」から「⚡ スラッシュコマンド」をドラッグ。コマンド名を <code>hello</code> に。</li>
+        <li><strong>返信</strong>: 「応答」から「↩ 返信する」をイベント内に接続し、メッセージ欄に <code>こんにちは！</code> と入力。</li>
+        <li><strong>Embed 追加（任意）</strong>: 「埋め込み作成」「タイトル」「説明」をつなぎ、返信ブロックに差し込む。</li>
+        <li>右上または右側パネルで生成された Python コードを確認。</li>
+      </ol>
+      <div class="text-xs text-gray-400">ヒント: 返答をあとから編集したい場合は「応答を保留」「返信を編集」ブロックを組み合わせる。</div>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
+      <div class="flex items-center gap-2 text-green-200 text-sm">
+        <span class="w-2 h-2 rounded-full bg-green-400"></span> Step 2
+      </div>
+      <h2 class="text-xl font-semibold text-white">コードを保存して実行</h2>
+      <ol class="list-decimal list-inside space-y-2 text-gray-300 text-sm leading-relaxed">
+        <li>生成コードをコピーし、<code>bot.py</code> など任意のファイルに保存。</li>
+        <li>ファイル内の <code>BOT_TOKEN</code> などトークン設定箇所を書き換え。</li>
+        <li>ターミナルで <code>python bot.py</code> を実行し、ログに <code>Bot is ready</code> などが出れば成功。</li>
+        <li>Discord で <code>/hello</code> を入力し、挨拶が返れば完了。</li>
+      </ol>
+      <div class="text-xs text-gray-400">スラッシュコマンドは登録に数分かかる場合があります。まずは Guild 限定で試すと反映が早いです。</div>
+    </section>
+
+    <section class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3">
+      <h2 class="text-xl font-semibold text-white">トラブルシュート</h2>
+      <ul class="list-disc list-inside text-gray-300 space-y-2 text-sm">
+        <li><strong>コマンドが出ない</strong>: Bot を招待した Guild に対して再読み込みを待つ。再起動や Guild 限定登録を試す。</li>
+        <li><strong>Missing Access</strong>: Bot の権限ロールに「アプリコマンド作成」「メッセージ送信」が含まれているか確認。</li>
+        <li><strong>文字化け</strong>: ターミナルのエンコーディングを UTF-8 に設定するか、VS Code で UTF-8 保存を確認。</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
