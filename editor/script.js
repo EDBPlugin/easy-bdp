@@ -1,7 +1,9 @@
 import Blocks from './blocks.js';
+import WorkspaceStorage from './storage.js';
+import { initShareFeature } from "./share.js";
 
 let workspace;
-const STORAGE_KEY = 'discord_bot_builder_workspace_v5';
+let storage;
 
 Blockly.Blocks['custom_python_code'] = {
   init: function () {
@@ -245,6 +247,7 @@ const initializeApp = () => {
     return 1;
   };
 
+  // --- Blocklyワークスペースの初期化 ---
   workspace = Blockly.inject(blocklyDiv, {
     toolbox: toolbox,
     horizontalLayout: false,
@@ -259,6 +262,15 @@ const initializeApp = () => {
     },
     renderer: 'zelos',
     theme: initialTheme,
+  });
+
+  // --- ワークスペース保存クラスの初期化 ---
+  storage = new WorkspaceStorage(workspace);
+
+  // --- Blocklyのブロック定義 ---
+  const shareFeature = initShareFeature({
+    workspace,
+    storage,
   });
 
   // --- パレット（フライアウト）の固定設定 ---
@@ -325,9 +337,12 @@ const initializeApp = () => {
     }
 
     // Auto Save
-    if (!e.isUiEvent && e.type !== Blockly.Events.FINISHED_LOADING) {
-      const xml = Blockly.Xml.workspaceToDom(workspace);
-      localStorage.setItem(STORAGE_KEY, Blockly.Xml.domToText(xml));
+    if (
+      !shareFeature.isShareViewMode() &&
+      !e.isUiEvent &&
+      e.type !== Blockly.Events.FINISHED_LOADING
+    ) {
+      storage?.save();
       const saveStatus = document.getElementById('saveStatus');
       saveStatus.setAttribute('data-show', 'true');
       setTimeout(() => saveStatus.setAttribute('data-show', 'false'), 2000);
@@ -379,6 +394,19 @@ const initializeApp = () => {
     setTimeout(updatePinState, 50);
   };
   document.getElementById('blocklyDiv').appendChild(pinBtn);
+  // ピン留めボタンの表示/非表示切り替え
+  const syncPinVisibility = (isViewOnly = shareFeature.isShareViewMode()) => {
+    pinBtn.classList.toggle('hidden', isViewOnly);
+    pinBtn.setAttribute('aria-hidden', isViewOnly ? 'true' : 'false');
+  };
+  // 共有リンクの閲覧モードではユーザーにツールボックス表示切替を触らせない
+  shareFeature.onShareViewModeChange((isViewOnly) => {
+    syncPinVisibility(isViewOnly);
+    if (!isViewOnly) {
+      setTimeout(updatePinState, 50);
+    }
+  });
+  syncPinVisibility();
   setTimeout(updatePinState, 100);
   window.addEventListener('resize', () => {
     Blockly.svgResize(workspace);
@@ -389,42 +417,30 @@ const initializeApp = () => {
   });
 
   // --- Load Saved Data ---
-  const xmlText = localStorage.getItem(STORAGE_KEY);
-  if (xmlText) {
-    try {
-      Blockly.Xml.clearWorkspaceAndLoadFromXml(Blockly.Xml.textToDom(xmlText), workspace);
-    } catch (e) {
-      console.error(e);
-    }
+  const sharedApplied = shareFeature.applySharedLayoutFromQuery();
+  if (!sharedApplied) {
+    storage?.load();
   }
 
   themeToggle.addEventListener('click', () => toggleTheme(modernLightTheme, modernDarkTheme));
 
   importBtn.addEventListener('click', () => importInput.click());
   importInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        Blockly.Xml.clearWorkspaceAndLoadFromXml(Blockly.Xml.textToDom(e.target.result), workspace);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+    const file = e.target.files?.[0];
+    if (!file || !storage) return;
+    storage
+      .importFile(file)
+      .then(() => {
+        Blockly.svgResize(workspace);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => {
+        e.target.value = '';
+      });
   });
 
   exportBtn.addEventListener('click', () => {
-    const xml = Blockly.Xml.workspaceToDom(workspace);
-    const blob = new Blob([Blockly.Xml.domToText(xml)], { type: 'text/xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bot-project.xml`;
-    a.click();
-    URL.revokeObjectURL(url);
+    storage?.exportFile();
   });
 
   // --- モーダル表示ロジック (アニメーション付き) ---

@@ -45,7 +45,8 @@
     <script src="https://unpkg.com/blockly@9.0.0/blockly.min.js"></script>
     <script src="https://unpkg.com/blockly@9.0.0/python_compressed.js"></script>
     <script src="https://unpkg.com/blockly@9.0.0/msg/ja.js"></script>
-    
+    <script src="./mobile.js"></script>
+    <link rel="stylesheet" href="./mobile.css">
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -53,6 +54,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark-reasonable.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+
+    <!-- LZ-String for Compression -->
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 
     <link rel="stylesheet" href="style.css">
     <meta property="og:title" content="Easy Discord Bot Builder (EDBB)">
@@ -63,6 +67,14 @@
     <meta property="og:image" content="https://himais0giiiin.com/static/img.svg">
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200 flex flex-col h-screen overflow-hidden transition-colors duration-500">
+    <div id="saveStatus" class="fixed top-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100 text-xs font-bold opacity-0 transition-all duration-500 transform -translate-y-1 data-[show=true]:translate-y-0 data-[show=true]:opacity-100 pointer-events-none z-[135]">
+        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+        <span>Saved</span>
+    </div>
+    <div id="shareStatus" class="fixed top-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100 text-xs font-bold opacity-0 transition-all duration-500 transform -translate-y-1 data-[show=true]:translate-y-0 data-[show=true]:opacity-100 pointer-events-none z-[140]" data-state="info">
+        <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+        <span id="shareStatusText">共有リンクをコピーしました</span>
+    </div>
 
     <!-- Header -->
     <header class="glass-header shadow-soft border-b border-slate-200/50 dark:border-slate-800/50 px-6 py-3 flex justify-between items-center z-30 shrink-0 h-18 relative">
@@ -85,11 +97,6 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <div id="saveStatus" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold opacity-0 transition-all duration-500 transform translate-y-2 data-[show=true]:translate-y-0 data-[show=true]:opacity-100">
-                <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
-                <span>Saved</span>
-            </div>
-
             <div class="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden md:block"></div>
 
             <!-- Layout Switcher -->
@@ -104,10 +111,10 @@
 
             <!-- Actions -->
             <div class="flex items-center gap-1 bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-800 shadow-sm">
-                <button id="importBtn" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800" title="Load XML">
+                <button id="importBtn" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800" title="Load JSON">
                     <i data-lucide="upload" class="w-4.5 h-4.5"></i>
                 </button>
-                <button id="exportBtn" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800" title="Save XML">
+                <button id="exportBtn" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800" title="Save JSON">
                     <i data-lucide="download" class="w-4.5 h-4.5"></i>
                 </button>
                 
@@ -123,7 +130,13 @@
                 </button>
             </div>
             
-            <input type="file" id="importInput" accept=".xml" class="hidden">
+            <input type="file" id="importInput" accept=".json,.xml" class="hidden">
+
+            <!-- Share Button -->
+            <button id="shareBtn" class="ml-2 inline-flex items-center justify-center gap-2 px-4 py-2 font-semibold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900 rounded-lg shadow-sm hover:bg-indigo-50 dark:hover:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
+                <i data-lucide="share-2" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">共有</span>
+            </button>
 
             <!-- Generate Code Button -->
             <button id="showCodeBtn" class="ml-2 group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 font-semibold text-white transition-all duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 active:scale-95 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40">
@@ -138,6 +151,25 @@
         <div id="workspace-container">
             <!-- Block Editor -->
             <div id="blocklyDiv"></div>
+            <div id="shareViewOverlay" class="hidden pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-6">
+                <div class="pointer-events-auto w-full max-w-2xl rounded-2xl border border-indigo-200/70 dark:border-indigo-500/40 bg-gradient-to-r from-blue-50/95 via-indigo-50/95 to-blue-50/95 dark:from-slate-900/95 dark:via-slate-900/90 dark:to-slate-900/95 backdrop-blur-xl shadow-md shadow-blue-500/10">
+                    <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="text-slate-800 dark:text-slate-100">
+                            <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.3em] text-indigo-500">
+                                <i data-lucide="eye" class="w-4 h-4 text-indigo-500"></i>
+                                <span>閲覧モード</span>
+                            </div>
+                            <p class="mt-2 text-sm leading-tight whitespace-pre-line">共有ブロックを表示しています。<br>編集を行う場合は「編集を開始」ボタンを押してください。</p>
+                        </div>
+                        <div class="flex flex-col gap-2 w-full sm:w-auto">
+                            <button id="shareViewStartEditingBtn" class="inline-flex items-center justify-center gap-3 px-8 py-3 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/40 transition-colors w-full">
+                                <i data-lucide="edit-3" class="w-4 h-4 text-white"></i>
+                                <span>編集を開始</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <!-- Live Code Preview (Split Mode Only) -->
             <div id="liveCodeArea">
@@ -352,6 +384,120 @@
             </div>
         </div>
     </div>
+
+    <!-- 共有ブロック読込モーダル -->
+    <div id="shareImportModal" class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true">
+        <div class="flex flex-col w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">共有ブロックを読み込みますか？</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">現在のブロックは上書きされます</p>
+                    </div>
+                </div>
+                <button id="shareImportModalClose" class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100/80 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex flex-col gap-4 p-6 bg-slate-50/60 dark:bg-slate-950/40 flex-grow overflow-y-auto">
+                <div class="p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-900/10 text-amber-800 dark:text-amber-200 text-sm leading-relaxed">
+                    共有リンクを読み込むと、現在編集中のブロック全体が置き換わります。<br>必要であれば、今のブロックをダウンロードしてバックアップを作成しておいてください。
+                </div>
+                <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900 dark:text-white">現在のブロックをダウンロード</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">JSONファイルとして保存し、あとから読み込めます。</p>
+                        </div>
+                    </div>
+                    <button id="shareImportDownloadBtn" type="button" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:border-indigo-700 dark:hover:text-white dark:hover:bg-indigo-500/20 transition-colors">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>今のブロックを保存する</span>
+                    </button>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 bg-white/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800">
+                <label for="shareImportSkipCheckbox" class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                    <input id="shareImportSkipCheckbox" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span>次回からこの警告を表示しない</span>
+                </label>
+                <button id="shareImportCancelBtn" type="button" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    <span>キャンセル</span>
+                </button>
+                <button id="shareImportConfirmBtn" type="button" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-white transition-colors">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>共有ブロックを読み込む</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 共有モーダル -->
+    <div id="shareModal" class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true">
+        <div class="flex flex-col w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        <i data-lucide="share-2" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">ブロックを共有</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">コピーして他のユーザーにブロックを共有できます</p>
+                    </div>
+                </div>
+                <button id="shareModalClose" class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100/80 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex flex-col gap-4 p-6 bg-slate-50/60 dark:bg-slate-950/40 flex-grow overflow-y-auto">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex flex-col">
+                            <label class="text-xs font-semibold uppercase tracking-widest text-indigo-400">プレビュー画像</label>
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400">SNSなどで画像付きポストをするときに使えます。</span>
+                        </div>
+                        <button id="shareThumbnailCopyBtn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-300 hover:text-white hover:bg-indigo-600 dark:hover:bg-indigo-500 transition-colors disabled:opacity-60" disabled>
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            <span>プレビュー画像をコピー</span>
+                        </button>
+                    </div>
+                    <div id="shareThumbnailWrapper" class="relative w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-center h-[260px] overflow-hidden opacity-70 transition-opacity duration-200">
+                        <div id="shareThumbnailMessage" class="text-sm text-slate-500 dark:text-slate-400 text-center px-6">共有を開始するとここにプレビューが表示されます</div>
+                        <img id="shareThumbnailImage" alt="Workspace preview" class="hidden w-full h-full object-contain">
+                    </div>
+                </div>
+                <div>
+                    <label for="shareModalInput" class="text-xs font-semibold uppercase tracking-widest text-indigo-400">共有ブロックURL</label>
+                    <input id="shareModalInput" type="text" readonly dir="ltr" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 font-mono text-base text-slate-700 dark:text-slate-200 tracking-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 bg-white/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800">
+                <div class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <span class="block">共有リンクとプレビュー画像をコピーして、友達に送ってみましょう。</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button id="shareModalCopyBtn" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-lg bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        <span>リンクをコピー</span>
+                    </button>
+                    <button id="shareModalXBtn" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-lg bg-black hover:bg-slate-900 focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1227" class="w-4 h-4 fill-current">
+                            <path d="M714.163 519.284L1160.89 0H1058.54L667.137 450.887L358.112 0H0L468.234 681.821L0 1226.37H102.347L518.83 753.682L851.888 1226.37H1200L714.137 519.284H714.163ZM573.39 690.246L524.713 619.942L139.408 80.0047H306.615L614.536 523.433L663.213 593.737L1058.57 1146.86H891.365L573.39 690.272V690.246Z"/>
+                        </svg>
+                        <span>Xでポスト</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
