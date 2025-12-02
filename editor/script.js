@@ -5,6 +5,115 @@ let workspace;
 let pluginManager;
 const STORAGE_KEY = 'discord_bot_builder_workspace_v5';
 
+// Toast Notification System
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const toastId = 'toast-' + Date.now();
+    
+    // Set toast colors based on type
+    const typeStyles = {
+        error: 'bg-red-500 text-white border-red-600',
+        success: 'bg-green-500 text-white border-green-600',
+        warning: 'bg-yellow-500 text-white border-yellow-600',
+        info: 'bg-blue-500 text-white border-blue-600',
+    };
+    
+    const iconType = {
+        error: 'alert-circle',
+        success: 'check-circle',
+        warning: 'alert-triangle',
+        info: 'info',
+    }[type] || 'info';
+
+    toast.className = `relative overflow-hidden rounded-lg shadow-lg border-l-4 ${typeStyles[type] || typeStyles.info} opacity-0 transform translate-y-4 transition-all duration-300 mb-2`;
+    toast.id = toastId;
+    toast.role = 'alert';
+    toast.innerHTML = `
+        <div class="flex items-start p-4">
+            <i data-lucide="${iconType}" class="w-5 h-5 mr-3 flex-shrink-0"></i>
+            <div class="flex-1">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+            <button class="ml-4 text-white opacity-70 hover:opacity-100 transition-opacity" data-toast-close>
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="h-1 bg-black/10 w-full absolute bottom-0 left-0">
+            <div class="h-full bg-white/30 toast-progress"></div>
+        </div>
+    `;
+
+    // Add to container
+    container.insertBefore(toast, container.firstChild);
+    
+    // Trigger reflow to enable animation
+    setTimeout(() => {
+        toast.classList.remove('opacity-0', 'translate-y-4');
+        toast.classList.add('opacity-100', 'translate-y-0');
+    }, 10);
+
+    // Auto remove after delay
+    const autoRemove = setTimeout(() => {
+        removeToast(toast);
+    }, 5000);
+
+    // Progress bar animation
+    const progressBar = toast.querySelector('.toast-progress');
+    if (progressBar) {
+        progressBar.style.transition = 'width 5s linear';
+        setTimeout(() => progressBar.style.width = '0%', 50);
+    }
+
+    // Close button
+    const closeButton = toast.querySelector('[data-toast-close]');
+    if (closeButton) {
+        closeButton.onclick = () => {
+            clearTimeout(autoRemove);
+            removeToast(toast);
+        };
+    }
+
+    // Hover to pause
+    toast.addEventListener('mouseenter', () => {
+        clearTimeout(autoRemove);
+        if (progressBar) {
+            progressBar.style.transition = 'none';
+            progressBar.style.width = '100%';
+        }
+    });
+
+    toast.addEventListener('mouseleave', () => {
+        const newAutoRemove = setTimeout(() => {
+            removeToast(toast);
+        }, 3000);
+        
+        if (progressBar) {
+            progressBar.style.transition = 'width 3s linear';
+            setTimeout(() => progressBar.style.width = '0%', 50);
+        }
+    });
+
+    function removeToast(element) {
+        element.classList.remove('opacity-100', 'translate-y-0');
+        element.classList.add('opacity-0', 'translate-y-4');
+        
+        element.addEventListener('transitionend', () => {
+            if (element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        }, { once: true });
+    }
+}
+
+// Initialize Lucide icons for toasts
+document.addEventListener('DOMContentLoaded', () => {
+    // This will be called after the document is loaded
+    // Lucide icons will be refreshed when new toasts are added
+});
+
 Blockly.Blocks['custom_python_code'] = {
   init: function () {
     this.appendDummyInput().appendField('🐍 Pythonコード実行');
@@ -617,7 +726,7 @@ const initializeApp = () => {
             toggle.checked = false;
             plugin.enabled = false;
             pluginManager.savePlugins();
-            alert(`プラグインの読み込みに失敗しました: ${result.error}`);
+            showToast(`プラグインの読み込みに失敗しました: ${result.error}`, 'error');
           }
         } else {
           // 無効化: プラグインをアンロード

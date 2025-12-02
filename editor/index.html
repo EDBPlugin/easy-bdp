@@ -460,6 +460,32 @@
             </div>
         </div>
     </div>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-3 w-80">
+        <!-- Toasts will be inserted here -->
+    </div>
+
+    <style>
+        .toast-enter {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .toast-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 300ms, transform 300ms;
+        }
+        .toast-exit {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast-exit-active {
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 300ms, transform 300ms;
+        }
+    </style>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
