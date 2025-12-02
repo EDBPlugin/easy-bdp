@@ -784,13 +784,13 @@ Blockly.Python['print_to_console'] = function (block) {
 };
 // データ保存(JSON)
 Blockly.Python['json_load'] = function(block) {
-    const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '"key"';
-    return [`_get_data(${key})`, Blockly.Python.ORDER_ATOMIC];
+    const key = Blockly.Python.valueToCode(block, 'FILENAME', Blockly.Python.ORDER_NONE) || '"key"';
+    return [`_load_json_data(${key})`, Blockly.Python.ORDER_ATOMIC];
 };
 Blockly.Python['json_save'] = function(block) {
-    const key = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '"key"';
-    const value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || 'None';
-    return `_save_data(${key}, ${value})\n`;
+    const key = Blockly.Python.valueToCode(block, 'FILENAME', Blockly.Python.ORDER_NONE) || '"key"';
+    const value = Blockly.Python.valueToCode(block, 'DATA', Blockly.Python.ORDER_NONE) || 'None';
+    return `_save_json_data(${key}, ${value})\n`;
 };
 Blockly.Python['dict_create'] = function (block) {
   return ['{}', Blockly.Python.ORDER_ATOMIC];
