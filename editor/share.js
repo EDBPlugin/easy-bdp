@@ -967,6 +967,7 @@ class ShareFeature {
       applySharedLayoutFromQuery: () => this.applySharedLayoutFromQuery(),
       isShareViewMode: () => this.isShareViewMode(),
       onShareViewModeChange: (listener) => this.onShareViewModeChange(listener),
+      applyUiState: () => this.viewStateController.applyUiState(),
     };
   }
 }

@@ -204,16 +204,7 @@ const updateLivePreview = () => {
   hljs.highlightElement(preview);
 };
 
-const toggleTheme = (modernLightTheme, modernDarkTheme) => {
-  const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
-  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-  html.classList.remove(currentTheme);
-  html.classList.add(newTheme);
-  localStorage.setItem('theme', newTheme);
-  if (workspace) {
-    workspace.setTheme(newTheme === 'dark' ? modernDarkTheme : modernLightTheme);
-  }
-};
+
 
 const initializeApp = () => {
   lucide.createIcons();
@@ -422,7 +413,22 @@ const initializeApp = () => {
     storage?.load();
   }
 
-  themeToggle.addEventListener('click', () => toggleTheme(modernLightTheme, modernDarkTheme));
+  const toggleTheme = () => {
+    const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    html.classList.remove(currentTheme);
+    html.classList.add(newTheme);
+    localStorage.setItem('theme', newTheme);
+    if (workspace) {
+      workspace.setTheme(newTheme === 'dark' ? modernDarkTheme : modernLightTheme);
+    }
+    // Re-apply share view UI state (e.g. hide toolbox)
+    if (shareFeature.isShareViewMode()) {
+      shareFeature.applyUiState();
+    }
+  };
+
+  themeToggle.addEventListener('click', toggleTheme);
 
   importBtn.addEventListener('click', () => importInput.click());
   importInput.addEventListener('change', (e) => {

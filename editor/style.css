@@ -228,3 +228,16 @@ body {
   background: transparent !important;
   padding: 0 !important;
 }
+
+/* Tailwind CSSの仕様によってBlocklyのSVG非表示設定が上書きされるのを防ぐ */
+svg[display="none"] {
+  display: none !important;
+}
+
+/* 上記の修正に伴い、色の関係でFlyoutの境界がわかりづらくなったためborderを追加 */
+.blocklyFlyout {
+  border-right: 1px solid #00000040;
+}
+.dark .blocklyFlyout {
+  border-right: 1px solid #ffffff40;
+}
