@@ -343,6 +343,13 @@ const initializeApp = () => {
       saveStatus.setAttribute('data-show', 'true');
       setTimeout(() => saveStatus.setAttribute('data-show', 'false'), 2000);
     }
+
+    if (e.type === Blockly.Events.TOOLBOX_ITEM_SELECT) {
+      // flyoutを閉じた際にDeleteAreaが消えない問題の修正
+      setTimeout(() => {
+        Blockly.svgResize(workspace);
+      }, 50);
+    }
   });
 
   // --- Toolbox Pin Button (Re-implementation) ---

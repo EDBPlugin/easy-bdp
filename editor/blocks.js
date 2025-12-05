@@ -499,6 +499,13 @@ Blockly.Blocks['change_nickname'] = {
     this.setColour(0);
   },
 };
+Blockly.Blocks['empty_list_create'] = {
+  init: function () {
+    this.appendDummyInput().appendField('📋 空のリストを作成')
+    this.setOutput(true, 'Array')
+    this.setColour(210)
+  },
+};
 Blockly.Blocks['lists_append_to'] = {
   init: function () {
     this.appendValueInput('LIST').setCheck('Array').appendField('リスト');
@@ -955,6 +962,8 @@ Blockly.Python['procedures_callreturn'] = function (block) {
   }
   return [`await ${funcName}(${args.join(', ')})`, Blockly.Python.ORDER_FUNCTION_CALL];
 };
+// リスト
+// 現在は不使用(後方互換性のため残す)
 Blockly.Python['lists_create_with'] = function (block) {
   const elements = [];
   for (let i = 0; i < block.itemCount_; i++) {
@@ -964,6 +973,10 @@ Blockly.Python['lists_create_with'] = function (block) {
   }
   return ['[' + elements.join(', ') + ']', Blockly.Python.ORDER_ATOMIC];
 };
+Blockly.Python['empty_list_create'] = function (block) {
+  return ['[]', Blockly.Python.ORDER_ATOMIC];
+}
+// 現在は不使用(後方互換性のため残す)
 Blockly.Python['lists_length'] = function (block) {
   const list = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || '[]';
   return [`len(${list})`, Blockly.Python.ORDER_FUNCTION_CALL];
