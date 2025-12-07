@@ -2,6 +2,8 @@ import Blocks from './blocks.js';
 import WorkspaceStorage from './storage.js';
 import { initShareFeature } from "./share.js";
 
+const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
+
 let workspace;
 let storage;
 
@@ -232,6 +234,28 @@ const initializeApp = () => {
   const workspaceContainer = document.getElementById('workspace-container');
   const layoutBlockBtn = document.getElementById('layoutBlockBtn');
   const layoutSplitBtn = document.getElementById('layoutSplitBtn');
+  const projectTitleInput = document.getElementById('projectTitleInput');
+
+  const resolveProjectTitle = () =>
+    (projectTitleInput?.value || '').trim() || WorkspaceStorage.DEFAULT_TITLE;
+
+  const hydrateProjectTitle = () => {
+    if (!projectTitleInput) return;
+    try {
+      const storedTitle = localStorage.getItem(PROJECT_TITLE_STORAGE_KEY);
+      if (storedTitle) {
+        projectTitleInput.value = storedTitle;
+        return;
+      }
+    } catch (error) {
+      // localStorage unavailable; fall back to default
+    }
+    if (!projectTitleInput.value) {
+      projectTitleInput.value = WorkspaceStorage.DEFAULT_TITLE;
+    }
+  };
+
+  hydrateProjectTitle();
 
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'dark') html.classList.add('dark');
@@ -262,6 +286,17 @@ const initializeApp = () => {
 
   // --- ワークスペース保存クラスの初期化 ---
   storage = new WorkspaceStorage(workspace);
+  storage.setTitleProvider(() => resolveProjectTitle());
+
+  if (projectTitleInput) {
+    projectTitleInput.addEventListener('input', () => {
+      try {
+        localStorage.setItem(PROJECT_TITLE_STORAGE_KEY, resolveProjectTitle());
+      } catch (error) {
+        // ignore storage errors
+      }
+    });
+  }
 
   // --- Blocklyのブロック定義 ---
   const shareFeature = initShareFeature({
