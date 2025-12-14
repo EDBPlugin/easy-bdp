@@ -76,6 +76,27 @@ const setupBlocklyEnvironment = () => {
 };
 
 const html = document.documentElement;
+const isMobileDevice =
+  typeof window !== 'undefined' &&
+  ('ontouchstart' in window ||
+    (typeof navigator !== 'undefined' &&
+      (navigator.maxTouchPoints > 0 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent))));
+if (isMobileDevice) {
+  html.classList.add('is-mobile');
+}
+
+const applyMobileToolboxIcons = (toolboxEl) => {
+  if (!isMobileDevice || !toolboxEl) return;
+  const categories = toolboxEl.querySelectorAll('category');
+  categories.forEach((cat) => {
+    const icon = cat.getAttribute('data-icon');
+    if (icon) {
+      const currentName = cat.getAttribute('name') || '';
+      cat.setAttribute('data-label', currentName);
+      cat.setAttribute('name', icon);
+    }
+  });
+};
 
 // --- Code Generation & UI Sync ---
 const generatePythonCode = () => {
@@ -220,6 +241,8 @@ const initializeApp = () => {
   const blocklyDiv = document.getElementById('blocklyDiv');
   const toolbox = document.getElementById('toolbox');
   const themeToggle = document.getElementById('themeToggle');
+  const headerActions = document.getElementById('headerActions');
+  const mobileHeaderToggle = document.getElementById('mobileHeaderToggle');
   // ヘッダーのコード生成ボタン
   const showCodeBtn = document.getElementById('showCodeBtn');
   // モーダル関連
@@ -235,6 +258,9 @@ const initializeApp = () => {
   const layoutBlockBtn = document.getElementById('layoutBlockBtn');
   const layoutSplitBtn = document.getElementById('layoutSplitBtn');
   const projectTitleInput = document.getElementById('projectTitleInput');
+  const initialScale = isMobileDevice ? 0.85 : 1.0;
+  const maxScale = isMobileDevice ? 2.2 : 3;
+  const minScale = isMobileDevice ? 0.5 : 0.3;
 
   const resolveProjectTitle = () =>
     (projectTitleInput?.value || '').trim() || WorkspaceStorage.DEFAULT_TITLE;
@@ -260,11 +286,12 @@ const initializeApp = () => {
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'dark') html.classList.add('dark');
   const initialTheme = savedTheme === 'dark' ? modernDarkTheme : modernLightTheme;
+  applyMobileToolboxIcons(toolbox);
 
   // --- パレット固定化の強制適用 (Zoom Fix) ---
   // フライアウト（パレット）のスケールを常に1に固定するオーバーライド
   Blockly.VerticalFlyout.prototype.getFlyoutScale = function () {
-    return 1;
+    return isMobileDevice ? 0.9 : 1;
   };
 
   // --- Blocklyワークスペースの初期化 ---
@@ -275,9 +302,9 @@ const initializeApp = () => {
     zoom: {
       controls: true,
       wheel: true,
-      startScale: 1.0,
-      maxScale: 3,
-      minScale: 0.3,
+      startScale: initialScale,
+      maxScale,
+      minScale,
       scaleSpeed: 1.2,
     },
     renderer: 'zelos',
@@ -303,6 +330,28 @@ const initializeApp = () => {
     workspace,
     storage,
   });
+  if (isMobileDevice && headerActions && mobileHeaderToggle) {
+    mobileHeaderToggle.classList.remove('hidden');
+    let headerExpanded = false;
+    const syncHeaderVisibility = () => {
+      headerActions.classList.toggle('collapsed', !headerExpanded);
+      mobileHeaderToggle.setAttribute('aria-expanded', headerExpanded ? 'true' : 'false');
+      const label = mobileHeaderToggle.querySelector('#mobileHeaderToggleText');
+      if (label) label.textContent = headerExpanded ? '操作を閉じる' : '操作を表示';
+      const icon = mobileHeaderToggle.querySelector('svg');
+      if (icon) icon.style.transform = headerExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+      if (workspace) {
+        setTimeout(() => Blockly.svgResize(workspace), 150);
+      }
+    };
+    syncHeaderVisibility();
+    mobileHeaderToggle.addEventListener('click', () => {
+      headerExpanded = !headerExpanded;
+      syncHeaderVisibility();
+    });
+  } else if (headerActions) {
+    headerActions.classList.remove('collapsed');
+  }
 
   // --- パレット（フライアウト）の固定設定 ---
   if (workspace.getToolbox()) {

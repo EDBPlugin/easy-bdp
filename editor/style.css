@@ -192,6 +192,32 @@ body {
   fill-opacity: 0.98;
 }
 
+/* Compact toolbox for mobile */
+html.is-mobile .blocklyToolboxDiv {
+  width: 72px !important;
+  padding: 4px 4px 6px;
+}
+
+html.is-mobile .blocklyTreeRow {
+  height: 40px !important;
+  margin: 2px 0;
+  padding: 6px !important;
+  margin-right: 0 !important;
+  border-left-width: 0 !important;
+  justify-content: center !important;
+}
+
+html.is-mobile .blocklyTreeLabel {
+  font-size: 1rem;
+  margin-left: 0;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+html.is-mobile .blocklyFlyout {
+  max-width: 200px;
+}
+
 /* モーダルアニメーション */
 .modal-backdrop {
   opacity: 0;
@@ -244,6 +270,69 @@ svg[display="none"] {
 .share-view-mode .blocklyFlyout,
 .share-view-mode .blocklyFlyoutBackground {
   display: none !important;
+}
+
+/* Mobile friendly layout */
+html.is-mobile .glass-header {
+  flex-direction: column;
+  align-items: stretch;
+  height: auto;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+html.is-mobile #mobileHeaderToggle {
+  display: inline-flex;
+}
+
+html.is-mobile #headerActions.collapsed {
+  display: none !important;
+}
+
+html.is-mobile #mobileHeaderToggle svg {
+  transition: transform 0.2s ease;
+}
+
+html.is-mobile #headerActions {
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+html.is-mobile #projectTitleField {
+  width: 100%;
+  max-width: none;
+}
+
+html.is-mobile #projectTitleInput {
+  width: 100%;
+}
+
+html.is-mobile #quickActions {
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+html.is-mobile #shareBtn,
+html.is-mobile #showCodeBtn {
+  width: 100%;
+  justify-content: center;
+}
+
+html.is-mobile #liveCodeArea {
+  display: none !important;
+}
+
+html.is-mobile #workspace-container {
+  padding: 0 12px 12px;
+}
+
+html.is-mobile #blocklyDiv {
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
 }
 .dark .blocklyFlyout {
   border-right: 1px solid #ffffff40;

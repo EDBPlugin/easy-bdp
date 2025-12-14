@@ -97,7 +97,12 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <button id="mobileHeaderToggle" class="hidden items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 shadow-sm">
+            <i data-lucide="chevrons-down-up" class="w-4 h-4"></i>
+            <span id="mobileHeaderToggleText">操作を表示</span>
+        </button>
+
+        <div id="headerActions" class="flex items-center gap-3">
             <div class="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden md:block"></div>
 
             <!-- Layout Switcher -->
@@ -111,13 +116,13 @@
             </div>
 
             <!-- Project Title -->
-            <div class="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm w-52 max-w-[240px]">
+            <div id="projectTitleField" class="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm w-52 max-w-[240px]">
                 <label for="projectTitleInput" class="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">タイトル</label>
                 <input id="projectTitleInput" type="text" value="bot-project" class="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md px-2 py-1 border border-slate-200 dark:border-slate-700">
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center gap-1 bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div id="quickActions" class="flex items-center gap-1 bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-800 shadow-sm">
                 <button id="importBtn" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800" title="Load JSON">
                     <i data-lucide="upload" class="w-4.5 h-4.5"></i>
                 </button>
@@ -203,7 +208,7 @@
 
         <!-- Toolbox Definition -->
         <xml id="toolbox" style="display: none">
-            <category name="イベント" colour="#e67e22">
+            <category name="イベント" data-icon="⚡" colour="#e67e22">
                 <block type="on_ready"></block>
                 <block type="on_message_create"></block>
                 <block type="on_member_join"></block>
@@ -214,7 +219,7 @@
                 <block type="get_command_arg"></block>
             </category>
             
-            <category name="ボタン・フォーム" colour="#d63031">
+            <category name="ボタン・フォーム" data-icon="🔘" colour="#d63031">
                 <block type="send_button_message"></block>
                 <block type="on_button_click"></block>
                 <block type="show_modal"></block>
@@ -222,12 +227,12 @@
                 <block type="get_input_value"></block>
             </category>
 
-            <category name="リアクション" colour="#e17055">
+            <category name="リアクション" data-icon="😊" colour="#e17055">
                 <block type="on_reaction_add"></block>
                 <block type="add_reaction"></block>
             </category>
             
-            <category name="情報取得" colour="#8e44ad">
+            <category name="情報取得" data-icon="🔍" colour="#8e44ad">
                 <block type="get_user_info"></block>
                 <block type="get_member_detail"></block>
                 <block type="member_has_role"></block>
@@ -236,7 +241,7 @@
                 <block type="get_current_time"></block>
             </category>
 
-            <category name="メッセージ" colour="#3498db">
+            <category name="メッセージ" data-icon="💬" colour="#3498db">
                 <block type="reply_message"></block>
                 <block type="send_dm"></block>
                 <block type="defer_reply"></block>
@@ -249,13 +254,13 @@
                 <block type="create_thread"></block>
             </category>
             
-            <category name="高度な操作" colour="#535c68">
+            <category name="高度な操作" data-icon="🛠️" colour="#535c68">
                 <block type="custom_python_code"></block>
                 <block type="wait_for_message"></block>
                 <block type="print_to_console"></block>
             </category>
 
-            <category name="データ保存 (JSON)" colour="#d35400">
+            <category name="データ保存 (JSON)" data-icon="💾" colour="#d35400">
                 <block type="json_load"></block>
                 <block type="json_save"></block>
                 <block type="dict_create"></block>
@@ -263,7 +268,7 @@
                 <block type="dict_set"></block>
             </category>
 
-            <category name="チャンネル・ボイス" colour="#00a8ff">
+            <category name="チャンネル・ボイス" data-icon="🔊" colour="#00a8ff">
                 <block type="join_voice_channel"></block>
                 <block type="play_audio_file"></block>
                 <block type="leave_voice_channel"></block>
@@ -271,12 +276,12 @@
                 <block type="delete_channel"></block>
             </category>
 
-            <category name="Bot設定" colour="#9b59b6">
+            <category name="Bot設定" data-icon="🤖" colour="#9b59b6">
                 <block type="set_bot_status"></block>
                 <block type="wait_seconds"></block>
             </category>
 
-            <category name="管理機能" colour="#e74c3c">
+            <category name="管理機能" data-icon="🛡️" colour="#e74c3c">
                 <block type="timeout_user"></block>
                 <block type="kick_user"></block>
                 <block type="ban_user"></block>
@@ -286,7 +291,7 @@
                 <block type="change_nickname"></block>
             </category>
             
-            <category name="埋め込み (Embed)" colour="#2ecc71">
+            <category name="埋め込み (Embed)" data-icon="🖼️" colour="#2ecc71">
                 <block type="create_embed"></block>
                 <block type="set_embed_property"></block>
                 <block type="add_embed_field"></block>
@@ -294,9 +299,9 @@
 
             <sep></sep>
             
-            <category name="変数" colour="#a55b6a" custom="VARIABLE"></category>
+            <category name="変数" data-icon="🔣" colour="#a55b6a" custom="VARIABLE"></category>
 
-            <category name="リスト" colour="#a55b80">
+            <category name="リスト" data-icon="📋" colour="#a55b80">
                 <block type="empty_list_create"></block>
                 <block type="lists_getIndex"></block>
                 <block type="lists_setIndex"></block>
@@ -304,11 +309,11 @@
                 <block type="random_choice"></block>
             </category>
             
-            <category name="関数" colour="#7b5ba5" custom="PROCEDURE"></category>
+            <category name="関数" data-icon="🧩" colour="#7b5ba5" custom="PROCEDURE"></category>
 
             <sep></sep>
 
-            <category name="論理・比較" colour="#f1c40f">
+            <category name="論理・比較" data-icon="⚖️" colour="#f1c40f">
                 <block type="controls_if"></block>
                 <block type="logic_compare"></block>
                 <block type="logic_operation"></block>
@@ -316,12 +321,12 @@
                 <block type="logic_boolean"></block>
             </category>
 
-            <category name="繰り返し" colour="#5b67a5">
+            <category name="繰り返し" data-icon="🔄" colour="#5b67a5">
                 <block type="controls_repeat_ext"></block>
                 <block type="controls_whileUntil"></block>
             </category>
 
-            <category name="算術・乱数" colour="#5b80a5">
+            <category name="算術・乱数" data-icon="🔢" colour="#5b80a5">
                 <block type="math_number"></block>
                 <block type="math_arithmetic"></block>
                 <block type="math_single"></block>
@@ -330,7 +335,7 @@
                 <block type="text_length"></block>
             </category>
 
-            <category name="文字列" colour="#5ba58c">
+            <category name="文字列" data-icon="🔤" colour="#5ba58c">
                 <block type="text"></block>
                 <block type="text_join"></block>
                 <block type="text_replace"></block>
