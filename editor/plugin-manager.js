@@ -419,6 +419,8 @@ class PluginManager {
         // 公式: EDBPluginグループが出しているもの（オーナーがEDBPlugin）
         const isOfficial = repo.owner.login === 'EDBPlugin';
 
+
+
         // 公認: EDBP-APIに記載があるもの
         const isApproved = this.approvedPluginIds.has(repo.name) ||
           this.approvedPluginIds.has(repo.full_name);
