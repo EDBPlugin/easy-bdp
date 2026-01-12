@@ -1,0 +1,27 @@
+{
+    "id": "get_input_value",
+    "category": "buttonform",
+    "name": "入力項目の値",
+    "color": "#d63031",
+    "inputs": [],
+    "args": [
+        {
+            "type": "field_dropdown",
+            "name": "INDEX",
+            "options": [
+                [
+                    "1つ目",
+                    "0"
+                ],
+                [
+                    "2つ目",
+                    "1"
+                ]
+            ]
+        }
+    ],
+    "output": "String",
+    "code": {
+        "python": "interaction.data['components'][0]['components'][{{INDEX}}]['value']"
+    }
+}

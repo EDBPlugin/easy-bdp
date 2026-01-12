@@ -1,0 +1,42 @@
+{
+    "id": "set_embed_property",
+    "category": "embed",
+    "name": "設定",
+    "color": "#2ecc71",
+    "inputs": [
+        {
+            "id": "VALUE",
+            "type": "String",
+            "label": "値"
+        }
+    ],
+    "args": [
+        {
+            "type": "field_dropdown",
+            "name": "PROPERTY",
+            "options": [
+                [
+                    "タイトル",
+                    "title"
+                ],
+                [
+                    "説明文",
+                    "description"
+                ],
+                [
+                    "色 (0xHex)",
+                    "color"
+                ],
+                [
+                    "画像URL",
+                    "image"
+                ]
+            ]
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "(embed.set_image(url={{VALUE}}) if \"{{PROPERTY}}\" == \"image\" else setattr(embed, \"{{PROPERTY}}\", {{VALUE}}))\n"
+    }
+}

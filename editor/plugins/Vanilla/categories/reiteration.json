@@ -1,0 +1,11 @@
+{
+  "id": "reiteration",
+  "order": 16,
+  "name": "繰り返し",
+  "description": "Discordイベント系ブロック",
+  "color": "#5b67a5",
+  "blocks": [
+    "controls_repeat_ext",
+    "controls_whileUntil"
+  ]
+}

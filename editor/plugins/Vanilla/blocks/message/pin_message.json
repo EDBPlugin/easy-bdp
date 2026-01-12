@@ -1,0 +1,12 @@
+{
+    "id": "pin_message",
+    "category": "message",
+    "name": "📌 このメッセージをピン留め",
+    "color": "#3498db",
+    "inputs": [],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals():\n    if isinstance(ctx, discord.Message):\n        await ctx.pin()\n    elif isinstance(ctx, commands.Context):\n        await ctx.message.pin()\n"
+    }
+}

@@ -1,0 +1,18 @@
+{
+    "id": "create_text_channel",
+    "category": "channelvoice",
+    "name": "📁 テキストチャンネル作成",
+    "color": "#00a8ff",
+    "inputs": [
+        {
+            "id": "NAME",
+            "type": "String",
+            "label": "チャンネル名"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and ctx.guild:\n    await ctx.guild.create_text_channel(name={{NAME}})\n"
+    }
+}

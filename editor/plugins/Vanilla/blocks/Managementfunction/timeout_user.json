@@ -1,0 +1,23 @@
+{
+    "id": "timeout_user",
+    "category": "Managementfunction",
+    "name": "🔇 タイムアウト (ID",
+    "color": "#e74c3c",
+    "inputs": [
+        {
+            "id": "USER_ID",
+            "type": "String",
+            "label": "ユーザーID"
+        },
+        {
+            "id": "MINUTES",
+            "type": "Number",
+            "label": "分間"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and ctx.guild:\n    _m = ctx.guild.get_member(int({{USER_ID}}))\n    if _m:\n        await _m.timeout(datetime.timedelta(minutes=int({{MINUTES}})))\n"
+    }
+}

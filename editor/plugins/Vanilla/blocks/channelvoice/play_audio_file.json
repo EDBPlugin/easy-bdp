@@ -1,0 +1,19 @@
+{
+    "id": "play_audio_file",
+    "category": "channelvoice",
+    "name": "🔊 音楽ファイルを再生",
+    "description": "VC内で音楽を再生します。FFmpegが必要です。",
+    "color": "#00a8ff",
+    "inputs": [
+        {
+            "id": "FILEPATH",
+            "type": "String",
+            "label": "パス"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and ctx.guild.voice_client:\n    if not ctx.guild.voice_client.is_playing():\n        ctx.guild.voice_client.play(discord.FFmpegPCMAudio({{FILEPATH}}))\n"
+    }
+}

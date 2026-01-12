@@ -1,0 +1,18 @@
+{
+    "id": "delete_channel",
+    "category": "channelvoice",
+    "name": "🗑️ チャンネル削除",
+    "color": "#00a8ff",
+    "inputs": [
+        {
+            "id": "CHANNEL_ID",
+            "type": "String",
+            "label": "チャンネルID"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\n_ch = bot.get_channel(int({{CHANNEL_ID}}))\nif _ch:\n    await _ch.delete()\n"
+    }
+}

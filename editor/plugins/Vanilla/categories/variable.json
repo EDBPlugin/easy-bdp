@@ -1,0 +1,8 @@
+{
+  "id": "variable",
+  "order": 12,
+  "name": "変数",
+  "description": "Discordイベント系ブロック",
+  "color": "#a55b6a",
+  "blocks": []
+}

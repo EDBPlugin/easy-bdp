@@ -1,0 +1,14 @@
+{
+  "id": "logiccomparison",
+  "order": 15,
+  "name": "論理・比較",
+  "description": "Discordイベント系ブロック",
+  "color": "#f1c40f",
+  "blocks": [
+    "controls_if",
+    "logic_compare",
+    "logic_operation",
+    "logic_negate",
+    "logic_boolean"
+  ]
+}

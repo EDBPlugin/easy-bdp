@@ -1,0 +1,17 @@
+{
+    "id": "create_embed",
+    "category": "embed",
+    "name": "✨ 新しい埋め込み(Embed)作成",
+    "color": "#2ecc71",
+    "inputs": [],
+    "statements": [
+        {
+            "id": "PROPERTIES",
+            "label": "プロパティ設定"
+        }
+    ],
+    "output": "Embed",
+    "code": {
+        "python": "def _create_embed():\n    embed = discord.Embed(title='No Title', description='...', color=0x3498DB)\n{{PROPERTIES}}\n    return embed\n_create_embed()"
+    }
+}

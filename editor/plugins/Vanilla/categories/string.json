@@ -1,0 +1,15 @@
+{
+  "id": "string",
+  "order": 18,
+  "name": "文字列",
+  "description": "Discordイベント系ブロック",
+  "color": "#5ba58c",
+  "blocks": [
+    "text",
+    "text_join",
+    "text_length",
+    "text_replace",
+    "text_charAt",
+    "text_print"
+  ]
+}

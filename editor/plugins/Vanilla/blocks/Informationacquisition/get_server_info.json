@@ -1,0 +1,34 @@
+{
+    "id": "get_server_info",
+    "category": "Informationacquisition",
+    "name": "🌐 サーバーの {{TYPE}}",
+    "color": "#8e44ad",
+    "inputs": [],
+    "args": [
+        {
+            "type": "field_dropdown",
+            "name": "TYPE",
+            "options": [
+                [
+                    "サーバーID",
+                    "id"
+                ],
+                [
+                    "サーバー名",
+                    "name"
+                ],
+                [
+                    "メンバー数",
+                    "member_count"
+                ]
+            ]
+        }
+    ],
+    "output": [
+        "String",
+        "Number"
+    ],
+    "code": {
+        "python": "(ctx.guild.{{TYPE}} if \"ctx\" in locals() and hasattr(ctx, \"guild\") and ctx.guild else \"Unknown\")"
+    }
+}

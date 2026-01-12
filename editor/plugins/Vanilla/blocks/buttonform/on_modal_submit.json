@@ -1,0 +1,23 @@
+{
+    "id": "on_modal_submit",
+    "category": "buttonform",
+    "name": "📩 モーダルが送信されたとき",
+    "color": "#d63031",
+    "args": [
+        {
+            "type": "field_input",
+            "name": "CUSTOM_ID",
+            "text": "modal_1",
+            "label": "フォームID"
+        }
+    ],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n# MODAL_EVENT:{{CUSTOM_ID}}\nasync def on_modal_{{CUSTOM_ID}}(interaction):\n    ctx = interaction\n    user = interaction.user\n    await interaction.response.defer()\n{{DO}}\n"
+    }
+}

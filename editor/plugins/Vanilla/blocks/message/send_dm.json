@@ -1,0 +1,26 @@
+{
+    "id": "send_dm",
+    "category": "message",
+    "name": "📩 DMを送信",
+    "color": "#3498db",
+    "inputs": [
+        {
+            "id": "USER_ID",
+            "type": "String",
+            "label": "ユーザーID"
+        },
+        {
+            "id": "MESSAGE",
+            "type": [
+                "String",
+                "Embed"
+            ],
+            "label": "内容"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\n_u_dm = bot.get_user(int({{USER_ID}})) or await bot.fetch_user(int({{USER_ID}}))\nif _u_dm:\n    _msg = {{MESSAGE}}\n    if isinstance(_msg, discord.Embed):\n        await _u_dm.send(embed=_msg)\n    else:\n        await _u_dm.send(content=_msg)\n"
+    }
+}

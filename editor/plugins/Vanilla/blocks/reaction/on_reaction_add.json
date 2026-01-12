@@ -1,0 +1,29 @@
+{
+    "id": "on_reaction_add",
+    "category": "reaction",
+    "name": "⭐ リアクションが付いたとき",
+    "color": "#e17055",
+    "args": [
+        {
+            "type": "field_input",
+            "name": "MESSAGE_ID",
+            "text": "",
+            "label": "メッセージID(任意)"
+        },
+        {
+            "type": "field_input",
+            "name": "EMOJI",
+            "text": "",
+            "label": "絵文字(任意)"
+        }
+    ],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n@bot.event\nasync def on_raw_reaction_add(payload):\n    if payload.user_id == bot.user.id:\n        return\n    if '{{MESSAGE_ID}}' and str(payload.message_id) != '{{MESSAGE_ID}}':\n        return\n    if '{{EMOJI}}' and str(payload.emoji) != '{{EMOJI}}':\n        return\n    channel = bot.get_channel(payload.channel_id)\n    if channel:\n        message = await channel.fetch_message(payload.message_id)\n        user = payload.member or bot.get_user(payload.user_id)\n        ctx = message\n{{DO}}\n"
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "id": "on_command_executed",
+    "category": "event",
+    "name": "⚡ スラッシュコマンド / {{COMMAND_NAME}} を使われたとき",
+    "description": null,
+    "color": "#e67e22",
+    "args": [
+        {
+            "type": "field_input",
+            "name": "COMMAND_NAME",
+            "text": "hello"
+        }
+    ],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n@bot.tree.command(name=\"{{COMMAND_NAME}}\", description=\"{{COMMAND_NAME}} command\")\nasync def {{COMMAND_NAME}}_cmd(interaction: discord.Interaction):\n    ctx = interaction\n    user = interaction.user\n{{DO}}\n"
+    }
+}

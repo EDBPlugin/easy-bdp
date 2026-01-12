@@ -1,0 +1,11 @@
+{
+  "id": "reaction",
+  "order": 3,
+  "name": "リアクション",
+  "description": "Discordイベント系ブロック",
+  "color": "#e17055",
+  "blocks": [
+    "on_reaction_add",
+    "add_reaction"
+  ]
+}

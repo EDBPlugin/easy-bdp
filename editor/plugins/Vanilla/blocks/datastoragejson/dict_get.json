@@ -1,0 +1,22 @@
+{
+    "id": "dict_get",
+    "category": "datastoragejson",
+    "name": "辞書から値を取得",
+    "color": "#d35400",
+    "inputs": [
+        {
+            "id": "DICT",
+            "type": null,
+            "label": "辞書"
+        },
+        {
+            "id": "KEY",
+            "type": "String",
+            "label": "キー"
+        }
+    ],
+    "output": null,
+    "code": {
+        "python": "({{DICT}}.get({{KEY}}, None))"
+    }
+}

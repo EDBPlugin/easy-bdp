@@ -1,0 +1,32 @@
+{
+    "id": "send_button_message",
+    "category": "buttonform",
+    "name": "🔘 ボタン付きメッセージ送信",
+    "color": "#d63031",
+    "inputs": [
+        {
+            "id": "MESSAGE",
+            "type": "String",
+            "label": "メッセージ"
+        }
+    ],
+    "args": [
+        {
+            "type": "field_input",
+            "name": "LABEL",
+            "text": "Click Me",
+            "label": "ボタン名"
+        },
+        {
+            "type": "field_input",
+            "name": "CUSTOM_ID",
+            "text": "button_1",
+            "label": "ボタンID"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\n_view = discord.ui.View()\n_view.add_item(discord.ui.Button(label=\"{{LABEL}}\", custom_id=\"{{CUSTOM_ID}}\"))\nif 'ctx' in locals():\n    if isinstance(ctx, discord.Interaction):\n        await ctx.response.send_message(content={{MESSAGE}}, view=_view)\n    else:\n        await ctx.send(content={{MESSAGE}}, view=_view)\n"
+    }
+}

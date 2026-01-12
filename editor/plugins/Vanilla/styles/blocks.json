@@ -1,0 +1,15 @@
+{
+    "shape": {
+        "cornerRadius": 8,
+        "notch": "rounded"
+    },
+    "shadow": {
+        "enabled": true,
+        "blur": 5,
+        "offsetY": 2
+    },
+    "font": {
+        "family": "'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif",
+        "size": 13
+    }
+}

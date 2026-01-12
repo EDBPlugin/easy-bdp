@@ -1,0 +1,26 @@
+{
+    "id": "send_channel_message",
+    "category": "message",
+    "name": "#️⃣ チャンネルに送信(ID)",
+    "color": "#3498db",
+    "inputs": [
+        {
+            "id": "CHANNEL_ID",
+            "type": "String",
+            "label": "チャンネルID"
+        },
+        {
+            "id": "MESSAGE",
+            "type": [
+                "String",
+                "Embed"
+            ],
+            "label": "送信内容"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\n_ch_id = int({{CHANNEL_ID}}) if str({{CHANNEL_ID}}).isdigit() else 0\n_channel = bot.get_channel(_ch_id)\nif _channel:\n    _msg = {{MESSAGE}}\n    if isinstance(_msg, discord.Embed):\n        await _channel.send(embed=_msg)\n    else:\n        await _channel.send(content=_msg)\n"
+    }
+}

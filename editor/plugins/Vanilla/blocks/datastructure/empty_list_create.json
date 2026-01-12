@@ -1,0 +1,11 @@
+{
+    "id": "empty_list_create",
+    "category": "datastructure",
+    "name": "📋 空のリストを作成",
+    "color": "#a55b80",
+    "inputs": [],
+    "output": "Array",
+    "code": {
+        "python": "[]"
+    }
+}

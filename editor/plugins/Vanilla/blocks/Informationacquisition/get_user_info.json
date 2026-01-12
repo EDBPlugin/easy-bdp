@@ -1,0 +1,35 @@
+{
+    "id": "get_user_info",
+    "category": "Informationacquisition",
+    "name": "👤 実行者(対象)の {{TYPE}}",
+    "color": "#8e44ad",
+    "inputs": [],
+    "args": [
+        {
+            "type": "field_dropdown",
+            "name": "TYPE",
+            "options": [
+                [
+                    "ユーザーID",
+                    "id"
+                ],
+                [
+                    "名前 (ユーザー名)",
+                    "name"
+                ],
+                [
+                    "表示名 (ニックネーム)",
+                    "display_name"
+                ],
+                [
+                    "メンション (<@ID>)",
+                    "mention"
+                ]
+            ]
+        }
+    ],
+    "output": "String",
+    "code": {
+        "python": "(user.{{TYPE}} if \"user\" in locals() else \"Unknown\")"
+    }
+}

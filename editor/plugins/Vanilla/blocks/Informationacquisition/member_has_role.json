@@ -1,0 +1,22 @@
+{
+    "id": "member_has_role",
+    "category": "Informationacquisition",
+    "name": "❓ ユーザー {{USER}} がロール(ID) {{ROLE_ID}} を持っている",
+    "color": "#8e44ad",
+    "inputs": [
+        {
+            "id": "USER",
+            "type": "String",
+            "label": "ユーザー"
+        },
+        {
+            "id": "ROLE_ID",
+            "type": "String",
+            "label": "ロールID"
+        }
+    ],
+    "output": "Boolean",
+    "code": {
+        "python": "(discord.utils.get(ctx.guild.get_member(int({{USER}})).roles, id=int({{ROLE_ID}})) is not None if \"ctx\" in locals() and ctx.guild and str({{USER}}).isdigit() and str({{ROLE_ID}}).isdigit() else False)"
+    }
+}

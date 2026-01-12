@@ -1,0 +1,13 @@
+{
+    "workspace": {
+        "blur": false,
+        "splitView": false
+    },
+    "scrollbar": {
+        "size": 8,
+        "radius": 4
+    },
+    "modal": {
+        "animation": "scale"
+    }
+}

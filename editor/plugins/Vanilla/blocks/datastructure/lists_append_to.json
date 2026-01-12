@@ -1,0 +1,23 @@
+{
+    "id": "lists_append_to",
+    "category": "datastructure",
+    "name": "リストに項目を追加",
+    "color": "#a55b80",
+    "inputs": [
+        {
+            "id": "LIST",
+            "type": "Array",
+            "label": "リスト"
+        },
+        {
+            "id": "ITEM",
+            "type": null,
+            "label": "項目"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "{{LIST}}.append({{ITEM}})\n"
+    }
+}

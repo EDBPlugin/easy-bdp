@@ -1,0 +1,18 @@
+{
+    "id": "add_reaction",
+    "category": "reaction",
+    "name": "👍 リアクションを付ける",
+    "color": "#e17055",
+    "inputs": [
+        {
+            "id": "EMOJI",
+            "type": "String",
+            "label": "絵文字"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\ntry:\n    if 'ctx' in locals():\n        if isinstance(ctx, discord.Message): \n            await ctx.add_reaction({{EMOJI}})\n        elif isinstance(ctx, commands.Context): \n            await ctx.message.add_reaction({{EMOJI}})\nexcept Exception:\n    pass\n"
+    }
+}

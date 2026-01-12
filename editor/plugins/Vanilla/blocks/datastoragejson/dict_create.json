@@ -1,0 +1,11 @@
+{
+    "id": "dict_create",
+    "category": "datastoragejson",
+    "name": "📦 空の辞書(データ)を作成",
+    "color": "#d35400",
+    "inputs": [],
+    "output": null,
+    "code": {
+        "python": "{}"
+    }
+}

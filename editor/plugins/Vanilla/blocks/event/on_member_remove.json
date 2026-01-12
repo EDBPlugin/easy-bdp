@@ -1,0 +1,17 @@
+{
+    "id": "on_member_remove",
+    "category": "event",
+    "name": "👋 メンバーが退出したとき",
+    "description": "メンバーがサーバーから退出（またはKick/Ban）された時に実行されます。",
+    "color": "#e67e22",
+    "inputs": [],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n@bot.event\nasync def on_member_remove(member):\n    user = member\n    ctx = member\n{{DO}}\n"
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "id": "on_ready",
+    "category": "event",
+    "name": "🏁 Botが起動したとき",
+    "description": "Botのログインが完了し、準備ができた時に1回だけ実行されます。",
+    "color": "#e67e22",
+    "inputs": [],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n@bot.event\nasync def on_ready():\n    print(f'Logged in as {bot.user}')\n    try:\n        synced = await bot.tree.sync()\n        print(f\"Synced {len(synced)} command(s)\")\n    except Exception as e:\n        print(e)\n{{DO}}\n"
+    }
+}

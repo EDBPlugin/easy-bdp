@@ -1,0 +1,17 @@
+{
+    "id": "json_load",
+    "category": "datastoragejson",
+    "name": "📂 JSONファイルを読み込む",
+    "color": "#d35400",
+    "inputs": [
+        {
+            "id": "FILENAME",
+            "type": "String",
+            "label": "ファイル名"
+        }
+    ],
+    "output": null,
+    "code": {
+        "python": "_load_json_data({{FILENAME}})"
+    }
+}

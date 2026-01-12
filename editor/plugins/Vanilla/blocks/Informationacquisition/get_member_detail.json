@@ -1,0 +1,35 @@
+{
+    "id": "get_member_detail",
+    "category": "Informationacquisition",
+    "name": "👤 実行者(対象) 詳細: {{TYPE}}",
+    "color": "#8e44ad",
+    "inputs": [],
+    "args": [
+        {
+            "type": "field_dropdown",
+            "name": "TYPE",
+            "options": [
+                [
+                    "アバターURL",
+                    "avatar.url"
+                ],
+                [
+                    "アカウント作成日",
+                    "created_at"
+                ],
+                [
+                    "サーバー参加日",
+                    "joined_at"
+                ],
+                [
+                    "ステータス",
+                    "status"
+                ]
+            ]
+        }
+    ],
+    "output": "String",
+    "code": {
+        "python": "((str(user.avatar.url) if user.avatar else \"\") if \"{{TYPE}}\" == \"avatar.url\" else (str(user.created_at.strftime(\"%Y-%m-%d %H:%M\")) if \"{{TYPE}}\" == \"created_at\" else (str(user.joined_at.strftime(\"%Y-%m-%d %H:%M\")) if \"{{TYPE}}\" == \"joined_at\" and hasattr(user, \"joined_at\") else (str(user.status) if \"{{TYPE}}\" == \"status\" and hasattr(user, \"status\") else \"Unknown\"))))"
+    }
+}

@@ -1,0 +1,22 @@
+{
+    "id": "prefix_command",
+    "category": "event",
+    "name": "🗣️ プレフィックスコマンド {{COMMAND_NAME}} を実行したとき",
+    "color": "#e67e22",
+    "args": [
+        {
+            "type": "field_input",
+            "name": "COMMAND_NAME",
+            "text": "!ping"
+        }
+    ],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n@bot.command(name='{{COMMAND_NAME}}')\nasync def {{COMMAND_NAME}}_cmd(ctx):\n    user = ctx.author\n{{DO}}\n"
+    }
+}

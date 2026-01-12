@@ -1,0 +1,15 @@
+{
+  "id": "Informationacquisition",
+  "order": 4,
+  "name": "情報取得",
+  "description": "Discordイベント系ブロック",
+  "color": "#8e44ad",
+  "blocks": [
+    "get_user_info",
+    "get_member_detail",
+    "member_has_role",
+    "get_channel_info",
+    "get_server_info",
+    "get_current_time"
+  ]
+}

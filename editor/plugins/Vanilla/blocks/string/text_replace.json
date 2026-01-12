@@ -1,0 +1,27 @@
+{
+    "id": "text_replace",
+    "category": "string",
+    "name": "テキスト置換",
+    "color": "#5ba58c",
+    "inputs": [
+        {
+            "id": "TEXT",
+            "type": "String",
+            "label": "テキスト"
+        },
+        {
+            "id": "FROM",
+            "type": "String",
+            "label": "検索"
+        },
+        {
+            "id": "TO",
+            "type": "String",
+            "label": "置換"
+        }
+    ],
+    "output": "String",
+    "code": {
+        "python": "str({{TEXT}}).replace(str({{FROM}}), str({{TO}}))"
+    }
+}

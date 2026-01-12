@@ -1,0 +1,23 @@
+{
+    "id": "change_nickname",
+    "category": "Managementfunction",
+    "name": "🏷️ ニックネーム変更",
+    "color": "#e74c3c",
+    "inputs": [
+        {
+            "id": "USER_ID",
+            "type": "String",
+            "label": "ユーザーID"
+        },
+        {
+            "id": "NAME",
+            "type": "String",
+            "label": "新しい名前"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and ctx.guild:\n    _m = ctx.guild.get_member(int({{USER_ID}}))\n    if _m: await _m.edit(nick={{NAME}})\n"
+    }
+}

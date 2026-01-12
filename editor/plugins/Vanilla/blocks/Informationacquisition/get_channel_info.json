@@ -1,0 +1,31 @@
+{
+    "id": "get_channel_info",
+    "category": "Informationacquisition",
+    "name": "📺 現在の {{TYPE}}",
+    "color": "#8e44ad",
+    "inputs": [],
+    "args": [
+        {
+            "type": "field_dropdown",
+            "name": "TYPE",
+            "options": [
+                [
+                    "チャンネルID",
+                    "id"
+                ],
+                [
+                    "チャンネル名",
+                    "name"
+                ],
+                [
+                    "メンション (<#ID>)",
+                    "mention"
+                ]
+            ]
+        }
+    ],
+    "output": "String",
+    "code": {
+        "python": "(ctx.channel.{{TYPE}} if \"ctx\" in locals() and hasattr(ctx, \"channel\") else \"Unknown\")"
+    }
+}

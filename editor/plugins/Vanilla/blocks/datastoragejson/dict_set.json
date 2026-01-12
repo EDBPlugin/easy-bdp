@@ -1,0 +1,28 @@
+{
+    "id": "dict_set",
+    "category": "datastoragejson",
+    "name": "辞書に値を設定",
+    "color": "#d35400",
+    "inputs": [
+        {
+            "id": "DICT",
+            "type": null,
+            "label": "辞書"
+        },
+        {
+            "id": "KEY",
+            "type": "String",
+            "label": "キー"
+        },
+        {
+            "id": "VALUE",
+            "type": null,
+            "label": "値"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "{{DICT}}.update({ {{KEY}}: {{VALUE}} })\n"
+    }
+}

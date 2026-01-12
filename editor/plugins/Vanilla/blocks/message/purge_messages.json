@@ -1,0 +1,18 @@
+{
+    "id": "purge_messages",
+    "category": "message",
+    "name": "🗑️ メッセージを一括削除",
+    "color": "#3498db",
+    "inputs": [
+        {
+            "id": "LIMIT",
+            "type": "Number",
+            "label": "件数"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and hasattr(ctx, 'channel') and hasattr(ctx.channel, 'purge'):\n    await ctx.channel.purge(limit=int({{LIMIT}}))\n"
+    }
+}

@@ -1,0 +1,31 @@
+{
+    "id": "add_embed_field",
+    "category": "embed",
+    "name": "項目追加",
+    "color": "#2ecc71",
+    "inputs": [
+        {
+            "id": "NAME",
+            "type": "String",
+            "label": "項目名"
+        },
+        {
+            "id": "VALUE",
+            "type": "String",
+            "label": "内容"
+        }
+    ],
+    "args": [
+        {
+            "type": "field_checkbox",
+            "name": "INLINE",
+            "checked": true,
+            "label": "横並び"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "embed.add_field(name={{NAME}}, value={{VALUE}}, inline={{INLINE}})\n"
+    }
+}

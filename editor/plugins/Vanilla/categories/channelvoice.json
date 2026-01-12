@@ -1,0 +1,14 @@
+{
+  "id": "channelvoice",
+  "order": 8,
+  "name": "チャンネル・ボイス",
+  "description": "Discordイベント系ブロック",
+  "color": "#00a8ff",
+  "blocks": [
+    "join_voice_channel",
+    "play_audio_file",
+    "leave_voice_channel",
+    "create_text_channel",
+    "delete_channel"
+  ]
+}

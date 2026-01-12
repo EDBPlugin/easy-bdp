@@ -1,0 +1,23 @@
+{
+    "id": "json_save",
+    "category": "datastoragejson",
+    "name": "💾 データを保存",
+    "color": "#d35400",
+    "inputs": [
+        {
+            "id": "DATA",
+            "type": null,
+            "label": "データ"
+        },
+        {
+            "id": "FILENAME",
+            "type": "String",
+            "label": "ファイル名"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "_save_json_data({{FILENAME}}, {{DATA}})\n"
+    }
+}

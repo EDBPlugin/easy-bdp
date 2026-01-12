@@ -1,0 +1,14 @@
+{
+    "row": {
+        "height": 44,
+        "radius": 4,
+        "padding": "8px 12px"
+    },
+    "indicator": {
+        "width": 3
+    },
+    "animation": {
+        "hover": true,
+        "duration": 200
+    }
+}

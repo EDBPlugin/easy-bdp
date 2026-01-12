@@ -1,0 +1,11 @@
+{
+    "id": "get_current_time",
+    "category": "Informationacquisition",
+    "name": "🕒 現在時刻 (文字列)",
+    "color": "#8e44ad",
+    "inputs": [],
+    "output": "String",
+    "code": {
+        "python": "datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')"
+    }
+}

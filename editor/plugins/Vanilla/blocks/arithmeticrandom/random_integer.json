@@ -1,0 +1,22 @@
+{
+    "id": "random_integer",
+    "category": "arithmeticrandom",
+    "name": "🎲 乱数",
+    "color": "#5b80a5",
+    "inputs": [
+        {
+            "id": "FROM",
+            "type": "Number",
+            "label": "最小"
+        },
+        {
+            "id": "TO",
+            "type": "Number",
+            "label": "最大"
+        }
+    ],
+    "output": "Number",
+    "code": {
+        "python": "random.randint(int({{FROM}}), int({{TO}}))"
+    }
+}

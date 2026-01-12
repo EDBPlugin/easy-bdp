@@ -1,0 +1,21 @@
+{
+    "id": "edit_reply",
+    "category": "message",
+    "name": "✏️ 返信を編集する",
+    "color": "#3498db",
+    "inputs": [
+        {
+            "id": "MESSAGE",
+            "type": [
+                "String",
+                "Embed"
+            ],
+            "label": "内容"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and isinstance(ctx, discord.Interaction):\n    _msg = {{MESSAGE}}\n    if isinstance(_msg, discord.Embed):\n        await ctx.edit_original_response(embed=_msg)\n    else:\n        await ctx.edit_original_response(content=_msg)\n"
+    }
+}

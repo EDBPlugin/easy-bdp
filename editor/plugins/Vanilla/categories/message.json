@@ -1,0 +1,19 @@
+{
+  "id": "message",
+  "order": 5,
+  "name": "メッセージ",
+  "description": "Discordイベント系ブロック",
+  "color": "#3498db",
+  "blocks": [
+    "reply_message",
+    "send_dm",
+    "defer_reply",
+    "send_channel_message",
+    "edit_reply",
+    "edit_message_by_id",
+    "delete_message",
+    "purge_messages",
+    "pin_message",
+    "create_thread"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+    "id": "create_thread",
+    "category": "message",
+    "name": "🧵 スレッドを作成",
+    "color": "#3498db",
+    "inputs": [
+        {
+            "id": "NAME",
+            "type": "String",
+            "label": "名前"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\ntry:\n    if 'ctx' in locals():\n        if isinstance(ctx, discord.Message): \n            await ctx.create_thread(name={{NAME}})\n        elif isinstance(ctx, commands.Context): \n            await ctx.message.create_thread(name={{NAME}})\nexcept Exception:\n    pass\n"
+    }
+}

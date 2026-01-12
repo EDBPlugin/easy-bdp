@@ -1,0 +1,17 @@
+{
+    "id": "on_message_create",
+    "category": "event",
+    "name": "📩 メッセージを受信したとき",
+    "description": "誰かがメッセージを送信した時に実行されます。",
+    "color": "#e67e22",
+    "inputs": [],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n@bot.event\nasync def on_message(message):\n    if message.author == bot.user:\n        return\n    ctx = message\n    user = message.author\n{{DO}}\n    await bot.process_commands(message)\n"
+    }
+}

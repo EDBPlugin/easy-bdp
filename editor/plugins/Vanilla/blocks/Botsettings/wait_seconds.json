@@ -1,0 +1,18 @@
+{
+    "id": "wait_seconds",
+    "category": "Botsettings",
+    "name": "⏳ 秒待つ",
+    "color": "#9b59b6",
+    "inputs": [
+        {
+            "id": "SECONDS",
+            "type": "Number",
+            "label": "秒数"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "await asyncio.sleep(int({{SECONDS}}))\n"
+    }
+}

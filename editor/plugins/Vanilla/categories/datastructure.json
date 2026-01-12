@@ -1,0 +1,15 @@
+{
+  "id": "datastructure",
+  "order": 14,
+  "name": "データ構造",
+  "description": "Discordイベント系ブロック",
+  "color": "#a55b80",
+  "blocks": [
+    "lists_create_with",
+    "lists_length",
+    "lists_getIndex",
+    "lists_setIndex",
+    "lists_append_to",
+    "random_choice"
+  ]
+}

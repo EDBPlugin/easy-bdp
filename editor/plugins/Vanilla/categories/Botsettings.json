@@ -1,0 +1,11 @@
+{
+  "id": "Botsettings",
+  "order": 9,
+  "name": "Bot設定",
+  "description": "Discordイベント系ブロック",
+  "color": "#9b59b6",
+  "blocks": [
+    "set_bot_status",
+    "wait_seconds"
+  ]
+}

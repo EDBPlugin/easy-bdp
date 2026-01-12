@@ -1,0 +1,20 @@
+{
+    "id": "get_command_arg",
+    "category": "event",
+    "name": "コマンド引数 {{ARG_NAME}} の値",
+    "color": "#e67e22",
+    "args": [
+        {
+            "type": "field_input",
+            "name": "ARG_NAME",
+            "text": "name"
+        }
+    ],
+    "output": [
+        "String",
+        "Number"
+    ],
+    "code": {
+        "python": "# Argument '{{ARG_NAME}}' needed"
+    }
+}

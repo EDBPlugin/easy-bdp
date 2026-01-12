@@ -1,0 +1,12 @@
+{
+  "id": "advancedoperations",
+  "order": 6,
+  "name": "高度な操作",
+  "description": "Discordイベント系ブロック",
+  "color": "#535c68",
+  "blocks": [
+    "custom_python_code",
+    "wait_for_message",
+    "print_to_console"
+  ]
+}

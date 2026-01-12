@@ -1,0 +1,23 @@
+{
+    "id": "ban_user",
+    "category": "Managementfunction",
+    "name": "🚫 BANする",
+    "color": "#e74c3c",
+    "inputs": [
+        {
+            "id": "USER_ID",
+            "type": "String",
+            "label": "ユーザーID"
+        },
+        {
+            "id": "REASON",
+            "type": "String",
+            "label": "理由"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and ctx.guild:\n    _m = ctx.guild.get_member(int({{USER_ID}}))\n    if _m: await _m.ban(reason={{REASON}})\n"
+    }
+}

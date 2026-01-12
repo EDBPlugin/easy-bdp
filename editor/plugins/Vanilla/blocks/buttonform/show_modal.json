@@ -1,0 +1,38 @@
+{
+    "id": "show_modal",
+    "category": "buttonform",
+    "name": "📝 モーダル(入力フォーム)を表示",
+    "color": "#d63031",
+    "inputs": [],
+    "args": [
+        {
+            "type": "field_input",
+            "name": "TITLE",
+            "text": "My Form",
+            "label": "タイトル"
+        },
+        {
+            "type": "field_input",
+            "name": "CUSTOM_ID",
+            "text": "modal_1",
+            "label": "フォームID"
+        },
+        {
+            "type": "field_input",
+            "name": "LABEL1",
+            "text": "Name",
+            "label": "入力項目1"
+        },
+        {
+            "type": "field_input",
+            "name": "LABEL2",
+            "text": "",
+            "label": "入力項目2(任意)"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif isinstance(ctx, discord.Interaction):\n    _inputs = [x for x in [{\"label\": \"{{LABEL1}}\", \"id\": \"input_0\"}, {\"label\": \"{{LABEL2}}\", \"id\": \"input_1\"}] if x[\"label\"]]\n    await ctx.response.send_modal(EasyModal(title=\"{{TITLE}}\", custom_id=\"{{CUSTOM_ID}}\", inputs=_inputs))\n"
+    }
+}

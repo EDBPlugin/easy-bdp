@@ -1,0 +1,29 @@
+{
+    "id": "reply_message",
+    "category": "message",
+    "name": "↩️ 返信する",
+    "color": "#3498db",
+    "inputs": [
+        {
+            "id": "MESSAGE",
+            "type": [
+                "String",
+                "Embed"
+            ],
+            "label": "内容"
+        }
+    ],
+    "args": [
+        {
+            "type": "field_checkbox",
+            "name": "EPHEMERAL",
+            "checked": false,
+            "label": "自分だけに表示"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\n_msg = {{MESSAGE}}\n_ephemeral = {{EPHEMERAL}}\n_kwargs = {'embed': _msg} if isinstance(_msg, discord.Embed) else {'content': _msg}\nif 'ctx' in locals():\n    if isinstance(ctx, discord.Interaction):\n        if ctx.response.is_done():\n            await ctx.followup.send(**_kwargs, ephemeral=_ephemeral)\n        else:\n            await ctx.response.send_message(**_kwargs, ephemeral=_ephemeral)\n    elif isinstance(ctx, commands.Context):\n        await ctx.send(**_kwargs)\n    elif isinstance(ctx, discord.Message):\n        await ctx.reply(**_kwargs)\n"
+    }
+}

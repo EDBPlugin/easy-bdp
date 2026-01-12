@@ -1,0 +1,17 @@
+{
+    "id": "on_member_join",
+    "category": "event",
+    "name": "👤 メンバーが参加したとき",
+    "description": "新しいメンバーがサーバーに参加した時に実行されます。",
+    "color": "#e67e22",
+    "inputs": [],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n@bot.event\nasync def on_member_join(member):\n    user = member\n    ctx = member\n{{DO}}\n"
+    }
+}

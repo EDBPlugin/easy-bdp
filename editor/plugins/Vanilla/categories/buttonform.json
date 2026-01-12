@@ -1,0 +1,14 @@
+{
+  "id": "buttonform",
+  "order": 2,
+  "name": "ボタン・フォーム",
+  "description": "Discordイベント系ブロック",
+  "color": "#d63031",
+  "blocks": [
+    "send_button_message",
+    "on_button_click",
+    "show_modal",
+    "on_modal_submit",
+    "get_input_value"
+  ]
+}

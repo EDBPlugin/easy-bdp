@@ -1,0 +1,12 @@
+{
+    "id": "join_voice_channel",
+    "category": "channelvoice",
+    "name": "🔊 実行者のボイスチャンネルに参加",
+    "color": "#00a8ff",
+    "inputs": [],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'user' in locals() and user.voice:\n    await user.voice.channel.connect()\n"
+    }
+}

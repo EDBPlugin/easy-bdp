@@ -1,0 +1,23 @@
+{
+    "id": "add_user_role",
+    "category": "Managementfunction",
+    "name": "➕ ロール付与",
+    "color": "#e74c3c",
+    "inputs": [
+        {
+            "id": "USER_ID",
+            "type": "String",
+            "label": "ユーザーID"
+        },
+        {
+            "id": "ROLE_ID",
+            "type": "String",
+            "label": "ロールID"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and ctx.guild:\n    _m = ctx.guild.get_member(int({{USER_ID}}))\n    _r = ctx.guild.get_role(int({{ROLE_ID}}))\n    if _m and _r: await _m.add_roles(_r)\n"
+    }
+}

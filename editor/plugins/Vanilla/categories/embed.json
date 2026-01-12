@@ -1,0 +1,12 @@
+{
+  "id": "embed",
+  "order": 11,
+  "name": "埋め込み (Embed)",
+  "description": "Discordイベント系ブロック",
+  "color": "#2ecc71",
+  "blocks": [
+    "create_embed",
+    "set_embed_property",
+    "add_embed_field"
+  ]
+}

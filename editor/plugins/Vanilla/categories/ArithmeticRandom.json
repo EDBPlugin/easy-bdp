@@ -1,0 +1,14 @@
+{
+  "id": "arithmeticrandom",
+  "order": 17,
+  "name": "算術・乱数",
+  "description": "Discordイベント系ブロック",
+  "color": "#5b80a5",
+  "blocks": [
+    "math_number",
+    "math_arithmetic",
+    "math_single",
+    "math_round",
+    "random_integer"
+  ]
+}

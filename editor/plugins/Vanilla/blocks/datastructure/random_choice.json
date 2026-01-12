@@ -1,0 +1,17 @@
+{
+    "id": "random_choice",
+    "category": "datastructure",
+    "name": "🎲 リストからランダムに選ぶ",
+    "color": "#a55b80",
+    "inputs": [
+        {
+            "id": "LIST",
+            "type": "Array",
+            "label": "リスト"
+        }
+    ],
+    "output": null,
+    "code": {
+        "python": "random.choice({{LIST}})"
+    }
+}

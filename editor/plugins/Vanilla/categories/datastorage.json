@@ -1,0 +1,14 @@
+{
+  "id": "datastoragejson",
+  "order": 7,
+  "name": "データ保存 (JSON)",
+  "description": "Discordイベント系ブロック",
+  "color": "#d35400",
+  "blocks": [
+    "json_load",
+    "json_save",
+    "dict_create",
+    "dict_get",
+    "dict_set"
+  ]
+}

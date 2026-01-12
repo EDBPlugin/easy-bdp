@@ -1,0 +1,23 @@
+{
+    "id": "on_button_click",
+    "category": "buttonform",
+    "name": "🖱️ ボタンがクリックされたとき",
+    "color": "#d63031",
+    "args": [
+        {
+            "type": "field_input",
+            "name": "CUSTOM_ID",
+            "text": "button_1",
+            "label": "ボタンID"
+        }
+    ],
+    "statements": [
+        {
+            "id": "DO",
+            "label": "実行する処理"
+        }
+    ],
+    "code": {
+        "python": "\n# BUTTON_EVENT:{{CUSTOM_ID}}\nasync def on_button_{{CUSTOM_ID}}(interaction):\n    ctx = interaction\n    user = interaction.user\n    await interaction.response.defer()\n{{DO}}\n"
+    }
+}

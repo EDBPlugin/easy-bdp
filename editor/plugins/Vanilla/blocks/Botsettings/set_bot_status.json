@@ -1,0 +1,38 @@
+{
+    "id": "set_bot_status",
+    "category": "Botsettings",
+    "name": "🎮 ステータスを設定",
+    "color": "#9b59b6",
+    "inputs": [
+        {
+            "id": "STATUS",
+            "type": "String",
+            "label": "状態名"
+        }
+    ],
+    "args": [
+        {
+            "type": "field_dropdown",
+            "name": "TYPE",
+            "options": [
+                [
+                    "プレイ中",
+                    "playing"
+                ],
+                [
+                    "視聴中",
+                    "watching"
+                ],
+                [
+                    "再生中",
+                    "listening"
+                ]
+            ]
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "await bot.change_presence(activity=(discord.Game(name={{STATUS}}) if \"{{TYPE}}\" == \"playing\" else (discord.Activity(type=discord.ActivityType.watching, name={{STATUS}}) if \"{{TYPE}}\" == \"watching\" else discord.Activity(type=discord.ActivityType.listening, name={{STATUS}}))))\n"
+    }
+}

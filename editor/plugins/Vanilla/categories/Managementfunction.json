@@ -1,0 +1,16 @@
+{
+  "id": "Managementfunction",
+  "order": 10,
+  "name": "管理機能",
+  "description": "Discordイベント系ブロック",
+  "color": "#e74c3c",
+  "blocks": [
+    "timeout_user",
+    "kick_user",
+    "ban_user",
+    "add_user_role",
+    "remove_user_role",
+    "create_role",
+    "change_nickname"
+  ]
+}

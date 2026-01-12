@@ -1,0 +1,12 @@
+{
+    "id": "leave_voice_channel",
+    "category": "channelvoice",
+    "name": "🔇 ボイスチャンネルから切断",
+    "color": "#00a8ff",
+    "inputs": [],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals() and ctx.guild.voice_client:\n    await ctx.guild.voice_client.disconnect()\n"
+    }
+}

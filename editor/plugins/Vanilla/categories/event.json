@@ -1,0 +1,19 @@
+[
+  {
+    "id": "event",
+    "order": 1,
+    "name": "イベント",
+    "description": "Discordイベント系ブロック",
+    "color": "#e67e22",
+    "blocks": [
+      "on_ready",
+      "on_message_create",
+      "on_member_join",
+      "on_member_remove",
+      "on_command_executed",
+      "prefix_command",
+      "get_message_content",
+      "get_command_arg"
+    ]
+  }
+]

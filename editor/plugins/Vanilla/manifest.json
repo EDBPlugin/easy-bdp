@@ -1,0 +1,15 @@
+{
+    "schema": "edbb.plugin.v1",
+    "id": "Vanilla",
+    "name": "Vanilla",
+    "version": "1.0.0",
+    "entry": "main.js",
+    "description": "EDBBの機能を再現するために作成されたプラグインです。",
+    "author": "EDBP Team",
+    "provides": {
+        "blocks": true,
+        "categories": true,
+        "styles": true,
+        "data": true
+    }
+}

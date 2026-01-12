@@ -1,0 +1,20 @@
+{
+    "id": "defer_reply",
+    "category": "message",
+    "name": "⏳ 応答を保留する (考え中...)",
+    "color": "#3498db",
+    "inputs": [],
+    "args": [
+        {
+            "type": "field_checkbox",
+            "name": "EPHEMERAL",
+            "checked": false,
+            "label": "自分だけ"
+        }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "code": {
+        "python": "\nif 'ctx' in locals():\n    if isinstance(ctx, discord.Interaction):\n        await ctx.response.defer(ephemeral={{EPHEMERAL}})\n    elif isinstance(ctx, commands.Context):\n        async with ctx.typing(): pass\n"
+    }
+}
