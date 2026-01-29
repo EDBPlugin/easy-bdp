@@ -326,6 +326,17 @@ html.is-mobile #liveCodeArea {
   display: none !important;
 }
 
+/* splitビューボタンとその親要素を非表示 */
+html.is-mobile #layoutBlockBtn,
+html.is-mobile #layoutSplitBtn {
+  display: none !important;
+}
+
+/* splitビューボタンを含む親divも非表示にして空白を詰める */
+html.is-mobile #headerActions > div:has(#layoutBlockBtn) {
+  display: none !important;
+}
+
 html.is-mobile #workspace-container {
   padding: 0 12px 12px;
 }

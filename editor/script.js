@@ -77,10 +77,7 @@ const setupBlocklyEnvironment = () => {
 
 const html = document.documentElement;
 const isMobileDevice =
-  typeof window !== 'undefined' &&
-  ('ontouchstart' in window ||
-    (typeof navigator !== 'undefined' &&
-      (navigator.maxTouchPoints > 0 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent))));
+  typeof window !== 'undefined' && window.innerWidth < 768;
 if (isMobileDevice) {
   html.classList.add('is-mobile');
 }
@@ -408,6 +405,11 @@ const initializeApp = () => {
 
   layoutBlockBtn.addEventListener('click', () => setLayout('block'));
   layoutSplitBtn.addEventListener('click', () => setLayout('split'));
+
+  if (isMobileDevice) {
+    layoutBlockBtn?.classList.add('hidden');
+    layoutSplitBtn?.classList.add('hidden');
+  }
 
   // --- Realtime Sync ---
   workspace.addChangeListener((e) => {

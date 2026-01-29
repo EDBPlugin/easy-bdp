@@ -1,8 +1,5 @@
 (function () {
-  const isMobile =
-    "ontouchstart" in window ||
-    navigator.maxTouchPoints > 0 ||
-    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const isMobile = window.innerWidth < 768;
   // Chrome（特にモバイル）で SVG の <text> を直接編集すると
   // キャレット位置や IME が壊れる不具合があるため、
   // 回避策として <input> を同じ位置に重ねて編集させている。
