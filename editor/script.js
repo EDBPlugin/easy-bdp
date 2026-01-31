@@ -75,6 +75,10 @@ const setupBlocklyEnvironment = () => {
 
 const html = document.documentElement;
 
+const escapePyString = (value) =>
+  String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+const extractEventName = (line) => line.split(':').slice(1).join(':').trim();
+
 const extractInteractionEvents = (rawCode) => {
   const lines = rawCode.split('\n');
   let filteredLines = [];
@@ -84,15 +88,17 @@ const extractInteractionEvents = (rawCode) => {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.includes('# BUTTON_EVENT:')) {
-      const currentEventName = line.split(':')[1].trim();
+      const currentEventName = extractEventName(line);
+      const escapedEventName = escapePyString(currentEventName);
       componentEvents +=
-        `            if interaction.data.get('custom_id') == '${currentEventName}':\n` +
+        `            if interaction.data.get('custom_id') == '${escapedEventName}':\n` +
         `                await on_button_${currentEventName}(interaction)\n`;
       filteredLines.push(line);
     } else if (line.includes('# MODAL_EVENT:')) {
-      const currentEventName = line.split(':')[1].trim();
+      const currentEventName = extractEventName(line);
+      const escapedEventName = escapePyString(currentEventName);
       modalEvents +=
-        `            if interaction.data.get('custom_id') == '${currentEventName}':\n` +
+        `            if interaction.data.get('custom_id') == '${escapedEventName}':\n` +
         `                await on_modal_${currentEventName}(interaction)\n`;
       filteredLines.push(line);
     } else {
@@ -381,13 +387,14 @@ const buildSharedModule = (bodyCode) => {
   return content.trim();
 };
 
-const buildCogFile = (className, blocks, imports, sharedImports = '') => {
+const buildCogFile = (className, blocks, imports, sharedImports = '', preamble = '') => {
   const body = blocks.map((block) => indentBlock(block)).join('\n\n');
   const header = `${imports.join('\n')}\n${sharedImports}`.trim();
+  const preambleBlock = preamble ? `${preamble}\n\n` : '';
   return `
 ${header}
 
-class ${className}(commands.Cog):
+${preambleBlock}class ${className}(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -398,12 +405,13 @@ async def setup(bot):
 `.trim();
 };
 
-const buildModuleFile = (imports, sharedImports, body) => {
+const buildModuleFile = (imports, sharedImports, body, preamble = '') => {
   const header = `${imports.join('\n')}\n${sharedImports}`.trim();
+  const preambleBlock = preamble ? `${preamble}\n\n` : '';
   return `
 ${header}
 
-${body}
+${preambleBlock}${body}
 
 async def setup(bot):
     pass
@@ -460,13 +468,20 @@ const deriveGroupMeta = (block) => {
 const generateSplitPythonFiles = () => {
   if (!workspace) return {};
   const topBlocks = workspace.getTopBlocks(true);
-  const rawAll = topBlocks.map((block) => blockCodeToString(Blockly.Python.blockToCode(block))).join('\n');
+  const topBlockEntries = topBlocks.map((block) => ({
+    block,
+    rawGroup: blockCodeToString(Blockly.Python.blockToCode(block)),
+  }));
+  const rawAll = topBlockEntries.map(({ rawGroup }) => rawGroup).join('\n');
   const { cleanedCode: allCleaned } = extractInteractionEvents(rawAll);
 
   const sharedModule = buildSharedModule(allCleaned);
   const files = { 'cogs/__init__.py': '' };
   if (sharedModule) files['cogs/shared.py'] = sharedModule;
 
+  const procedureDefs = topBlockEntries
+    .filter(({ block, rawGroup }) => block?.type?.startsWith('procedures_def') && rawGroup?.trim())
+    .map(({ rawGroup }) => rawGroup.trim());
   const nameCounter = new Map();
   const cogsToLoad = [];
 
@@ -476,9 +491,11 @@ const generateSplitPythonFiles = () => {
     return current === 0 ? base : `${base}_${current + 1}`;
   };
 
-  topBlocks.forEach((block) => {
-    const rawGroup = blockCodeToString(Blockly.Python.blockToCode(block));
+  topBlockEntries.forEach(({ block, rawGroup }) => {
     if (!rawGroup || !rawGroup.trim()) return;
+    if (block?.type?.startsWith('procedures_def')) {
+      return;
+    }
 
     const {
       cleanedCode,
@@ -509,21 +526,41 @@ const generateSplitPythonFiles = () => {
         : '';
 
     let fileContent = '';
+    const procedurePreamble = procedureDefs.length ? procedureDefs.join('\n\n') : '';
+
     if (kind === 'event') {
-      fileContent = buildCogFile(className, [convertEventBlock(cleanedCode)], imports, sharedImports);
+      fileContent = buildCogFile(
+        className,
+        [convertEventBlock(cleanedCode)],
+        imports,
+        sharedImports,
+        procedurePreamble,
+      );
     } else if (kind === 'slash') {
-      fileContent = buildCogFile(className, [convertSlashCommandBlock(cleanedCode)], imports, sharedImports);
+      fileContent = buildCogFile(
+        className,
+        [convertSlashCommandBlock(cleanedCode)],
+        imports,
+        sharedImports,
+        procedurePreamble,
+      );
     } else if (kind === 'prefix') {
-      fileContent = buildCogFile(className, [convertPrefixCommandBlock(cleanedCode)], imports, sharedImports);
+      fileContent = buildCogFile(
+        className,
+        [convertPrefixCommandBlock(cleanedCode)],
+        imports,
+        sharedImports,
+        procedurePreamble,
+      );
     } else if (kind === 'button' || kind === 'modal') {
       const blocks = [];
       if (needsInteractionHandler) {
         blocks.push(buildInteractionHandler(componentEvents, modalEvents));
       }
       blocks.push(convertComponentBlock(cleanedCode));
-      fileContent = buildCogFile(className, blocks, imports, sharedImports);
+      fileContent = buildCogFile(className, blocks, imports, sharedImports, procedurePreamble);
     } else {
-      fileContent = buildModuleFile(imports, sharedImports, cleanedCode.trim());
+      fileContent = buildModuleFile(imports, sharedImports, cleanedCode.trim(), procedurePreamble);
     }
 
     const filePath = `cogs/${fileSlug}.py`;
@@ -574,7 +611,7 @@ const renderSplitFiles = (files) => {
   const container = document.getElementById('splitFileList');
   container.innerHTML = '';
   Object.entries(files).forEach(([path, content]) => {
-    if (!content) return;
+    if (content == null) return;
     const item = document.createElement('div');
     item.className =
       'rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden';
@@ -900,7 +937,7 @@ const initializeApp = () => {
   splitDownloadAllBtn?.addEventListener('click', () => {
     const files = generateSplitPythonFiles();
     Object.entries(files).forEach(([path, content]) => {
-      if (!content) return;
+      if (content == null) return;
       const safeName = path.replace(/\//g, '__');
       downloadTextFile(safeName, content);
     });
