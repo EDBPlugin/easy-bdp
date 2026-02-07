@@ -286,14 +286,17 @@ const generatePythonCode = () => {
   let currentEventName = null;
 
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
+    const line = lines[i];
     if (line.includes('# BUTTON_EVENT:')) {
       currentEventName = line.split(':')[1].trim();
       componentEvents += `            if interaction.data.get('custom_id') == '${currentEventName}':\n                await on_button_${currentEventName}(interaction)\n`;
       filteredLines.push(line); // Keep definition
     } else if (line.includes('# MODAL_EVENT:')) {
-      currentEventName = line.split(':')[1].trim();
-      modalEvents += `            if interaction.data.get('custom_id') == '${currentEventName}':\n                await on_modal_${currentEventName}(interaction)\n`;
+      const currentEventName = extractEventName(line);
+      const escapedEventName = escapePyString(currentEventName);
+      modalEvents +=
+        `            if interaction.data.get('custom_id') == '${escapedEventName}':\n` +
+        `                await on_modal_${currentEventName}(interaction)\n`;
       filteredLines.push(line);
     } else {
       filteredLines.push(line);
@@ -413,7 +416,7 @@ ${modalEvents}
 # ----------------------------
 
 # --- ユーザー作成部分 ---
-${rawCode}
+${bodyCode}
 # --------------------------
 
 if __name__ == "__main__":
@@ -662,6 +665,10 @@ const initializeApp = () => {
   const closeModalBtn = document.getElementById('closeModalBtn');
   const codeOutput = document.getElementById('codeOutput');
   const copyCodeBtn = document.getElementById('copyCodeBtn');
+  const splitCodeBtn = document.getElementById('splitCodeBtn');
+  const splitCodeModal = document.getElementById('splitCodeModal');
+  const splitModalClose = document.getElementById('splitModalClose');
+  const splitDownloadAllBtn = document.getElementById('splitDownloadAllBtn');
 
   const importBtn = document.getElementById('importBtn');
   const exportBtn = document.getElementById('exportBtn');
@@ -974,12 +981,43 @@ const initializeApp = () => {
     codeModal.classList.add('show-modal');
   });
 
+  const openSplitModal = () => {
+    if (!splitCodeModal) return;
+    const files = generateSplitPythonFiles();
+    renderSplitFiles(files);
+    splitCodeModal.classList.remove('hidden');
+    splitCodeModal.classList.add('flex');
+    void splitCodeModal.offsetWidth;
+    splitCodeModal.classList.add('show-modal');
+  };
+
+  splitCodeBtn?.addEventListener('click', () => {
+    openSplitModal();
+  });
+
   closeModalBtn.addEventListener('click', () => {
     codeModal.classList.remove('show-modal');
     setTimeout(() => {
       codeModal.classList.remove('flex');
       codeModal.classList.add('hidden');
     }, 300); // Wait for transition
+  });
+
+  splitModalClose?.addEventListener('click', () => {
+    splitCodeModal.classList.remove('show-modal');
+    setTimeout(() => {
+      splitCodeModal.classList.remove('flex');
+      splitCodeModal.classList.add('hidden');
+    }, 300);
+  });
+
+  splitDownloadAllBtn?.addEventListener('click', () => {
+    const files = generateSplitPythonFiles();
+    Object.entries(files).forEach(([path, content]) => {
+      if (content == null) return;
+      const safeName = path.replace(/\//g, '__');
+      downloadTextFile(safeName, content);
+    });
   });
 
   copyCodeBtn.addEventListener('click', () => {
