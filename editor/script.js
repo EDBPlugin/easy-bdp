@@ -1010,9 +1010,33 @@ const initializeApp = () => {
   });
 };
 
-// Initialize app when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
+// Initialize app when DOM is ready and all modules are loaded
+// Use a small delay to ensure all module imports are complete
+const startApp = () => {
+  // Ensure Blockly is fully initialized with custom blocks
+  if (typeof Blockly === 'undefined' || !Blockly.Blocks || !Blockly.Python) {
+    // If Blockly is not ready, retry after a short delay
+    setTimeout(startApp, 100);
+    return;
+  }
+  
+  // Verify custom blocks are registered
+  if (!Blockly.Blocks['on_ready']) {
+    // Custom blocks not yet registered, retry
+    setTimeout(startApp, 100);
+    return;
+  }
+  
+  // All systems ready, initialize the app
   initializeApp();
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // Add a small delay to ensure module imports are complete
+    setTimeout(startApp, 50);
+  });
+} else {
+  // DOM already loaded, start app with delay
+  setTimeout(startApp, 50);
 }
