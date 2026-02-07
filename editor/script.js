@@ -862,25 +862,39 @@ const initializeApp = () => {
   });
 
   // --- モーダル表示ロジック (アニメーション付き) ---
+  const toggleModal = (modal, isOpen) => {
+    if (isOpen) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      // Force reflow
+      void modal.offsetWidth;
+      modal.classList.add('show-modal');
+    } else {
+      modal.classList.remove('show-modal');
+      setTimeout(() => {
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+      }, 300); // Wait for transition
+    }
+  };
+
   showCodeBtn.addEventListener('click', () => {
     showCodeBtn.blur();
     // Blocklyの選択ハイライトなどを解除
     if (workspace) Blockly.hideChaff();
     codeOutput.textContent = generatePythonCode();
-    codeModal.classList.remove('hidden');
-    codeModal.classList.add('flex');
-    // Force reflow
-    void codeModal.offsetWidth;
-    codeModal.classList.add('show-modal');
+    toggleModal(codeModal, true);
   });
 
   closeModalBtn.addEventListener('click', () => {
-    codeModal.classList.remove('show-modal');
-    setTimeout(() => {
-      codeModal.classList.remove('flex');
-      codeModal.classList.add('hidden');
-    }, 300); // Wait for transition
+    toggleModal(codeModal, false);
   });
+
+  // Backdrop click to close
+  codeModal.addEventListener('click', (e) => {
+    if (e.target === codeModal) toggleModal(codeModal, false);
+  });
+
 
   copyCodeBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(codeOutput.textContent);
