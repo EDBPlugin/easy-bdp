@@ -1,6 +1,7 @@
 // Note: blocks.js modifies the global Blockly object directly
 // We import it to ensure it's loaded and executed
-import './blocks.js';
+// blocks.js is loaded dynamically in startApp
+
 import WorkspaceStorage from './storage.js';
 import { initShareFeature } from "./share.js";
 import { PluginManager } from "./plugin.js";
@@ -131,9 +132,8 @@ const listStore = (() => {
   };
 })();
 
-if (typeof Blockly !== 'undefined') {
-  Blockly.edbbListStore = listStore;
-}
+// listStore assignment moved to initializeApp
+
 
 const toPythonLiteral = (raw) => {
   const original = String(raw ?? '');
@@ -187,21 +187,32 @@ const ensureListGenerator = (() => {
   };
 })();
 
-Blockly.Blocks['custom_python_code'] = {
-  init: function () {
-    this.appendDummyInput().appendField('🐍 Pythonコード実行');
-    this.appendDummyInput().appendField(
-      new FieldMultilineInput("print('Hello World')"),
-      'CODE',
-    );
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(60);
-    this.setTooltip('任意のPythonコードをここに記述して実行させます。');
-  },
-};
+
 
 const setupBlocklyEnvironment = () => {
+  // Define custom blocks (moved from top-level to safe scope)
+  if (!Blockly.Blocks['custom_python_code']) {
+    Blockly.Blocks['custom_python_code'] = {
+      init: function () {
+        this.appendDummyInput().appendField('🐍 Pythonコード実行');
+        // Check for FieldMultilineInput availability
+        const FieldMultiline = (typeof FieldMultilineInput !== 'undefined')
+          ? FieldMultilineInput
+          : (Blockly.FieldMultilineInput || Blockly.FieldTextInput);
+
+        this.appendDummyInput().appendField(
+          new FieldMultiline("print('Hello World')"),
+          'CODE',
+        );
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(60);
+        this.setTooltip('任意のPythonコードをここに記述して実行させます。');
+      },
+    };
+  }
+
+
   // Modern Theme Definition
   const modernLightTheme = Blockly.Theme.defineTheme('modernLight', {
     base: Blockly.Themes.Classic,
@@ -372,13 +383,6 @@ const generatePythonCode = () => {
 
 ${header}
 
-  if (usesRandom) finalCode += 'import random\n';
-  if (usesJson) finalCode += 'import json\n';
-  if (usesAsyncio) finalCode += 'import asyncio\n';
-  if (usesDatetime) finalCode += 'import datetime\n';
-  if (usesMath) finalCode += 'import math\n';
-
-  finalCode += `
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -395,7 +399,6 @@ ${bodyCode}
 
 if __name__ == "__main__":
     # Token check
-    
     print('\\x1b[31m!!!!注意!!!! トークンを設定していない場合は、実行前にコードの最後にある"TOKEN"部分にトークンを記述してください。\\x1b[0m')
     print('\\x1b[31m!!!!Warning!!!! If you have not set a token, please set the token in the "TOKEN" section at the end of the code before running it.\\x1b[0m')
     # トークン設定後は注意を削除しても問題ありません / After setting the token, you may safely remove this check.
@@ -410,7 +413,7 @@ const setupListManager = ({ workspace, storage, shareFeature, workspaceContainer
   const panel = document.createElement('div');
   panel.id = 'listPanel';
   panel.className = 'hidden';
-  
+
   const header = document.createElement('div');
   header.className = 'list-panel__header';
   header.textContent = 'リスト管理';
@@ -583,15 +586,15 @@ const setupListManager = ({ workspace, storage, shareFeature, workspaceContainer
 const indentBlock = (block, spaces = 4) =>
   block
     .split('\n')
-    .map((line) => (line.trim() === '' ? '' : `${' '.repeat(spaces)}${line}`))
+    .map((line) => (line.trim() === '' ? '' : `${' '.repeat(spaces)}${line} `))
     .join('\n');
 
 const addSelfParam = (block) =>
   block.replace(/async def ([^(]+)\(([^)]*)\)/, (match, name, params) => {
     const trimmed = params.trim();
-    if (!trimmed) return `async def ${name}(self)`;
-    if (trimmed.startsWith('self')) return `async def ${name}(${trimmed})`;
-    return `async def ${name}(self, ${trimmed})`;
+    if (!trimmed) return `async def ${name} (self)`;
+    if (trimmed.startsWith('self')) return `async def ${name} (${trimmed})`;
+    return `async def ${name} (self, ${trimmed})`;
   });
 
 const convertEventBlock = (block) => {
@@ -630,15 +633,15 @@ const buildInteractionHandler = (componentEvents, modalEvents) => {
     : '            pass';
 
   return `
-@commands.Cog.listener()
-async def on_interaction(self, interaction):
-    try:
-        if interaction.type == discord.InteractionType.component:
+  @commands.Cog.listener()
+  async def on_interaction(self, interaction):
+  try:
+  if interaction.type == discord.InteractionType.component:
 ${componentBody}
         elif interaction.type == discord.InteractionType.modal_submit:
 ${modalBody}
     except Exception as e:
-        print(f"Interaction Error: {e}")
+  print(f"Interaction Error: {e}")
 `.trim();
 };
 
@@ -682,65 +685,65 @@ const buildSharedModule = (bodyCode) => {
   let content = `# Shared helpers\n`;
   if (usesLogging) {
     content += `import logging\n\n`;
-    content += `logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')\n\n`;
+    content += `logging.basicConfig(level = logging.INFO, format = '%(asctime)s - %(levelname)s - %(message)s') \n\n`;
   }
   if (usesJson) {
     content += `import json\nimport os\n\n`;
-    content += `def _load_json_data(filename):\n`;
-    content += `    if not os.path.exists(filename):\n`;
+    content += `def _load_json_data(filename): \n`;
+    content += `    if not os.path.exists(filename): \n`;
     content += `        return {}\n`;
-    content += `    try:\n`;
-    content += `        with open(filename, 'r', encoding='utf-8') as f:\n`;
-    content += `            return json.load(f)\n`;
-    content += `    except Exception as e:\n`;
-    content += `        logging.error(f"JSON Load Error: {e}")\n`;
+    content += `    try: \n`;
+    content += `        with open(filename, 'r', encoding = 'utf-8') as f: \n`;
+    content += `            return json.load(f) \n`;
+    content += `    except Exception as e: \n`;
+    content += `        logging.error(f"JSON Load Error: {e}") \n`;
     content += `        return {}\n\n`;
-    content += `def _save_json_data(filename, data):\n`;
-    content += `    try:\n`;
-    content += `        with open(filename, 'w', encoding='utf-8') as f:\n`;
-    content += `            json.dump(data, f, ensure_ascii=False, indent=4)\n`;
-    content += `    except Exception as e:\n`;
-    content += `        logging.error(f"JSON Save Error: {e}")\n\n`;
+    content += `def _save_json_data(filename, data): \n`;
+    content += `    try: \n`;
+    content += `        with open(filename, 'w', encoding = 'utf-8') as f: \n`;
+    content += `            json.dump(data, f, ensure_ascii = False, indent = 4) \n`;
+    content += `    except Exception as e: \n`;
+    content += `        logging.error(f"JSON Save Error: {e}") \n\n`;
   }
   if (usesModal) {
     content += `import discord\n\n`;
-    content += `class EasyModal(discord.ui.Modal):\n`;
-    content += `    def __init__(self, title, custom_id, inputs):\n`;
-    content += `        super().__init__(title=title, timeout=None, custom_id=custom_id)\n`;
-    content += `        for item in inputs:\n`;
-    content += `            self.add_item(discord.ui.TextInput(label=item['label'], custom_id=item['id']))\n`;
+    content += `class EasyModal(discord.ui.Modal): \n`;
+    content += `    def __init__(self, title, custom_id, inputs): \n`;
+    content += `        super().__init__(title = title, timeout = None, custom_id = custom_id) \n`;
+    content += `        for item in inputs: \n`;
+    content += `            self.add_item(discord.ui.TextInput(label = item['label'], custom_id = item['id'])) \n`;
   }
   return content.trim();
 };
 
 const buildCogFile = (className, blocks, imports, sharedImports = '', preamble = '') => {
   const body = blocks.map((block) => indentBlock(block)).join('\n\n');
-  const header = `${imports.join('\n')}\n${sharedImports}`.trim();
-  const preambleBlock = preamble ? `${preamble}\n\n` : '';
+  const header = `${imports.join('\n')} \n${sharedImports} `.trim();
+  const preambleBlock = preamble ? `${preamble} \n\n` : '';
   return `
 ${header}
 
-${preambleBlock}class ${className}(commands.Cog):
+${preambleBlock} class ${className}(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
+  self.bot = bot
 
 ${body}
 
 async def setup(bot):
-    await bot.add_cog(${className}(bot))
-`.trim();
+  await bot.add_cog(${className}(bot))
+    `.trim();
 };
 
 const buildModuleFile = (imports, sharedImports, body, preamble = '') => {
-  const header = `${imports.join('\n')}\n${sharedImports}`.trim();
-  const preambleBlock = preamble ? `${preamble}\n\n` : '';
+  const header = `${imports.join('\n')} \n${sharedImports} `.trim();
+  const preambleBlock = preamble ? `${preamble} \n\n` : '';
   return `
 ${header}
 
 ${preambleBlock}${body}
 
 async def setup(bot):
-    pass
+  pass
 `.trim();
 };
 
@@ -814,7 +817,7 @@ const generateSplitPythonFiles = () => {
   const makeUniqueSlug = (base) => {
     const current = nameCounter.get(base) || 0;
     nameCounter.set(base, current + 1);
-    return current === 0 ? base : `${base}_${current + 1}`;
+    return current === 0 ? base : `${base}_${current + 1} `;
   };
 
   topBlockEntries.forEach(({ block, rawGroup }) => {
@@ -834,7 +837,7 @@ const generateSplitPythonFiles = () => {
     const { kind, label } = deriveGroupMeta(block);
     const baseSlug = slugify(`${kind}_${label}`);
     const fileSlug = makeUniqueSlug(baseSlug);
-    const className = `${toPascalCase(fileSlug)}Cog`.replace(/^[0-9]/, 'Cog$&');
+    const className = `${toPascalCase(fileSlug)} Cog`.replace(/^[0-9]/, 'Cog$&');
 
     const needsInteractionHandler = hasComponentEvents || hasModalEvents;
     const imports = buildImports(cleanedCode, needsInteractionHandler);
@@ -848,7 +851,7 @@ const generateSplitPythonFiles = () => {
     if (usesModal) sharedSymbols.push('EasyModal');
     const sharedImports =
       sharedModule && sharedSymbols.length
-        ? `from .shared import ${sharedSymbols.join(', ')}`
+        ? `from.shared import ${sharedSymbols.join(', ')} `
         : '';
 
     let fileContent = '';
@@ -901,8 +904,8 @@ import discord
 from discord.ext import commands
 
 intents = discord.Intents.default()
-intents.message_content = True 
-intents.members = True 
+intents.message_content = True
+intents.members = True
 intents.voice_states = True
 
 class EasyBot(commands.Bot):
@@ -942,18 +945,18 @@ const renderSplitFiles = (files) => {
     item.className =
       'rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden';
     item.innerHTML = `
-      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-        <div class="text-xs font-mono text-slate-600 dark:text-slate-300">${path}</div>
-        <div class="flex items-center gap-2">
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-mono text-xs">
+        <div class="text-slate-600 dark:text-slate-300 font-bold overflow-hidden text-ellipsis whitespace-nowrap" title="${path}">${path}</div>
+        <div class="flex items-center gap-2 shrink-0">
           <button class="splitCopyBtn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" data-path="${path}">
             <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
           </button>
-          <button class="splitDownloadBtn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white" data-path="${path}">
+          <button class="splitDownloadBtn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm" data-path="${path}">
             <i data-lucide="download" class="w-3.5 h-3.5"></i> DL
           </button>
         </div>
       </div>
-      <pre class="p-4 text-xs font-mono bg-[#0f172a] text-[#e2e8f0] overflow-x-auto"></pre>
+      <pre class="p-4 text-xs font-mono bg-[#0f172a] text-[#e2e8f0] overflow-x-auto selection:bg-indigo-500/30"></pre>
     `;
     const pre = item.querySelector('pre');
     if (pre) pre.textContent = content;
@@ -985,7 +988,7 @@ const renderSplitFiles = (files) => {
   lucide.createIcons();
 };
 
-const initializeApp = () => {
+const initializeApp = async () => {
   lucide.createIcons();
   const { modernLightTheme, modernDarkTheme } = setupBlocklyEnvironment();
 
@@ -1266,7 +1269,7 @@ const initializeApp = () => {
   const pluginManager = new PluginManager(workspace);
   workspace.pluginManager = pluginManager; // storage.js からアクセスできるようにする
   storage.pluginManager = pluginManager; // share.js からアクセスできるようにする
-  
+
   // プラグインの状態が変更されたら共有ボタンの状態を更新する
   const originalEnable = pluginManager.enablePlugin.bind(pluginManager);
   pluginManager.enablePlugin = async (id) => {
@@ -1389,6 +1392,11 @@ const initializeApp = () => {
     });
   });
 
+  // Ensure listStore is attached to Blockly
+  if (typeof Blockly !== 'undefined') {
+    Blockly.edbbListStore = listStore;
+  }
+
   copyCodeBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(codeOutput.textContent);
     const originalHtml = copyCodeBtn.innerHTML;
@@ -1408,23 +1416,57 @@ const initializeApp = () => {
 
 // Initialize app when DOM is ready and all modules are loaded
 // Use a small delay to ensure all module imports are complete
-const startApp = () => {
+const startApp = async (retryCount = 0) => {
+  // Limit retries to prevent infinite loops (approx 10 seconds)
+  if (retryCount > 100) {
+    console.error('App initialization timed out: Blockly or modules failed to load.');
+    const saveStatus = document.getElementById('saveStatus');
+    if (saveStatus) {
+      saveStatus.textContent = 'Load Timeout!';
+      saveStatus.classList.remove('bg-emerald-100', 'text-emerald-800');
+      saveStatus.classList.add('bg-red-100', 'text-red-800');
+      saveStatus.setAttribute('data-show', 'true');
+    }
+    return;
+  }
+
   // Ensure Blockly is fully initialized with custom blocks
   if (typeof Blockly === 'undefined' || !Blockly.Blocks || !Blockly.Python) {
     // If Blockly is not ready, retry after a short delay
-    setTimeout(startApp, 100);
+    setTimeout(() => startApp(retryCount + 1), 100);
     return;
   }
-  
+
+  // Dynamically load blocks.js if not already loaded
+  if (!Blockly.Blocks['on_ready']) {
+    try {
+      await import('./blocks.js');
+    } catch (e) {
+      console.error('Failed to load blocks.js', e);
+    }
+  }
+
   // Verify custom blocks are registered
   if (!Blockly.Blocks['on_ready']) {
     // Custom blocks not yet registered, retry
-    setTimeout(startApp, 100);
+    setTimeout(() => startApp(retryCount + 1), 100);
     return;
   }
-  
+
   // All systems ready, initialize the app
-  initializeApp();
+  try {
+    await initializeApp();
+  } catch (e) {
+    console.error('App initialization failed:', e);
+    // Attempt to notify user
+    const saveStatus = document.getElementById('saveStatus');
+    if (saveStatus) {
+      saveStatus.textContent = 'Init Error!';
+      saveStatus.classList.remove('bg-emerald-100', 'text-emerald-800');
+      saveStatus.classList.add('bg-red-100', 'text-red-800');
+      saveStatus.setAttribute('data-show', 'true');
+    }
+  }
 };
 
 if (document.readyState === 'loading') {
