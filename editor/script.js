@@ -1,6 +1,8 @@
 import Blocks from './blocks.js';
 import WorkspaceStorage from './storage.js';
 import { initShareFeature } from "./share.js";
+import { PluginManager } from "./plugin.js";
+import { PluginUI } from "./plugin-ui.js";
 
 const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
 
@@ -918,6 +920,11 @@ const initializeApp = () => {
   workspace.addChangeListener((e) => {
     if (e.type === Blockly.Events.TOOLBOX_ITEM_SELECT) setTimeout(updatePinState, 50);
   });
+
+  // --- Plugin System ---
+  const pluginManager = new PluginManager(workspace);
+  const pluginUI = new PluginUI(pluginManager);
+  await pluginManager.init();
 
   // --- Load Saved Data ---
   const sharedApplied = shareFeature.applySharedLayoutFromQuery();
