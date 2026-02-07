@@ -541,7 +541,7 @@ const setupListManager = ({ workspace, storage, shareFeature, workspaceContainer
   return { renderListPanel, scheduleListSave };
 };
 
-const initializeApp = () => {
+const initializeApp = async () => {
   lucide.createIcons();
   const { modernLightTheme, modernDarkTheme } = setupBlocklyEnvironment();
 
