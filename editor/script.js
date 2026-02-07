@@ -321,12 +321,9 @@ const generatePythonCode = () => {
   const usesAsyncio = rawCode.includes('asyncio.');
   const usesDatetime = rawCode.includes('datetime.');
   const usesMath = rawCode.includes('math.');
-  const usesLogging = rawCode.includes('logging.') || usesJson; // JSON helpers use logging
-  const needInteractionHandler = hasComponentEvents || hasModalEvents;
 
-  // --- Optimized Boilerplate ---
-  let boilerplate = `
-# Easy Discord Bot Builderによって作成されました！ 製作：@himais0giiiin
+  // Build the final code
+  let finalCode = `# Easy Discord Bot Builderによって作成されました！ 製作：@himais0giiiin
 # Created with Easy Discord Bot Builder! created by @himais0giiiin!
 # Optimized Version
 
@@ -335,170 +332,64 @@ from discord import app_commands
 from discord.ext import commands
 `;
 
-  if (needInteractionHandler || usesModal || rawCode.includes('discord.ui')) {
-    boilerplate += `from discord import ui\n`;
-  }
-  if (usesRandom) boilerplate += `import random\n`;
-  if (usesAsyncio) boilerplate += `import asyncio\n`;
-  if (usesDatetime) boilerplate += `import datetime\n`;
-  if (usesMath) boilerplate += `import math\n`;
-  if (usesJson) {
-      boilerplate += `import json\nimport os\n`;
-  }
-  if (usesLogging) boilerplate += `import logging\n`;
+  if (usesRandom) finalCode += 'import random\n';
+  if (usesJson) finalCode += 'import json\n';
+  if (usesAsyncio) finalCode += 'import asyncio\n';
+  if (usesDatetime) finalCode += 'import datetime\n';
+  if (usesMath) finalCode += 'import math\n';
 
-  // Logging Setup
-  if (usesLogging) {
-      boilerplate += `\n# ロギング設定 (Logging Setup)\nlogging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')\n`;
-  }
-
-  boilerplate += `
+  finalCode += `
 intents = discord.Intents.default()
-intents.message_content = True 
-intents.members = True 
+intents.message_content = True
+intents.members = True
 intents.voice_states = True
 
 # Botの作成
 bot = commands.Bot(command_prefix='!', intents=intents)
-`;
 
-  // Note: Global Error Handler removed as per issue #12
-
-  // --- JSON Operations ---
-  if (usesJson) {
-    boilerplate += `
-# ---JSON操作---
-def _load_json_data(filename):
-    if not os.path.exists(filename):
-        return {}
-    try:
-        with open(filename, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        logging.error(f"JSON Load Error: {e}")
-        return {}
-
-def _save_json_data(filename, data):
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        logging.error(f"JSON Save Error: {e}")
-`;
-  }
-
-  // --- Modal Class ---
-  if (usesModal) {
-    boilerplate += `
-# --- モーダルクラス ---
-class EasyModal(discord.ui.Modal):
-    def __init__(self, title, custom_id, inputs):
-        super().__init__(title=title, timeout=None, custom_id=custom_id)
-        for item in inputs:
-            self.add_item(discord.ui.TextInput(label=item['label'], custom_id=item['id']))
-`;
-  }
-
-  // --- Interaction Handler ---
-  if (needInteractionHandler) {
-    boilerplate += `
-# --- インタラクションハンドラー ---
-@bot.event
-async def on_interaction(interaction):
-    try:
-        if interaction.type == discord.InteractionType.component:
-${componentEvents}
-        elif interaction.type == discord.InteractionType.modal_submit:
-${modalEvents}
-    except Exception as e:
-        print(f"Interaction Error: {e}")
-`;
-  }
-
-  boilerplate += `
 # ----------------------------
 
 # --- ユーザー作成部分 ---
+
 ${rawCode}
-# --------------------------
+
+# ----------------------------
 
 if __name__ == "__main__":
     # Token check
+    
+    print('\\x1b[31m!!!!注意!!!! トークンを設定していない場合は、実行前にコードの最後にある"TOKEN"部分にトークンを記述してください。\\x1b[0m')
+    print('\\x1b[31m!!!!Warning!!!! If you have not set a token, please set the token in the "TOKEN" section at the end of the code before running it.\\x1b[0m')
+    # トークン設定後は注意を削除しても問題ありません / After setting the token, you may safely remove this check.
 
-    print('\\x1b[31m!!!!注意!!!! トークンを設定していない場合は、実行前にコードの最後にある"TOKEN"部分にトークンを設定してください。\\n\\x1b[0m')
-    print('\\x1b[31m!!!!Warning!!!! If you have not set a token, please set the token in the “TOKEN” section at the end of the code before execution.\\x1b[0m')
-    # トークン設定後は、注意を削除しても問題ありません。 / After setting the token, you may safely remove this warning message.
-
-    bot.run('TOKEN')  # 実行時はここにTokenを入れてください!
-    pass
+    bot.run("TOKEN")
 `;
-
-  return boilerplate.trim();
-};
-
-const updateLivePreview = () => {
-  const code = generatePythonCode();
-  const preview = document.getElementById('codePreviewContent');
-  preview.textContent = code;
-  hljs.highlightElement(preview);
+  return finalCode;
 };
 
 const setupListManager = ({ workspace, storage, shareFeature, workspaceContainer }) => {
-  if (!workspace || !workspaceContainer) return null;
-  ensureListGenerator();
+  const panel = document.createElement('div');
+  panel.id = 'listPanel';
+  panel.className = 'hidden';
+  
+  const header = document.createElement('div');
+  header.className = 'list-panel__header';
+  header.textContent = 'リスト管理';
+  panel.appendChild(header);
 
-  let panel = document.getElementById('listPanel');
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'listPanel';
-    panel.className = 'list-panel hidden';
+  const body = document.createElement('div');
+  body.className = 'list-panel__body';
+  panel.appendChild(body);
 
-    const header = document.createElement('div');
-    header.className = 'list-panel__header';
-    const title = document.createElement('span');
-    title.className = 'list-panel__title';
-    title.textContent = 'リスト';
-    header.appendChild(title);
-    panel.appendChild(header);
-
-    const body = document.createElement('div');
-    body.className = 'list-panel__body';
-    panel.appendChild(body);
-    workspaceContainer.appendChild(panel);
-  }
-
-  const body = panel.querySelector('.list-panel__body');
-  let saveTimer = null;
-
-  const showSaveStatus = () => {
-    const saveStatus = document.getElementById('saveStatus');
-    if (!saveStatus) return;
-    saveStatus.setAttribute('data-show', 'true');
-    setTimeout(() => saveStatus.setAttribute('data-show', 'false'), 2000);
-  };
+  workspaceContainer.appendChild(panel);
 
   const scheduleListSave = () => {
-    if (shareFeature?.isShareViewMode?.()) return;
-    if (saveTimer) window.clearTimeout(saveTimer);
-    saveTimer = window.setTimeout(() => {
-      storage?.save();
-      showSaveStatus();
-      if (workspaceContainer.classList.contains('split-view')) updateLivePreview();
-    }, 150);
-  };
-
-  const pruneLists = () => {
-    const validIds = new Set(workspace.getAllVariables().map((variable) => variable.getId()));
-    listStore.getIds().forEach((id) => {
-      if (!validIds.has(id)) listStore.removeList(id);
-    });
+    storage?.save();
   };
 
   const renderListPanel = () => {
-    if (!body) return;
-    pruneLists();
-    const entries = listStore.getEntries();
     body.innerHTML = '';
+    const entries = listStore.getEntries();
 
     if (!entries.length) {
       panel.classList.add('hidden');
@@ -649,8 +540,6 @@ const setupListManager = ({ workspace, storage, shareFeature, workspaceContainer
 
   return { renderListPanel, scheduleListSave };
 };
-
-
 
 const initializeApp = () => {
   lucide.createIcons();
@@ -806,7 +695,6 @@ const initializeApp = () => {
         'dark:text-indigo-400',
       );
       layoutBlockBtn.classList.add('text-slate-500', 'dark:text-slate-400');
-      updateLivePreview();
     } else {
       workspaceContainer.classList.remove('split-view');
       layoutBlockBtn.classList.remove('text-slate-500', 'dark:text-slate-400');
@@ -827,27 +715,28 @@ const initializeApp = () => {
       );
       layoutSplitBtn.classList.add('text-slate-500', 'dark:text-slate-400');
     }
-    setTimeout(() => Blockly.svgResize(workspace), 350);
+    if (workspace) {
+      setTimeout(() => Blockly.svgResize(workspace), 450);
+    }
   };
 
   layoutBlockBtn.addEventListener('click', () => setLayout('block'));
   layoutSplitBtn.addEventListener('click', () => setLayout('split'));
 
-  if (isMobileDevice) {
-    layoutBlockBtn?.classList.add('hidden');
-    layoutSplitBtn?.classList.add('hidden');
-  }
-
-  // --- Realtime Sync ---
+  // Live Preview Sync
+  const liveCodeOutput = document.getElementById('codePreviewContent');
   workspace.addChangeListener((e) => {
-    // UIイベント以外で更新
-    if (e.type !== Blockly.Events.UI && workspaceContainer.classList.contains('split-view')) {
-      updateLivePreview();
+    if (
+      workspaceContainer.classList.contains('split-view') &&
+      !e.isUiEvent &&
+      liveCodeOutput
+    ) {
+      liveCodeOutput.textContent = generatePythonCode();
+      hljs.highlightElement(liveCodeOutput);
     }
 
-    // Auto Save
+    // Auto-save
     if (
-      !shareFeature.isShareViewMode() &&
       !e.isUiEvent &&
       e.type !== Blockly.Events.FINISHED_LOADING
     ) {
