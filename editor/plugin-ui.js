@@ -58,7 +58,11 @@ export class PluginUI {
                     ${isEnabled ? '<div class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5"></div>' : ''}
                 </div>
                 <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">開発者: ${plugin.author}</div>
-                <div class="text-[11px] text-slate-400 mt-0.5">${plugin.updateDate}に更新</div>
+                <div class="flex gap-1 mt-1">
+                    ${plugin.affectsStyle ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">スタイル</span>' : ''}
+                    ${plugin.affectsBlocks ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">ブロック</span>' : ''}
+                    ${plugin.isCustom ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">自作</span>' : ''}
+                </div>
             `;
             item.addEventListener('click', () => this.showDetail(plugin));
             this.pluginList.appendChild(item);
@@ -83,6 +87,11 @@ export class PluginUI {
                         <a href="${plugin.repo}" target="_blank" class="hover:underline flex items-center gap-1">
                             <i data-lucide="github" class="w-3.5 h-3.5"></i> リポジトリ
                         </a>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        ${plugin.affectsStyle ? '<span class="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex items-center gap-1"><i data-lucide="palette" class="w-3 h-3"></i> スタイル干渉</span>' : ''}
+                        ${plugin.affectsBlocks ? '<span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1"><i data-lucide="blocks" class="w-3 h-3"></i> ブロック追加</span>' : ''}
+                        ${plugin.isCustom ? '<span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 flex items-center gap-1"><i data-lucide="user-cog" class="w-3 h-3"></i> 自作プラグイン</span>' : ''}
                     </div>
                 </div>
                 <div class="flex gap-2">

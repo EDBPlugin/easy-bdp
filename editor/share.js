@@ -539,10 +539,11 @@ class ShareHistoryManager {
 // 共有リンクモーダルの操作をまとめたクラス
 class ShareModalController {
   // コンストラクタで依存を受け取りDOMを取得
-  constructor({ statusNotifier, thumbnailManager, exportSharePayload }) {
+  constructor({ statusNotifier, thumbnailManager, exportSharePayload, pluginManager }) {
     this.statusNotifier = statusNotifier;
     this.thumbnailManager = thumbnailManager;
     this.exportSharePayload = exportSharePayload;
+    this.pluginManager = pluginManager;
     this.shareBtn = document.getElementById('shareBtn');
     this.modalEl = document.getElementById('shareModal');
     this.modalInput = document.getElementById('shareModalInput');
@@ -616,7 +617,14 @@ class ShareModalController {
 
   // Shareボタン押下時の処理フロー
   async handleShareButtonClick() {
+    // 自作ブロックプラグインが有効な場合は共有を制限
+    if (this.pluginManager?.hasCustomBlockPlugin()) {
+        this.statusNotifier?.show('自作プラグイン（ブロック）が有効な場合は、セキュリティと互換性の観点から共有機能を利用できません。', 'error');
+        return;
+    }
+
     if (!this.shareBtn || this.shareBtn.disabled) return;
+
     this.shareBtn.disabled = true;
     this.shareBtn.setAttribute('aria-busy', 'true');
     try {
@@ -919,6 +927,7 @@ class ShareFeature {
       statusNotifier: this.statusNotifier,
       thumbnailManager: this.thumbnailManager,
       exportSharePayload: () => this.exportSharePayload(),
+      pluginManager: storage.pluginManager, // storageからアクセスできるようにするか、引数で渡す
     });
     this.shareImportModalController = new ShareImportModalController({
       storage,
@@ -927,6 +936,25 @@ class ShareFeature {
       viewStateController: this.viewStateController,
       historyManager: this.historyManager,
     });
+    
+    // 自作プラグインの状態を監視してボタンの見た目を更新
+    this.updateShareButtonState();
+  }
+
+  updateShareButtonState() {
+    const shareBtn = document.getElementById('shareBtn');
+    if (!shareBtn) return;
+    
+    // storage.pluginManager または直接 this.shareModalController.pluginManager を参照
+    const pm = this.storage?.pluginManager || this.shareModalController?.pluginManager;
+    
+    if (pm?.hasCustomBlockPlugin()) {
+      shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      shareBtn.title = '自作ブロックプラグインが有効なため共有できません';
+    } else {
+      shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      shareBtn.title = '';
+    }
   }
 
   // 共有URLを組み立て
@@ -972,6 +1000,7 @@ class ShareFeature {
       isShareViewMode: () => this.isShareViewMode(),
       onShareViewModeChange: (listener) => this.onShareViewModeChange(listener),
       applyUiState: () => this.viewStateController.applyUiState(),
+      updateShareButtonState: () => this.updateShareButtonState(),
     };
   }
 }

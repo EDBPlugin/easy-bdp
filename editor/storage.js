@@ -12,7 +12,14 @@ class WorkspaceShareCodec {
       // 生のBlocklyデータからIDを間引いたうえでJSON→LZ圧縮する
       const raw = Blockly.serialization.workspaces.save(workspace);
       const stripped = WorkspaceShareCodec.#stripIds(raw);
-      const payload = JSON.stringify(stripped);
+      
+      // プラグイン情報の付与
+      const payloadObj = {
+          workspace: stripped,
+          plugins: workspace.pluginManager?.getPluginsForShare() || []
+      };
+      
+      const payload = JSON.stringify(payloadObj);
       const compressed = lz.compressToEncodedURIComponent(payload);
       if (!compressed) throw new Error('圧縮に失敗しました。');
       return compressed;
@@ -34,7 +41,22 @@ class WorkspaceShareCodec {
       if (!text) throw new Error('データを展開できませんでした。');
       // 復号後はJSONを戻してそのままBlocklyへ読み込む
       const payload = JSON.parse(text);
-      Blockly.serialization.workspaces.load(payload, workspace);
+      
+      // プラグイン情報が含まれている場合は適用
+      if (payload.workspace && payload.plugins) {
+          Blockly.serialization.workspaces.load(payload.workspace, workspace);
+          
+          // プラグインの有効化
+          if (workspace.pluginManager) {
+              payload.plugins.forEach(pluginId => {
+                  workspace.pluginManager.enablePlugin(pluginId);
+              });
+          }
+      } else {
+          // 互換性のため、古い形式（直接workspaceデータ）もサポート
+          Blockly.serialization.workspaces.load(payload, workspace);
+      }
+      
       return true;
     } catch (error) {
       console.error('圧縮ワークスペースの読み込みに失敗しました。', error);
