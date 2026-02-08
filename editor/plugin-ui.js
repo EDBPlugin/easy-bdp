@@ -12,18 +12,18 @@ export class PluginUI {
         this.pluginList = document.getElementById('pluginList');
         this.pluginDetailEmpty = document.getElementById('pluginDetailEmpty');
         this.pluginDetailContent = document.getElementById('pluginDetailContent');
-        
+
         this.isOnlyInstalled = false;
         this.searchQuery = '';
         this.githubResults = [];
-        
+
         this.init();
     }
 
     init() {
         this.btn.addEventListener('click', () => this.open());
         this.closeBtn.addEventListener('click', () => this.close());
-        
+
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) this.close();
         });
@@ -31,14 +31,14 @@ export class PluginUI {
         // 検索・フィルターUIの取得
         const searchInput = document.querySelector('input[placeholder="プラグインを検索..."]');
         const filterToggle = document.querySelector('input[type="checkbox"]'); // インストール済みのみ表示
-        
+
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.searchQuery = e.target.value;
                 this.renderMarketplace();
             });
         }
-        
+
         if (filterToggle) {
             filterToggle.addEventListener('change', (e) => {
                 this.isOnlyInstalled = e.target.checked;
@@ -87,10 +87,10 @@ export class PluginUI {
     async renderMarketplace() {
         this.pluginList.innerHTML = '';
         const installed = this.pluginManager.getRegistry();
-        
+
         // 1. インストール済みプラグインの表示 (検索クエリがある場合はフィルタリング)
-        const filteredInstalled = installed.filter(p => 
-            p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+        const filteredInstalled = installed.filter(p =>
+            p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
             p.author.toLowerCase().includes(this.searchQuery.toLowerCase())
         );
 
@@ -109,7 +109,7 @@ export class PluginUI {
         if (!this.isOnlyInstalled) {
             const header = document.createElement('div');
             header.className = 'px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4 flex justify-between items-center';
-            
+
             // クエリがある場合は「検索結果」、ない場合は「注目のコミュニティプラグイン」
             const title = this.searchQuery ? `GitHub リポジトリ検索: "${this.searchQuery}"` : '注目のコミュニティプラグイン (GitHub Topic)';
             header.innerHTML = `<span>${title}</span><span class="animate-pulse">GitHubから取得中...</span>`;
@@ -119,7 +119,7 @@ export class PluginUI {
             const results = await this.pluginManager.searchGitHubPlugins(this.searchQuery);
             const statusSpan = header.querySelector('span:last-child');
             if (statusSpan) statusSpan.remove();
-            
+
             if (results.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'px-3 py-4 text-center text-xs text-slate-400';
@@ -140,7 +140,7 @@ export class PluginUI {
         const isEnabled = isInstalled && this.pluginManager.isPluginEnabled(plugin.id);
         const item = document.createElement('div');
         item.className = `p-3 rounded-lg cursor-pointer transition-colors ${isEnabled ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`;
-        
+
         let trustBadge = '';
         if (plugin.author === 'EDBPlugin' || plugin.trustLevel === 'official') {
             trustBadge = '<span class="ml-1 text-[9px] px-1 rounded bg-blue-500 text-white">公式</span>';
@@ -155,11 +155,6 @@ export class PluginUI {
                 ${!isInstalled ? '<i data-lucide="download-cloud" class="w-3.5 h-3.5 text-slate-300"></i>' : ''}
             </div>
             <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">開発者: ${plugin.author}</div>
-            <div class="flex gap-1 mt-1">
-                ${plugin.affectsStyle ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">スタイル</span>' : ''}
-                ${plugin.affectsBlocks ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">ブロック</span>' : ''}
-                ${plugin.isCustom ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">自作</span>' : ''}
-            </div>
         `;
         item.addEventListener('click', () => isInstalled ? this.showDetail(plugin) : this.showGitHubDetail(plugin));
         this.pluginList.appendChild(item);
@@ -170,8 +165,11 @@ export class PluginUI {
         this.pluginDetailContent.classList.remove('hidden');
         this.pluginDetailContent.innerHTML = '<div class="p-8 text-center text-slate-500">GitHubから情報を取得中...</div>';
 
-        const readme = await this.pluginManager.getREADME(plugin.fullName, plugin.defaultBranch);
-        
+        const [readme, releases] = await Promise.all([
+            this.pluginManager.getREADME(plugin.fullName, plugin.defaultBranch),
+            this.pluginManager.getReleases(plugin.fullName)
+        ]);
+
         let trustBadge = '';
         if (plugin.trustLevel === 'official' || plugin.author === 'EDBPlugin') {
             trustBadge = '<span class="text-xs px-2 py-1 rounded bg-blue-500 text-white font-bold">公式プラグイン</span>';
@@ -180,22 +178,41 @@ export class PluginUI {
         }
 
         this.pluginDetailContent.innerHTML = `
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">${plugin.name} ${trustBadge}</h1>
-                    <div class="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-500 dark:text-slate-400">
-                        <span class="flex items-center gap-1"><i data-lucide="user" class="w-3.5 h-3.5"></i> 開発者: ${plugin.author}</span>
-                        <span class="flex items-center gap-1"><i data-lucide="star" class="w-3.5 h-3.5"></i> ${plugin.stars} Stars</span>
+            <div class="flex flex-col mb-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">${plugin.name} ${trustBadge}</h1>
+                        <div class="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-500 dark:text-slate-400">
+                            <span class="flex items-center gap-1"><i data-lucide="user" class="w-3.5 h-3.5"></i> 開発者: ${plugin.author}</span>
+                            <span class="flex items-center gap-1"><i data-lucide="star" class="w-3.5 h-3.5"></i> ${plugin.stars} Stars</span>
+                        </div>
                     </div>
-                    <div class="mt-2 text-sm text-indigo-500 dark:text-indigo-400">
+                    <div class="text-sm text-indigo-500 dark:text-indigo-400">
                         <a href="${plugin.repo}" target="_blank" class="hover:underline flex items-center gap-1">
-                            <i data-lucide="github" class="w-3.5 h-3.5"></i> GitHubでソースを見る
+                            <i data-lucide="github" class="w-3.5 h-3.5"></i> GitHub
                         </a>
                     </div>
                 </div>
-                <div>
-                    <button id="installFromGhBtn" class="px-6 py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg transition-all flex items-center gap-2">
-                        <i data-lucide="download" class="w-4 h-4"></i> インストール
+
+                <!-- インストール設定 UI -->
+                <div class="bg-slate-50 dark:bg-slate-950/20 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">バージョン (リリース)</label>
+                            <select id="ghVersionSelect" class="w-full pl-3 pr-10 py-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%236b7280%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[right_0.5rem_center] bg-no-repeat transition-all">
+                                <option value="default">デフォルト (${plugin.defaultBranch})</option>
+                                ${releases.map(r => `<option value="${r.tag_name}">${r.tag_name} ${r.prerelease ? '(Pre-release)' : ''}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">ファイル (Zip)</label>
+                            <select id="ghFileSelect" class="w-full pl-3 pr-10 py-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%236b7280%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[right_0.5rem_center] bg-no-repeat transition-all">
+                                <option value="default-zip">Source code (zip)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="installFromGhBtn" class="w-full py-3 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-5 h-5"></i> <span>インストールを実行</span>
                     </button>
                 </div>
             </div>
@@ -208,19 +225,59 @@ export class PluginUI {
         `;
         lucide.createIcons();
 
-        document.getElementById('installFromGhBtn').addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></i> インストール中...';
+        const versionSelect = document.getElementById('ghVersionSelect');
+        const fileSelect = document.getElementById('ghFileSelect');
+        const installBtn = document.getElementById('installFromGhBtn');
+
+        const updateFiles = () => {
+            const tag = versionSelect.value;
+            fileSelect.innerHTML = '';
+
+            if (tag === 'default') {
+                fileSelect.innerHTML = '<option value="default-zip">Source code (zip)</option>';
+            } else {
+                const release = releases.find(r => r.tag_name === tag);
+                if (release) {
+                    // ZIPアセットのみ抽出 (tar.gzは除外)
+                    const assets = release.assets.filter(a => a.name.toLowerCase().endsWith('.zip'));
+                    assets.forEach(a => {
+                        const option = document.createElement('option');
+                        option.value = a.browser_download_url;
+                        option.textContent = a.name;
+                        fileSelect.appendChild(option);
+                    });
+
+                    // Source code (zip) を最後に追加
+                    const sourceZip = document.createElement('option');
+                    sourceZip.value = release.zipball_url;
+                    sourceZip.textContent = 'Source code (zip)';
+                    fileSelect.appendChild(sourceZip);
+                }
+            }
+        };
+
+        versionSelect.addEventListener('change', updateFiles);
+        updateFiles();
+
+        installBtn.addEventListener('click', async () => {
+            let zipUrl = fileSelect.value;
+            if (zipUrl === 'default-zip') {
+                zipUrl = `https://github.com/${plugin.fullName}/archive/refs/heads/${plugin.defaultBranch}.zip`;
+            }
+
+            installBtn.disabled = true;
+            const originalContent = installBtn.innerHTML;
+            installBtn.innerHTML = '<i class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></i> <span>インストール中...</span>';
+
             try {
-                const manifest = await this.pluginManager.installFromGitHub(plugin.fullName, plugin.defaultBranch);
+                const manifest = await this.pluginManager.installFromGitHub(plugin.fullName, zipUrl);
                 this.renderMarketplace();
                 this.showDetail(manifest);
                 alert('インストールが完了しました！');
             } catch (err) {
                 alert('インストールに失敗しました: ' + err.message);
-                btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i> インストール';
+                installBtn.disabled = false;
+                installBtn.innerHTML = originalContent;
                 lucide.createIcons();
             }
         });
@@ -229,10 +286,10 @@ export class PluginUI {
     showDetail(plugin) {
         this.pluginDetailEmpty.classList.add('hidden');
         this.pluginDetailContent.classList.remove('hidden');
-        
+
         const isEnabled = this.pluginManager.isPluginEnabled(plugin.id);
         const isBuiltin = plugin.id === 'vanilla-plugin';
-        
+
         let trustBadge = '';
         if (plugin.author === 'EDBPlugin' || plugin.trustLevel === 'official') {
             trustBadge = '<span class="text-xs px-2 py-1 rounded bg-blue-500 text-white font-bold">公式プラグイン</span>';
@@ -325,7 +382,7 @@ export class PluginUI {
 
     renderMarkdown(markdown) {
         if (typeof marked === 'undefined') return markdown;
-        
+
         // marked.js のオプション設定
         marked.setOptions({
             gfm: true,
@@ -337,7 +394,7 @@ export class PluginUI {
         // marked.js を使用して Markdown を HTML に変換
         // HTMLタグをそのまま通すようにパース
         const rawHtml = marked.parse(markdown);
-        
+
         // DOMPurify を使用して安全な HTML にサニタイズ
         if (typeof DOMPurify !== 'undefined') {
             return DOMPurify.sanitize(rawHtml, {

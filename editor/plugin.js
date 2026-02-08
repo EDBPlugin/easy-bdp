@@ -11,10 +11,10 @@ export class PluginManager {
         this.installedPlugins = JSON.parse(localStorage.getItem('edbb_installed_plugins') || '{}');
         // 有効化されているプラグインのID
         this.enabledPlugins = new Set(JSON.parse(localStorage.getItem('edbb_enabled_plugins') || '[]'));
-        
+
         // 公認プラグインリストのキャッシュ
         this.certifiedPlugins = [];
-        
+
         // 組み込みプラグインレジストリ
         this.builtinRegistry = [
             {
@@ -35,7 +35,7 @@ export class PluginManager {
 
     async init() {
         console.log('PluginManager initializing...');
-        
+
         // 公認プラグインリストの取得
         try {
             const response = await fetch('https://raw.githubusercontent.com/EDBPlugin/EDBP-API/main/1.json');
@@ -63,12 +63,31 @@ export class PluginManager {
         try {
             // 1. クエリがある場合は名前検索、ない場合はトピック検索
             // topic:edbp-plugin は必須条件
-            const q = query ? `${query}+topic:edbp-plugin` : 'topic:edbp-plugin';
-            
-            const response = await fetch(`https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc`);
-            if (!response.ok) throw new Error('GitHub API error');
-            const data = await response.json();
-            
+            let q = 'topic:edbp-plugin';
+            if (query) {
+                q = `${query} topic:edbp-plugin`;
+            }
+
+            const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                if (response.status === 403) throw new Error('GitHub API Rate Limit Exceeded');
+                throw new Error(`GitHub API error: ${response.status}`);
+            }
+
+            let data = await response.json();
+
+            // もしトピック検索でヒットしなかった場合、かつ検索クエリが空だった場合
+            // "edbp-plugin" というキーワードで広めに検索してみる
+            if (data.total_count === 0 && !query) {
+                const fallbackUrl = `https://api.github.com/search/repositories?q=edbp-plugin&sort=stars&order=desc`;
+                const fallbackRes = await fetch(fallbackUrl);
+                if (fallbackRes.ok) {
+                    data = await fallbackRes.json();
+                }
+            }
+
             // 検索結果の整形
             return data.items.map(repo => {
                 const trustLevel = this.getTrustLevel(repo);
@@ -93,7 +112,12 @@ export class PluginManager {
     // 信頼レベルの判定
     getTrustLevel(repo) {
         if (repo.owner.login === 'EDBPlugin') return 'official';
-        const isCertified = this.certifiedPlugins.some(p => p.URL === repo.html_url || p.URL === repo.url);
+        // EDBP-APIのリストに含まれているかチェック
+        const isCertified = Array.isArray(this.certifiedPlugins) && this.certifiedPlugins.some(p =>
+            p.URL === repo.html_url ||
+            p.URL === repo.url ||
+            (p.URL && p.URL.includes(repo.full_name))
+        );
         if (isCertified) return 'certified';
         return null;
     }
@@ -106,24 +130,35 @@ export class PluginManager {
                 const url = `https://raw.githubusercontent.com/${fullName}/${defaultBranch}/${path}`;
                 const response = await fetch(url);
                 if (response.ok) return await response.text();
-            } catch (e) {}
+            } catch (e) { }
         }
         return 'READMEが見つかりませんでした。';
     }
 
-    // GitHubから直接インストール
-    async installFromGitHub(fullName, defaultBranch = 'main') {
+    // GitHubのリリース一覧を取得
+    async getReleases(fullName) {
         try {
-            const zipUrl = `https://github.com/${fullName}/archive/refs/heads/${defaultBranch}.zip`;
+            const response = await fetch(`https://api.github.com/repos/${fullName}/releases`);
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (e) {
+            console.error('Failed to fetch releases', e);
+            return [];
+        }
+    }
+
+    // GitHubから直接インストール
+    async installFromGitHub(fullName, zipUrl) {
+        try {
             const response = await fetch(zipUrl);
             if (!response.ok) throw new Error('Failed to download ZIP from GitHub');
             const blob = await response.blob();
-            
+
             const zip = await JSZip.loadAsync(blob);
-            
+
             const findFile = (name) => {
                 // フォルダ構造を考慮してファイルを探す
-                return Object.values(zip.files).find(f => f.name.endsWith(name));
+                return Object.values(zip.files).find(f => f.name.endsWith('/' + name) || f.name === name);
             };
 
             const manifestFile = findFile('manifest.json');
@@ -205,7 +240,7 @@ export class PluginManager {
 
             this.installedPlugins[id] = manifest;
             this.saveInstalledPlugins();
-            
+
             return manifest;
         } catch (error) {
             console.error("Plugin installation failed:", error);
@@ -215,7 +250,7 @@ export class PluginManager {
 
     async enablePlugin(id) {
         if (this.plugins.has(id)) return;
-        
+
         const pluginMeta = this.installedPlugins[id];
         if (!pluginMeta) return;
 
@@ -229,15 +264,15 @@ export class PluginManager {
                     ${pluginMeta.script}
                     return new Plugin(workspace);
                 `)(this.workspace);
-                
+
                 if (pluginClass && typeof pluginClass.onload === 'function') {
                     await pluginClass.onload();
                 }
                 this.plugins.set(id, pluginClass);
             } else if (pluginMeta.affectsStyle) {
-                this.plugins.set(id, { onunload: () => {} });
+                this.plugins.set(id, { onunload: () => { } });
             }
-            
+
             this.enabledPlugins.add(id);
             this.saveState();
         } catch (e) {
@@ -319,7 +354,7 @@ class VanillaPlugin {
         if (typeof Blockly === 'undefined') return;
 
         Blockly.Blocks['vanilla_plugin_test'] = {
-            init: function() {
+            init: function () {
                 this.appendDummyInput()
                     .appendField("🍦 バニラプラグイン・テスト");
                 this.setPreviousStatement(true, null);
@@ -329,7 +364,7 @@ class VanillaPlugin {
             }
         };
 
-        Blockly.Python['vanilla_plugin_test'] = function(block) {
+        Blockly.Python['vanilla_plugin_test'] = function (block) {
             return "# Vanilla Plugin Test\n";
         };
 
@@ -347,9 +382,9 @@ class VanillaPlugin {
         category.setAttribute('data-icon', '🔌');
         category.setAttribute('colour', '#200');
         category.innerHTML = '<block type="vanilla_plugin_test"></block>';
-        
+
         toolbox.appendChild(category);
-        
+
         if (this.workspace) {
             this.workspace.updateToolbox(toolbox);
         }
