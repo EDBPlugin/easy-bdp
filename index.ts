@@ -45,6 +45,7 @@ const allowedOrigins: RegExp[] = [
   /^https?:\/\/himais0giiiin\.com$/,
   /^https?:\/\/([a-zA-Z0-9-]+\.)?himais0giiiin\.com$/,
   /^https?:\/\/([a-zA-Z0-9-]+\.)?edbb\.himaiso\.workers\.dev$/,
+  /^https?:\/\/edbplugin\.github\.io$/,
 ];
 
 // ========= CORS ヘッダ生成 =========
