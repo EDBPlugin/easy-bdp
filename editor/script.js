@@ -394,7 +394,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # ----------------------------
 
 # --- ユーザー作成部分 ---
-${bodyCode}
+${rawCode}
 # --------------------------
 
 if __name__ == "__main__":
