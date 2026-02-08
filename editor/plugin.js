@@ -23,7 +23,7 @@ export class PluginManager {
                 name: 'Vanilla Plugin',
                 author: 'EDBPlugin',
                 version: '1.0.0',
-                description: 'EDBPの基本機能を拡張するバニラプラグインです。',
+                description: 'EDBPの基本機能を拡張するバニラプラグインです.',
                 repo: 'https://github.com/EDBPlugin/easy-bdp',
                 updateDate: '2026-02-07',
                 affectsStyle: false,
@@ -58,14 +58,18 @@ export class PluginManager {
         }
     }
 
-    // GitHubから edbp-plugin タグの付いたリポジトリを検索
+    // GitHubから edbp-plugin タグ/トピックの付いたリポジトリを検索
     async searchGitHubPlugins(query = '') {
         try {
+            // 1. クエリがある場合は名前検索、ない場合はトピック検索
+            // topic:edbp-plugin は必須条件
             const q = query ? `${query}+topic:edbp-plugin` : 'topic:edbp-plugin';
-            const response = await fetch(`https://api.github.com/search/repositories?q=${q}`);
+            
+            const response = await fetch(`https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc`);
             if (!response.ok) throw new Error('GitHub API error');
             const data = await response.json();
             
+            // 検索結果の整形
             return data.items.map(repo => {
                 const trustLevel = this.getTrustLevel(repo);
                 return {
@@ -115,14 +119,11 @@ export class PluginManager {
             if (!response.ok) throw new Error('Failed to download ZIP from GitHub');
             const blob = await response.blob();
             
-            // GitHubのZIPは内部にフォルダがあるため、展開時に注意が必要
             const zip = await JSZip.loadAsync(blob);
             
-            // ルートフォルダ名を探す (repo-name-branch)
-            const rootFolder = Object.keys(zip.files).find(path => path.endsWith('/') && path.split('/').length === 2);
-            
             const findFile = (name) => {
-                return zip.file(new RegExp(`${name}$`));
+                // フォルダ構造を考慮してファイルを探す
+                return Object.values(zip.files).find(f => f.name.endsWith(name));
             };
 
             const manifestFile = findFile('manifest.json');

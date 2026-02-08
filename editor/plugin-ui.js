@@ -106,10 +106,10 @@ export class PluginUI {
         }
 
         // 2. GitHubからの検索結果の表示 (インストール済みのみ表示がOFFの場合)
-        if (!this.isOnlyInstalled && this.searchQuery.length >= 2) {
+        if (!this.isOnlyInstalled) {
             const header = document.createElement('div');
             header.className = 'px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4 flex justify-between items-center';
-            header.innerHTML = '<span>GitHub Marketplace</span><span class="animate-pulse">Searching...</span>';
+            header.innerHTML = `<span>${this.searchQuery ? '検索結果 (GitHub)' : '注目のコミュニティプラグイン'}</span><span class="animate-pulse">Searching...</span>`;
             this.pluginList.appendChild(header);
 
             const results = await this.pluginManager.searchGitHubPlugins(this.searchQuery);
@@ -127,18 +127,6 @@ export class PluginUI {
                     this.addPluginItem(plugin, false);
                 });
             }
-        } else if (!this.isOnlyInstalled && this.searchQuery === '') {
-            // デフォルトのレコメンド表示 (edbp-pluginタグのついたもの)
-            const header = document.createElement('div');
-            header.className = 'px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4';
-            header.textContent = '注目のコミュニティプラグイン';
-            this.pluginList.appendChild(header);
-
-            const results = await this.pluginManager.searchGitHubPlugins();
-            results.forEach(plugin => {
-                if (installed.some(p => p.repo === plugin.repo)) return;
-                this.addPluginItem(plugin, false);
-            });
         }
         lucide.createIcons();
     }
@@ -241,8 +229,10 @@ export class PluginUI {
         const isBuiltin = plugin.id === 'vanilla-plugin';
         
         let trustBadge = '';
-        if (plugin.author === 'EDBPlugin') {
+        if (plugin.author === 'EDBPlugin' || plugin.trustLevel === 'official') {
             trustBadge = '<span class="text-xs px-2 py-1 rounded bg-blue-500 text-white font-bold">公式プラグイン</span>';
+        } else if (plugin.trustLevel === 'certified') {
+            trustBadge = '<span class="text-xs px-2 py-1 rounded bg-green-500 text-white font-bold">公認プラグイン</span>';
         }
 
         this.pluginDetailContent.innerHTML = `
@@ -252,62 +242,64 @@ export class PluginUI {
                     <div class="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-500 dark:text-slate-400">
                         <span class="flex items-center gap-1"><i data-lucide="user" class="w-3.5 h-3.5"></i> 開発者: ${plugin.author}</span>
                         <span class="flex items-center gap-1"><i data-lucide="tag" class="w-3.5 h-3.5"></i> バージョン: ${plugin.version}</span>
-                        <span class="flex items-center gap-1 font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">UUID: ${plugin.uuid}</span>
                     </div>
-                    <div class="mt-2 text-sm text-indigo-500 dark:text-indigo-400">
-                        <a href="${plugin.repo}" target="_blank" class="hover:underline flex items-center gap-1">
-                            <i data-lucide="github" class="w-3.5 h-3.5"></i> リポジトリ
-                        </a>
-                    </div>
-                    <div class="flex gap-2 mt-3">
-                        ${plugin.affectsStyle ? '<span class="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex items-center gap-1"><i data-lucide="palette" class="w-3 h-3"></i> スタイル干渉</span>' : ''}
-                        ${plugin.affectsBlocks ? '<span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1"><i data-lucide="blocks" class="w-3 h-3"></i> ブロック追加</span>' : ''}
-                        ${plugin.isCustom ? '<span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 flex items-center gap-1"><i data-lucide="user-cog" class="w-3 h-3"></i> 自作プラグイン</span>' : ''}
+                    <div class="mt-1 text-[10px] font-mono text-slate-400">UUID: ${plugin.uuid}</div>
+                    <div class="mt-2 flex gap-2">
+                        ${plugin.repo ? `
+                        <a href="${plugin.repo}" target="_blank" class="text-xs text-indigo-500 hover:underline flex items-center gap-1">
+                            <i data-lucide="github" class="w-3 h-3"></i> リポジトリ
+                        </a>` : ''}
                     </div>
                 </div>
-                <div class="flex flex-col gap-2 items-end">
-                    <div class="flex gap-2">
-                        <button id="togglePluginBtn" class="px-6 py-2 rounded-lg font-bold transition-all shadow-md ${isEnabled ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}">
-                            ${isEnabled ? '無効化' : '有効化'}
-                        </button>
-                        ${!isBuiltin ? `
-                        <button id="uninstallPluginBtn" class="p-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20 transition-colors" title="アンインストール">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        </button>
-                        ` : ''}
-                    </div>
+                <div class="flex items-center gap-2">
+                    <button id="togglePluginBtn" class="px-6 py-2 rounded-lg font-bold ${isEnabled ? 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'} transition-all">
+                        ${isEnabled ? '無効化' : '有効化'}
+                    </button>
+                    ${!isBuiltin ? `
+                    <button id="uninstallPluginBtn" class="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" title="削除">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                    ` : ''}
                 </div>
             </div>
             
             <div class="prose dark:prose-invert max-w-none border-t border-slate-100 dark:border-slate-800 pt-6">
                 <div id="readme-container" class="bg-slate-50 dark:bg-slate-950/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800">
-                    <p class="text-xs text-slate-400 italic">README情報を読み込んでいます...</p>
+                    <div class="animate-pulse flex flex-col gap-3">
+                        <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
+                        <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                        <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-5/6"></div>
+                    </div>
                 </div>
             </div>
         `;
-        
         lucide.createIcons();
+
         this.loadLocalREADME(plugin);
-        
+
         document.getElementById('togglePluginBtn').addEventListener('click', async () => {
             if (isEnabled) {
                 await this.pluginManager.disablePlugin(plugin.id);
             } else {
                 await this.pluginManager.enablePlugin(plugin.id);
             }
-            this.showDetail(plugin);
             this.renderMarketplace();
+            this.showDetail(plugin);
         });
 
         const uninstallBtn = document.getElementById('uninstallPluginBtn');
         if (uninstallBtn) {
             uninstallBtn.addEventListener('click', async () => {
-                if (confirm(`${plugin.name} を削除してもよろしいですか？`)) {
-                    await this.pluginManager.uninstallPlugin(plugin.id);
-                    this.renderMarketplace();
-                    this.pluginDetailContent.classList.add('hidden');
-                    this.pluginDetailEmpty.classList.remove('hidden');
-                    alert('プラグインを削除しました。');
+                if (confirm(`プラグイン「${plugin.name}」を削除してもよろしいですか？`)) {
+                    try {
+                        await this.pluginManager.uninstallPlugin(plugin.id);
+                        this.renderMarketplace();
+                        this.pluginDetailContent.classList.add('hidden');
+                        this.pluginDetailEmpty.classList.remove('hidden');
+                        alert('プラグインを削除しました。');
+                    } catch (err) {
+                        alert('削除に失敗しました: ' + err.message);
+                    }
                 }
             });
         }
