@@ -364,7 +364,7 @@ export class PluginUI {
         installBtn.addEventListener('click', async () => {
             let zipUrl = fileSelect.value;
             if (zipUrl === 'default-zip') {
-                zipUrl = `https://github.com/${plugin.fullName}/archive/refs/heads/${plugin.defaultBranch}.zip`;
+                zipUrl = plugin.defaultBranch;
             }
 
             installBtn.disabled = true;

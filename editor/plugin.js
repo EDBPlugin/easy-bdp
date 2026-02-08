@@ -151,9 +151,10 @@ export class PluginManager {
     async installFromGitHub(fullName, branchOrUrl = 'main') {
         try {
             // 完全なURLが渡された場合はそれを使用し、そうでなければブランチ名として組み立てる
+            // ブランチ名に既に .zip が含まれている場合は二重にならないようにする
             const zipUrl = branchOrUrl.startsWith('http')
                 ? branchOrUrl
-                : `https://github.com/${fullName}/archive/refs/heads/${branchOrUrl}.zip`;
+                : `https://github.com/${fullName}/archive/refs/heads/${branchOrUrl.replace(/\.zip$/, '')}.zip`;
 
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(zipUrl)}`;
 
