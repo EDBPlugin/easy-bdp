@@ -1,6 +1,6 @@
 /**
  * EDBP Plugin System
- * Obsidian-like plugin management and vanilla plugin support.
+ * Plugin management with GitHub integration and trust levels.
  */
 
 export class PluginManager {
@@ -12,13 +12,16 @@ export class PluginManager {
         // 有効化されているプラグインのID
         this.enabledPlugins = new Set(JSON.parse(localStorage.getItem('edbb_enabled_plugins') || '[]'));
         
+        // 公認プラグインリストのキャッシュ
+        this.certifiedPlugins = [];
+        
         // 組み込みプラグインレジストリ
         this.builtinRegistry = [
             {
                 id: 'vanilla-plugin',
                 uuid: 'edbp-builtin-vanilla-001',
                 name: 'Vanilla Plugin',
-                author: 'EDBP Team',
+                author: 'EDBPlugin',
                 version: '1.0.0',
                 description: 'EDBPの基本機能を拡張するバニラプラグインです。',
                 repo: 'https://github.com/EDBPlugin/easy-bdp',
@@ -32,6 +35,17 @@ export class PluginManager {
 
     async init() {
         console.log('PluginManager initializing...');
+        
+        // 公認プラグインリストの取得
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/EDBPlugin/EDBP-API/main/1.json');
+            if (response.ok) {
+                this.certifiedPlugins = await response.json();
+            }
+        } catch (e) {
+            console.warn('Failed to fetch certified plugins list', e);
+        }
+
         // 組み込みプラグインをインストール済みとして扱う
         this.builtinRegistry.forEach(p => {
             if (!this.installedPlugins[p.id]) {
@@ -44,10 +58,61 @@ export class PluginManager {
         }
     }
 
+    // GitHubから edbp-plugin タグの付いたリポジトリを検索
+    async searchGitHubPlugins() {
+        try {
+            const response = await fetch('https://api.github.com/search/repositories?q=topic:edbp-plugin');
+            if (!response.ok) throw new Error('GitHub API error');
+            const data = await response.json();
+            
+            return data.items.map(repo => {
+                const trustLevel = this.getTrustLevel(repo);
+                return {
+                    id: repo.name,
+                    name: repo.name,
+                    author: repo.owner.login,
+                    description: repo.description,
+                    repo: repo.html_url,
+                    stars: repo.stargazers_count,
+                    trustLevel: trustLevel, // 'official', 'certified', or null
+                    fullName: repo.full_name,
+                    defaultBranch: repo.default_branch
+                };
+            });
+        } catch (e) {
+            console.error('Failed to search GitHub plugins', e);
+            return [];
+        }
+    }
+
+    // 信頼レベルの判定
+    getTrustLevel(repo) {
+        // 公式: EDBPlugin 組織
+        if (repo.owner.login === 'EDBPlugin') return 'official';
+        
+        // 公認: EDBP-API のリストに含まれる
+        const isCertified = this.certifiedPlugins.some(p => p.URL === repo.html_url || p.URL === repo.url);
+        if (isCertified) return 'certified';
+        
+        return null;
+    }
+
+    // READMEの取得
+    async getREADME(fullName, defaultBranch = 'main') {
+        const possiblePaths = ['README.md', 'readme.md', 'README.MD'];
+        for (const path of possiblePaths) {
+            try {
+                const url = `https://raw.githubusercontent.com/${fullName}/${defaultBranch}/${path}`;
+                const response = await fetch(url);
+                if (response.ok) return await response.text();
+            } catch (e) {}
+        }
+        return 'READMEが見つかりませんでした。';
+    }
+
     // UUIDの生成 (開発者名 + プラグイン名 + ランダム値)
     generateUUID(author, name) {
         const seed = `${author}-${name}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        // 簡易的なハッシュ化
         let hash = 0;
         for (let i = 0; i < seed.length; i++) {
             const char = seed.charCodeAt(i);
@@ -67,22 +132,18 @@ export class PluginManager {
             const manifestText = await manifestFile.async("string");
             const manifest = JSON.parse(manifestText);
 
-            // 必須項目のチェック
             if (!manifest.name || !manifest.author) {
                 throw new Error("マニフェストに名前または開発者情報が不足しています。");
             }
 
-            // UUIDの付与（既存でない場合のみ）
             if (!manifest.uuid) {
                 manifest.uuid = this.generateUUID(manifest.author, manifest.name);
             }
 
-            // IDの生成
             const id = manifest.id || manifest.name.toLowerCase().replace(/\s+/g, '-');
             manifest.id = id;
             manifest.updateDate = new Date().toISOString().split('T')[0];
 
-            // スクリプトの読み込み
             const scriptFile = zip.file("plugin.js");
             if (scriptFile) {
                 manifest.script = await scriptFile.async("string");
@@ -110,8 +171,6 @@ export class PluginManager {
                 await plugin.onload();
                 this.plugins.set(id, plugin);
             } else if (pluginMeta.script) {
-                // 動的スクリプトの実行
-                // 安全のため、簡単なサンドボックス化を検討すべきですが、現状は eval または Function
                 const pluginClass = new Function('workspace', `
                     ${pluginMeta.script}
                     return new Plugin(workspace);
@@ -122,7 +181,6 @@ export class PluginManager {
                 }
                 this.plugins.set(id, pluginClass);
             } else if (pluginMeta.affectsStyle) {
-                // スタイルのみのプラグイン例
                 this.plugins.set(id, { onunload: () => {} });
             }
             
@@ -161,16 +219,12 @@ export class PluginManager {
         return this.enabledPlugins.has(id);
     }
 
-    // 共有時に必要なプラグインUUIDを取得
     getPluginUUIDsForShare() {
         const uuids = [];
         for (const id of this.enabledPlugins) {
             const meta = this.installedPlugins[id];
             if (meta) {
-                // スタイルに干渉するプラグインは除外
                 if (meta.affectsStyle) continue;
-                
-                // ブロックに干渉するプラグインのうち、自作以外を許可
                 if (meta.affectsBlocks && !meta.isCustom) {
                     uuids.push(meta.uuid);
                 }
@@ -179,7 +233,6 @@ export class PluginManager {
         return uuids;
     }
 
-    // 自作プラグイン（ブロック干渉）が使用されているか確認
     hasCustomBlockPlugin() {
         for (const id of this.enabledPlugins) {
             const meta = this.installedPlugins[id];
@@ -190,7 +243,6 @@ export class PluginManager {
         return false;
     }
 
-    // UUIDからプラグインIDを解決（共有からの復元用）
     getPluginIdByUUID(uuid) {
         for (const [id, meta] of Object.entries(this.installedPlugins)) {
             if (meta.uuid === uuid) return id;
