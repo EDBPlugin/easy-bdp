@@ -4,6 +4,7 @@ const SHARE_STATUS_SHOW_MS = 2500;
 const SHARE_SHORTENER_ENDPOINT = '/share/create';
 const SHARE_IMPORT_SKIP_KEY = 'share_import_dialog_skip';
 const SHARE_CANONICAL_ORIGIN = 'https://share.himais0giiiin.com';
+const SHARE_BETA_ORIGIN = 'https://beta-edbb.himaiso.workers.dev';
 const BLOCKLY_CAPTURE_EXTRA_CSS = [
   '.blocklyText { fill:#fff !important; }',
   '.blocklyEditableText { fill: #fff !important; }',
@@ -673,19 +674,54 @@ class ShareModalController {
 
   // 短縮URLを生成する非同期処理
   async createShortShareUrl(encoded) {
-    const response = await fetch(SHARE_SHORTENER_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ share: encoded }),
-    });
-    if (!response.ok) {
-      throw new Error(`SHORTENER_HTTP_${response.status}`);
+    const endpoints = this.resolveShortenerEndpoints();
+    let lastError = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ share: encoded }),
+        });
+        if (!response.ok) {
+          lastError = new Error(`SHORTENER_HTTP_${response.status}`);
+          continue;
+        }
+        const data = await response.json();
+        if (!data?.url) {
+          lastError = new Error('SHORTENER_RESPONSE_INVALID');
+          continue;
+        }
+        return this.normalizeShortShareUrl(data.url);
+      } catch (error) {
+        lastError = error;
+      }
     }
-    const data = await response.json();
-    if (!data?.url) {
-      throw new Error('SHORTENER_RESPONSE_INVALID');
+
+    throw lastError || new Error('SHORTENER_UNAVAILABLE');
+  }
+
+  resolveShortenerEndpoints() {
+    const endpoints = [];
+    const pushUnique = (value) => {
+      if (!value) return;
+      if (!endpoints.includes(value)) {
+        endpoints.push(value);
+      }
+    };
+
+    const sameOriginEndpoint = new URL(SHARE_SHORTENER_ENDPOINT, window.location.origin).toString();
+    pushUnique(sameOriginEndpoint);
+
+    const hostname = window.location.hostname || '';
+    const isBetaHost = /^beta(\.|-)/i.test(hostname);
+    if (isBetaHost) {
+      pushUnique(new URL(SHARE_SHORTENER_ENDPOINT, SHARE_BETA_ORIGIN).toString());
     }
-    return this.normalizeShortShareUrl(data.url);
+
+    pushUnique(new URL(SHARE_SHORTENER_ENDPOINT, SHARE_CANONICAL_ORIGIN).toString());
+    return endpoints;
   }
 
   // 短縮URLが期待ドメインになるように整形

@@ -288,6 +288,53 @@ const applyMobileToolboxIcons = (toolboxEl) => {
   });
 };
 
+const extractInteractionEvents = (code) => {
+  const source = String(code || '');
+  const markerRegex = /^[ \t]*#\s*(BUTTON_EVENT|MODAL_EVENT)\s*:\s*(.+?)\s*$/gm;
+  const componentIds = [];
+  const modalIds = [];
+  let match;
+
+  while ((match = markerRegex.exec(source)) !== null) {
+    const eventType = match[1];
+    const customId = String(match[2] || '').trim();
+    if (!customId) continue;
+    if (eventType === 'BUTTON_EVENT') {
+      if (!componentIds.includes(customId)) componentIds.push(customId);
+    } else if (eventType === 'MODAL_EVENT') {
+      if (!modalIds.includes(customId)) modalIds.push(customId);
+    }
+  }
+
+  const cleanedCode = source
+    .split('\n')
+    .filter((line) => !/^[ \t]*#\s*(BUTTON_EVENT|MODAL_EVENT)\s*:/.test(line))
+    .join('\n');
+
+  const buildDispatchBody = (ids, prefix) => {
+    if (!ids.length) return '';
+    const lines = [`            custom_id = str((interaction.data or {}).get('custom_id', ''))`];
+    ids.forEach((id, index) => {
+      const escapedId = id.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const keyword = index === 0 ? 'if' : 'elif';
+      lines.push(`            ${keyword} custom_id == '${escapedId}':`);
+      lines.push(`                await ${prefix}${id}(interaction)`);
+    });
+    return lines.join('\n');
+  };
+
+  const componentEvents = buildDispatchBody(componentIds, 'on_button_');
+  const modalEvents = buildDispatchBody(modalIds, 'on_modal_');
+
+  return {
+    cleanedCode,
+    componentEvents,
+    modalEvents,
+    hasComponentEvents: componentIds.length > 0,
+    hasModalEvents: modalIds.length > 0,
+  };
+};
+
 // --- Code Generation & UI Sync ---
 const generatePythonCode = () => {
   if (!workspace) return '';

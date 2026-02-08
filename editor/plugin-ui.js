@@ -2,6 +2,7 @@
  * EDBP Plugin UI
  * Market-style plugin management with integrated search and uninstallation.
  */
+const PLUGIN_MOBILE_WARNING_SKIP_KEY = 'edbb_plugin_mobile_warning_skip';
 
 export class PluginUI {
     constructor(pluginManager) {
@@ -12,11 +13,17 @@ export class PluginUI {
         this.pluginList = document.getElementById('pluginList');
         this.pluginDetailEmpty = document.getElementById('pluginDetailEmpty');
         this.pluginDetailContent = document.getElementById('pluginDetailContent');
+        this.mobileWarningModal = document.getElementById('pluginMobileWarningModal');
+        this.mobileWarningProceedBtn = document.getElementById('pluginMobileWarningProceedBtn');
+        this.mobileWarningCancelBtn = document.getElementById('pluginMobileWarningCancelBtn');
+        this.mobileWarningCloseBtn = document.getElementById('pluginMobileWarningClose');
+        this.mobileWarningSkipCheckbox = document.getElementById('pluginMobileWarningSkipCheckbox');
 
         this.isOnlyInstalled = false;
         this.searchQuery = '';
         this.githubResults = [];
         this.currentSearchId = 0;
+        this.mobileWarningResolver = null;
 
         this.init();
     }
@@ -31,7 +38,7 @@ export class PluginUI {
 
         // 検索・フィルターUIの取得
         const searchInput = document.querySelector('input[placeholder="プラグインを検索..."]');
-        const filterToggle = document.querySelector('input[type="checkbox"]'); // インストール済みのみ表示
+        const filterToggle = this.modal?.querySelector('input[type="checkbox"]'); // インストール済みのみ表示
 
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -46,6 +53,19 @@ export class PluginUI {
                 this.renderMarketplace();
             });
         }
+
+        this.mobileWarningProceedBtn?.addEventListener('click', () => this.resolveMobileWarning(true));
+        this.mobileWarningCancelBtn?.addEventListener('click', () => this.resolveMobileWarning(false));
+        this.mobileWarningCloseBtn?.addEventListener('click', () => this.resolveMobileWarning(false));
+        this.mobileWarningModal?.addEventListener('click', (e) => {
+            if (e.target === this.mobileWarningModal) this.resolveMobileWarning(false);
+        });
+        this.boundMobileWarningEscHandler = (event) => {
+            if (event.key === 'Escape' && this.isMobileWarningOpen()) {
+                this.resolveMobileWarning(false);
+            }
+        };
+        document.addEventListener('keydown', this.boundMobileWarningEscHandler);
 
         // ZIPインストールボタン
         const installBtn = document.getElementById('pluginInstallBtn');
@@ -69,7 +89,11 @@ export class PluginUI {
         this.renderMarketplace();
     }
 
-    open() {
+    async open() {
+        if (this.shouldShowMobileWarning()) {
+            const canOpen = await this.showMobileWarning();
+            if (!canOpen) return;
+        }
         this.modal.classList.remove('hidden');
         this.modal.classList.add('flex');
         void this.modal.offsetWidth;
@@ -83,6 +107,78 @@ export class PluginUI {
             this.modal.classList.remove('flex');
             this.modal.classList.add('hidden');
         }, 300);
+    }
+
+    isMobileDevice() {
+        return document.documentElement.classList.contains('is-mobile')
+            || (typeof window !== 'undefined' && window.innerWidth < 768);
+    }
+
+    shouldSkipMobileWarning() {
+        try {
+            return window.localStorage?.getItem(PLUGIN_MOBILE_WARNING_SKIP_KEY) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    setSkipMobileWarning(shouldSkip) {
+        try {
+            if (shouldSkip) {
+                window.localStorage?.setItem(PLUGIN_MOBILE_WARNING_SKIP_KEY, '1');
+            } else {
+                window.localStorage?.removeItem(PLUGIN_MOBILE_WARNING_SKIP_KEY);
+            }
+        } catch (error) {
+            // localStorage unavailable
+        }
+    }
+
+    shouldShowMobileWarning() {
+        return this.isMobileDevice() && !this.shouldSkipMobileWarning();
+    }
+
+    isMobileWarningOpen() {
+        return !!this.mobileWarningModal && !this.mobileWarningModal.classList.contains('hidden');
+    }
+
+    async showMobileWarning() {
+        if (!this.mobileWarningModal) return true;
+        if (this.mobileWarningSkipCheckbox) {
+            this.mobileWarningSkipCheckbox.checked = false;
+        }
+        this.mobileWarningModal.setAttribute('aria-hidden', 'false');
+        this.mobileWarningModal.classList.remove('hidden');
+        this.mobileWarningModal.classList.add('flex');
+        void this.mobileWarningModal.offsetWidth;
+        this.mobileWarningModal.classList.add('show-modal');
+        setTimeout(() => this.mobileWarningProceedBtn?.focus(), 0);
+        return new Promise((resolve) => {
+            this.mobileWarningResolver = resolve;
+        });
+    }
+
+    hideMobileWarning() {
+        if (!this.mobileWarningModal) return Promise.resolve();
+        this.mobileWarningModal.setAttribute('aria-hidden', 'true');
+        this.mobileWarningModal.classList.remove('show-modal');
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                this.mobileWarningModal?.classList.remove('flex');
+                this.mobileWarningModal?.classList.add('hidden');
+                resolve();
+            }, 300);
+        });
+    }
+
+    resolveMobileWarning(accepted) {
+        if (!this.mobileWarningResolver) return;
+        if (accepted) {
+            this.setSkipMobileWarning(Boolean(this.mobileWarningSkipCheckbox?.checked));
+        }
+        const resolver = this.mobileWarningResolver;
+        this.mobileWarningResolver = null;
+        this.hideMobileWarning().then(() => resolver(accepted));
     }
 
     async renderMarketplace() {

@@ -569,6 +569,55 @@
     </div>
 
     <!-- プラグインモーダル (Obsidian風UI) -->
+    <div id="pluginMobileWarningModal"
+        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        aria-hidden="true">
+        <div
+            class="flex flex-col w-full max-w-xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
+            <div
+                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                        <i data-lucide="smartphone" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">スマホでのプラグイン利用について</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">モバイル環境での動作は非推奨です</p>
+                    </div>
+                </div>
+                <button id="pluginMobileWarningClose"
+                    class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100/80 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex flex-col gap-4 p-6 bg-slate-50/60 dark:bg-slate-950/40 flex-grow overflow-y-auto">
+                <div
+                    class="p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-900/10 text-amber-800 dark:text-amber-200 text-sm leading-relaxed">
+                    プラグイン機能はPC向けに最適化されており、スマートフォンでは表示崩れや操作しづらさが発生する場合があります。
+                </div>
+            </div>
+            <div
+                class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 bg-white/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800">
+                <label for="pluginMobileWarningSkipCheckbox"
+                    class="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                    <input id="pluginMobileWarningSkipCheckbox" type="checkbox"
+                        class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span>次回からこの警告を表示しない</span>
+                </label>
+                <button id="pluginMobileWarningCancelBtn" type="button"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    <span>キャンセル</span>
+                </button>
+                <button id="pluginMobileWarningProceedBtn" type="button"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-white transition-colors">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>続ける</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="pluginModal"
         class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
         aria-hidden="true">
