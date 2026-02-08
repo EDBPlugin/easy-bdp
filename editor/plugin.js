@@ -1,6 +1,6 @@
 /**
  * EDBP Plugin System
- * Plugin management with GitHub integration and trust levels.
+ * Plugin management with GitHub discovery, trust levels, and uninstallation.
  */
 
 export class PluginManager {
@@ -59,9 +59,10 @@ export class PluginManager {
     }
 
     // GitHubから edbp-plugin タグの付いたリポジトリを検索
-    async searchGitHubPlugins() {
+    async searchGitHubPlugins(query = '') {
         try {
-            const response = await fetch('https://api.github.com/search/repositories?q=topic:edbp-plugin');
+            const q = query ? `${query}+topic:edbp-plugin` : 'topic:edbp-plugin';
+            const response = await fetch(`https://api.github.com/search/repositories?q=${q}`);
             if (!response.ok) throw new Error('GitHub API error');
             const data = await response.json();
             
@@ -74,7 +75,7 @@ export class PluginManager {
                     description: repo.description,
                     repo: repo.html_url,
                     stars: repo.stargazers_count,
-                    trustLevel: trustLevel, // 'official', 'certified', or null
+                    trustLevel: trustLevel,
                     fullName: repo.full_name,
                     defaultBranch: repo.default_branch
                 };
@@ -87,13 +88,9 @@ export class PluginManager {
 
     // 信頼レベルの判定
     getTrustLevel(repo) {
-        // 公式: EDBPlugin 組織
         if (repo.owner.login === 'EDBPlugin') return 'official';
-        
-        // 公認: EDBP-API のリストに含まれる
         const isCertified = this.certifiedPlugins.some(p => p.URL === repo.html_url || p.URL === repo.url);
         if (isCertified) return 'certified';
-        
         return null;
     }
 
@@ -110,7 +107,63 @@ export class PluginManager {
         return 'READMEが見つかりませんでした。';
     }
 
-    // UUIDの生成 (開発者名 + プラグイン名 + ランダム値)
+    // GitHubから直接インストール
+    async installFromGitHub(fullName, defaultBranch = 'main') {
+        try {
+            const zipUrl = `https://github.com/${fullName}/archive/refs/heads/${defaultBranch}.zip`;
+            const response = await fetch(zipUrl);
+            if (!response.ok) throw new Error('Failed to download ZIP from GitHub');
+            const blob = await response.blob();
+            
+            // GitHubのZIPは内部にフォルダがあるため、展開時に注意が必要
+            const zip = await JSZip.loadAsync(blob);
+            
+            // ルートフォルダ名を探す (repo-name-branch)
+            const rootFolder = Object.keys(zip.files).find(path => path.endsWith('/') && path.split('/').length === 2);
+            
+            const findFile = (name) => {
+                return zip.file(new RegExp(`${name}$`));
+            };
+
+            const manifestFile = findFile('manifest.json');
+            if (!manifestFile) throw new Error("manifest.json がリポジトリ内に見つかりません。");
+
+            const manifestText = await manifestFile.async("string");
+            const manifest = JSON.parse(manifestText);
+
+            if (!manifest.uuid) {
+                manifest.uuid = this.generateUUID(manifest.author, manifest.name);
+            }
+
+            const id = manifest.id || manifest.name.toLowerCase().replace(/\s+/g, '-');
+            manifest.id = id;
+            manifest.updateDate = new Date().toISOString().split('T')[0];
+
+            const scriptFile = findFile('plugin.js');
+            if (scriptFile) {
+                manifest.script = await scriptFile.async("string");
+            }
+
+            this.installedPlugins[id] = manifest;
+            this.saveInstalledPlugins();
+            return manifest;
+        } catch (error) {
+            console.error("GitHub installation failed:", error);
+            throw error;
+        }
+    }
+
+    // プラグインの削除
+    async uninstallPlugin(id) {
+        if (this.builtinRegistry.some(p => p.id === id)) {
+            throw new Error("組み込みプラグインは削除できません。");
+        }
+
+        await this.disablePlugin(id);
+        delete this.installedPlugins[id];
+        this.saveInstalledPlugins();
+    }
+
     generateUUID(author, name) {
         const seed = `${author}-${name}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         let hash = 0;
