@@ -477,8 +477,6 @@ export class PluginUI {
                         alert('エクスポートに失敗しました: ' + e.message);
                     }
                 }
-            } else {
-                alert('このプラグインは共有設定がありません。');
             }
         });
 

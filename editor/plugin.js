@@ -420,7 +420,7 @@ export class PluginManager {
         const manifest = { ...meta };
         const script = manifest.script;
 
-        // manifest.js はエクスポート時に不要な情報を削る
+        // manifest.json はエクスポート時に不要な情報を削る
         delete manifest.script;
         delete manifest.installedFrom;
 
@@ -433,7 +433,8 @@ export class PluginManager {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${manifest.id || manifest.name}.zip`;
+        const safeFilename = (manifest.id || manifest.name).replace(/[\\/:*?"<>|\s]/g, '-');
+        a.download = `${safeFilename}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
