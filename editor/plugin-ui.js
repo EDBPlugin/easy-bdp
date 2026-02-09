@@ -414,7 +414,7 @@ export class PluginUI {
                             <i data-lucide="github" class="w-3 h-3"></i> リポジトリ
                         </a>` : ''}
                         <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
-                            Source: ${plugin.installedFrom === 'github' ? 'GitHub' : 'Local ZIP'}
+                            Source: ${plugin.installedFrom === 1 ? 'GitHub' : 'Local ZIP'}
                         </span>
                     </div>
                 </div>

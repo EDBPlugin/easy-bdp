@@ -9,6 +9,26 @@ export class PluginManager {
         this.plugins = new Map();
         // インストール済みプラグインのメタデータ
         this.installedPlugins = JSON.parse(localStorage.getItem('edbb_installed_plugins') || '{}');
+
+        // データの移行: 文字列から0(local)/1(github)へ
+        let modified = false;
+        Object.values(this.installedPlugins).forEach(p => {
+            if (p.installedFrom === 'github') {
+                p.installedFrom = 1;
+                modified = true;
+            } else if (p.installedFrom === 'local') {
+                p.installedFrom = 0;
+                modified = true;
+            } else if (p.installedFrom === undefined) {
+                // 明示されていない場合はlocal(0)
+                p.installedFrom = 0;
+                modified = true;
+            }
+        });
+        if (modified) {
+            this.saveInstalledPlugins();
+        }
+
         // 有効化されているプラグインのID
         this.enabledPlugins = new Set(JSON.parse(localStorage.getItem('edbb_enabled_plugins') || '[]'));
 
@@ -210,8 +230,13 @@ export class PluginManager {
                 manifest.script = scriptText;
             }
 
-            manifest.installedFrom = 'github';
-            manifest.repo = fullName;
+            manifest.installedFrom = 1; // 1: github
+
+            // manifest.repo を実際のインストール元URLに強制的に書き換える
+            const repoUrl = `https://github.com/${fullName}`;
+            if (manifest.repo !== repoUrl) {
+                manifest.repo = repoUrl;
+            }
 
             this.installedPlugins[id] = manifest;
             this.saveInstalledPlugins();
@@ -269,7 +294,7 @@ export class PluginManager {
                 manifest.script = await scriptFile.async("string");
             }
 
-            manifest.installedFrom = 'local';
+            manifest.installedFrom = 0; // 0: local
 
             this.installedPlugins[id] = manifest;
             this.saveInstalledPlugins();
@@ -378,8 +403,8 @@ export class PluginManager {
         // 組み込みプラグインは共有可能 (UUIDで管理)
         if (this.builtinRegistry.some(p => p.id === id)) return true;
 
-        // GitHubからインストールされたものは、リポジトリURLがあるため共有可能
-        if (meta.installedFrom === 'github' && meta.repo) return true;
+        // GitHubからインストールされたものは、リポジトリURLがあるため共有可能 (installedFrom: 1)
+        if (meta.installedFrom === 1 && meta.repo) return true;
 
         // ローカルZIPからのものは、他人が持っていない可能性があるため基本は共有不可
         // (将来的にZIPごとプロジェクトに埋め込むなら可能になるかもしれないが、現在はUUIDのみ共有するため)
