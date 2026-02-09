@@ -433,8 +433,8 @@ export class PluginManager {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const safeFilename = (manifest.id || manifest.name).replace(/[\\/:*?"<>|\s]/g, '-');
-        a.download = `${safeFilename}.zip`;
+        const safeName = (manifest.id || manifest.name || 'plugin').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.download = `${safeName}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
