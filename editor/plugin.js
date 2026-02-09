@@ -129,7 +129,7 @@ export class PluginManager {
         }
     }
 
-    // 信頼レベルの判定
+    // 信頼レベルの判定 (GitHub Search Result用)
     getTrustLevel(repo) {
         if (repo.owner.login === 'EDBPlugin') return 'official';
         // EDBP-APIのリストに含まれているかチェック
@@ -141,6 +141,22 @@ export class PluginManager {
                 p.URL === repo.url ||
                 (p.URL && p.URL.includes(repo.full_name));
         });
+        if (isCertified) return 'certified';
+        return null;
+    }
+
+    // 信頼レベルの判定 (インストール済みマニフェスト用)
+    getManifestTrustLevel(manifest) {
+        if (manifest.author === 'EDBPlugin') return 'official';
+        if (!manifest.repo) return null;
+
+        const isCertified = Array.isArray(this.certifiedPlugins) && this.certifiedPlugins.some(p => {
+            if (typeof p === 'string') {
+                return manifest.repo.includes(p);
+            }
+            return p.URL === manifest.repo || (p.URL && manifest.repo.includes(p.URL));
+        });
+
         if (isCertified) return 'certified';
         return null;
     }
@@ -241,6 +257,8 @@ export class PluginManager {
                 manifest.repo = repoUrl;
             }
 
+            manifest.trustLevel = this.getManifestTrustLevel(manifest);
+
             this.installedPlugins[id] = manifest;
             this.saveInstalledPlugins();
             return manifest;
@@ -298,6 +316,7 @@ export class PluginManager {
             }
 
             manifest.installedFrom = 0; // 0: local
+            manifest.trustLevel = this.getManifestTrustLevel(manifest);
 
             this.installedPlugins[id] = manifest;
             this.saveInstalledPlugins();
@@ -362,7 +381,13 @@ export class PluginManager {
     }
 
     getRegistry() {
-        return Object.values(this.installedPlugins);
+        return Object.values(this.installedPlugins).map(plugin => {
+            // インストール済みデータから信頼レベルを再計算して付与（リスト更新反映のため）
+            return {
+                ...plugin,
+                trustLevel: this.getManifestTrustLevel(plugin)
+            };
+        });
     }
 
     isPluginEnabled(id) {
