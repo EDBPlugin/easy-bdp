@@ -210,6 +210,9 @@ export class PluginManager {
                 manifest.script = scriptText;
             }
 
+            manifest.installedFrom = 'github';
+            manifest.repo = fullName;
+
             this.installedPlugins[id] = manifest;
             this.saveInstalledPlugins();
             return manifest;
@@ -265,6 +268,8 @@ export class PluginManager {
             if (scriptFile) {
                 manifest.script = await scriptFile.async("string");
             }
+
+            manifest.installedFrom = 'local';
 
             this.installedPlugins[id] = manifest;
             this.saveInstalledPlugins();
@@ -339,10 +344,9 @@ export class PluginManager {
     getPluginUUIDsForShare() {
         const uuids = [];
         for (const id of this.enabledPlugins) {
-            const meta = this.installedPlugins[id];
-            if (meta) {
-                if (meta.affectsStyle) continue;
-                if (meta.affectsBlocks && !meta.isCustom) {
+            if (this.isPluginSharable(id)) {
+                const meta = this.installedPlugins[id];
+                if (meta && meta.affectsBlocks) {
                     uuids.push(meta.uuid);
                 }
             }
@@ -350,10 +354,9 @@ export class PluginManager {
         return uuids;
     }
 
-    hasCustomBlockPlugin() {
+    hasNonSharablePlugin() {
         for (const id of this.enabledPlugins) {
-            const meta = this.installedPlugins[id];
-            if (meta && meta.affectsBlocks && meta.isCustom) {
+            if (!this.isPluginSharable(id)) {
                 return true;
             }
         }
@@ -365,6 +368,51 @@ export class PluginManager {
             if (meta.uuid === uuid) return id;
         }
         return null;
+    }
+
+    // プラグインが共有可能か判断するロジック
+    isPluginSharable(id) {
+        const meta = this.installedPlugins[id];
+        if (!meta) return false;
+
+        // 組み込みプラグインは共有可能 (UUIDで管理)
+        if (this.builtinRegistry.some(p => p.id === id)) return true;
+
+        // GitHubからインストールされたものは、リポジトリURLがあるため共有可能
+        if (meta.installedFrom === 'github' && meta.repo) return true;
+
+        // ローカルZIPからのものは、他人が持っていない可能性があるため基本は共有不可
+        // (将来的にZIPごとプロジェクトに埋め込むなら可能になるかもしれないが、現在はUUIDのみ共有するため)
+        return false;
+    }
+
+    // プラグインをZIPとしてエクスポート
+    async exportPluginAsZip(id) {
+        const meta = this.installedPlugins[id];
+        if (!meta) throw new Error("プラグインが見つかりません。");
+
+        const zip = new JSZip();
+        const manifest = { ...meta };
+        const script = manifest.script;
+
+        // manifest.js はエクスポート時に不要な情報を削る
+        delete manifest.script;
+        delete manifest.installedFrom;
+
+        zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+        if (script) {
+            zip.file("plugin.js", script);
+        }
+
+        const blob = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${manifest.id || manifest.name}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 }
 

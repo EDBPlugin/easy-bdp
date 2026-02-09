@@ -91,7 +91,7 @@ class ShareViewStateController {
 
   // リスナーを登録して状態変化を通知
   onChange(listener) {
-    if (typeof listener !== 'function') return () => {};
+    if (typeof listener !== 'function') return () => { };
     this.listeners.add(listener);
     try {
       listener(this.shareViewMode);
@@ -618,10 +618,10 @@ class ShareModalController {
 
   // Shareボタン押下時の処理フロー
   async handleShareButtonClick() {
-    // 自作ブロックプラグインが有効な場合は共有を制限
-    if (this.pluginManager?.hasCustomBlockPlugin()) {
-        this.statusNotifier?.show('自作プラグイン（ブロック）が有効な場合は、共有機能を利用できません。', 'error');
-        return;
+    // 共有不可能なプラグインが有効な場合は共有を制限
+    if (this.pluginManager?.hasNonSharablePlugin()) {
+      this.statusNotifier?.show('共有できないプラグイン（ローカルZIPなど）が有効なため、共有機能を利用できません。', 'error');
+      return;
     }
 
     if (!this.shareBtn || this.shareBtn.disabled) return;
@@ -972,7 +972,7 @@ class ShareFeature {
       viewStateController: this.viewStateController,
       historyManager: this.historyManager,
     });
-    
+
     // 自作プラグインの状態を監視してボタンの見た目を更新
     this.updateShareButtonState();
   }
@@ -980,9 +980,9 @@ class ShareFeature {
   updateShareButtonState() {
     const shareBtn = document.getElementById('shareBtn');
     if (!shareBtn) return;
-    
+
     const pm = this.storage?.pluginManager || this.shareModalController?.pluginManager;
-    
+
     if (pm?.hasCustomBlockPlugin()) {
       // 自作ブロックがある場合はボタンを完全に非表示にする
       shareBtn.classList.add('hidden');

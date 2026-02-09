@@ -408,14 +408,20 @@ export class PluginUI {
                         <span class="flex items-center gap-1"><i data-lucide="tag" class="w-3.5 h-3.5"></i> バージョン: ${plugin.version}</span>
                     </div>
                     <div class="mt-1 text-[10px] font-mono text-slate-400">UUID: ${plugin.uuid}</div>
-                    <div class="mt-2 flex gap-2">
+                    <div class="mt-2 flex gap-2 items-center">
                         ${plugin.repo ? `
                         <a href="${plugin.repo}" target="_blank" class="text-xs text-indigo-500 hover:underline flex items-center gap-1">
                             <i data-lucide="github" class="w-3 h-3"></i> リポジトリ
                         </a>` : ''}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                            Source: ${plugin.installedFrom === 'github' ? 'GitHub' : 'Local ZIP'}
+                        </span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button id="sharePluginBtn" class="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-900/20 transition-all" title="共有・エクスポート">
+                        <i data-lucide="share-2" class="w-5 h-5"></i>
+                    </button>
                     <button id="togglePluginBtn" class="px-6 py-2 rounded-lg font-bold ${isEnabled ? 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'} transition-all">
                         ${isEnabled ? '無効化' : '有効化'}
                     </button>
@@ -449,6 +455,31 @@ export class PluginUI {
             }
             this.renderMarketplace();
             this.showDetail(plugin);
+        });
+
+        document.getElementById('sharePluginBtn').addEventListener('click', async () => {
+            const isSharable = this.pluginManager.isPluginSharable(plugin.id);
+
+            if (plugin.repo) {
+                // GitHubリポジトリがある場合はURLをコピー
+                try {
+                    await navigator.clipboard.writeText(plugin.repo);
+                    alert('リポジトリのURLをコピーしました！');
+                } catch (e) {
+                    alert('URLのコピーに失敗しました: ' + plugin.repo);
+                }
+            } else if (!isSharable) {
+                // 共有不可（ローカル）な場合はZIPエクスポートを提案
+                if (confirm('このプラグインはローカルに保存されています。ZIPファイルとしてエクスポートして共有しますか？')) {
+                    try {
+                        await this.pluginManager.exportPluginAsZip(plugin.id);
+                    } catch (e) {
+                        alert('エクスポートに失敗しました: ' + e.message);
+                    }
+                }
+            } else {
+                alert('このプラグインは共有設定がありません。');
+            }
         });
 
         const uninstallBtn = document.getElementById('uninstallPluginBtn');
