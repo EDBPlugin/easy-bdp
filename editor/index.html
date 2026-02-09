@@ -469,9 +469,13 @@
     </div>
 
     <!-- Split Code Modal -->
-    <div id="splitCodeModal" class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true">
-        <div class="flex flex-col w-full max-w-5xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-700/50 ring-1 ring-black/5">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
+    <div id="splitCodeModal"
+        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        aria-hidden="true">
+        <div
+            class="flex flex-col w-full max-w-5xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-700/50 ring-1 ring-black/5">
+            <div
+                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
                 <div class="flex items-center gap-3">
                     <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                         <i data-lucide="folders" class="w-5 h-5"></i>
@@ -482,11 +486,13 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="splitDownloadAllBtn" class="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
+                    <button id="splitDownloadAllBtn"
+                        class="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
                         <i data-lucide="download" class="w-4 h-4"></i>
                         <span>まとめてDL</span>
                     </button>
-                    <button id="splitModalClose" class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors">
+                    <button id="splitModalClose"
+                        class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -494,7 +500,8 @@
             <div class="flex flex-col gap-4 p-6 bg-slate-50/60 dark:bg-slate-950/40 flex-grow overflow-y-auto">
                 <div class="text-xs text-slate-500 dark:text-slate-400">
                     <span class="font-semibold text-slate-700 dark:text-slate-200">保存例:</span>
-                    <span class="font-mono">bot.py</span> / <span class="font-mono">cogs/commands.py</span> など。DL後に <span class="font-mono">cogs</span> フォルダへ移動してください。
+                    <span class="font-mono">bot.py</span> / <span class="font-mono">cogs/commands.py</span> など。DL後に
+                    <span class="font-mono">cogs</span> フォルダへ移動してください。
                 </div>
                 <div id="splitFileList" class="grid grid-cols-1 gap-4"></div>
             </div>
@@ -622,7 +629,7 @@
         class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
         aria-hidden="true">
         <div
-            class="flex flex-col w-full max-w-5xl h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
+            class="flex flex-col w-full max-w-7xl h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
             <div
                 class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
                 <div class="flex items-center gap-3">
@@ -665,7 +672,7 @@
                             <span>ZIPからインストール</span>
                         </button>
                     </div>
-                    <div id="pluginList" class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <div id="pluginList" class="flex-1 overflow-y-auto p-3 space-y-2">
                         <!-- プラグインアイテムがここに動的に追加される -->
                     </div>
                 </div>

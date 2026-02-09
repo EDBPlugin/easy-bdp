@@ -194,7 +194,7 @@ export class PluginUI {
 
         if (filteredInstalled.length > 0) {
             const header = document.createElement('div');
-            header.className = 'px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider';
+            header.className = 'px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider';
             header.textContent = 'インストール済み';
             this.pluginList.appendChild(header);
 
@@ -206,7 +206,7 @@ export class PluginUI {
         // 2. GitHub Marketplace (検索またはトピック表示)
         if (!this.isOnlyInstalled) {
             const header = document.createElement('div');
-            header.className = 'px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4 flex justify-between items-center';
+            header.className = 'px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mt-4 flex justify-between items-center';
 
             // クエリがある場合は「検索結果」、ない場合は「注目のコミュニティプラグイン」
             const title = this.searchQuery ? `GitHub リポジトリ検索: "${this.searchQuery}"` : '注目のコミュニティプラグイン (GitHub Topic)';
@@ -245,9 +245,9 @@ export class PluginUI {
 
         let trustBadge = '';
         if (plugin.author === 'EDBPlugin' || plugin.trustLevel === 'official') {
-            trustBadge = '<span class="ml-1 text-[9px] px-1 rounded bg-blue-500 text-white">公式</span>';
+            trustBadge = '<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-500 text-white leading-none">公式</span>';
         } else if (plugin.trustLevel === 'certified') {
-            trustBadge = '<span class="ml-1 text-[9px] px-1 rounded bg-green-500 text-white">公認</span>';
+            trustBadge = '<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-green-500 text-white leading-none">公認</span>';
         }
 
         item.innerHTML = `
@@ -256,7 +256,7 @@ export class PluginUI {
                 ${isEnabled ? '<div class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5"></div>' : ''}
                 ${!isInstalled ? '<i data-lucide="download-cloud" class="w-3.5 h-3.5 text-slate-300"></i>' : ''}
             </div>
-            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">開発者: ${plugin.author}</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">開発者: ${plugin.author}</div>
         `;
         item.addEventListener('click', () => isInstalled ? this.showDetail(plugin) : this.showGitHubDetail(plugin));
         this.pluginList.appendChild(item);
@@ -407,13 +407,13 @@ export class PluginUI {
                         <span class="flex items-center gap-1"><i data-lucide="user" class="w-3.5 h-3.5"></i> 開発者: ${plugin.author}</span>
                         <span class="flex items-center gap-1"><i data-lucide="tag" class="w-3.5 h-3.5"></i> バージョン: ${plugin.version}</span>
                     </div>
-                    <div class="mt-1 text-[10px] font-mono text-slate-400">UUID: ${plugin.uuid}</div>
+                    <div class="mt-1 text-xs font-mono text-slate-400">UUID: ${plugin.uuid}</div>
                     <div class="mt-2 flex gap-2 items-center">
                         ${plugin.repo ? `
                         <a href="${plugin.repo}" target="_blank" class="text-xs text-indigo-500 hover:underline flex items-center gap-1">
                             <i data-lucide="github" class="w-3 h-3"></i> リポジトリ
                         </a>` : ''}
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
                             Source: ${plugin.installedFrom === 1 ? 'GitHub' : 'Local ZIP'}
                         </span>
                     </div>
