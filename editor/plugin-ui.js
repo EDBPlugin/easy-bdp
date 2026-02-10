@@ -85,9 +85,21 @@ export class PluginUI {
                 e.target.value = '';
             });
         }
-
         this.renderMarketplace();
+
+        // システムリセットボタン（履歴を消すボタン等から呼び出し可能にする）
+        const resetBtn = document.getElementById('resetSystemBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (confirm('すべてのプラグインと設定を完全に削除し、初期状態に戻しますか？\nこの操作は取り消せません。')) {
+                    this.pluginManager.resetSystem();
+                    this.renderMarketplace();
+                    alert('システムが完全にリセットされました。');
+                }
+            });
+        }
     }
+
 
     async open() {
         if (this.shouldShowMobileWarning()) {

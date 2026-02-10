@@ -35,17 +35,20 @@ export class PluginManager {
         // 公認プラグインリストのキャッシュ
         this.certifiedPlugins = [];
 
-        // 組み込みプラグインのパージ（廃止された組み込みプラグインがあれば即座に削除）
+        // 過去の負債を清算
+        this._purgeLegacySystems();
+    }
+
+    _purgeLegacySystems() {
         const legacyBuiltinIds = ['vanilla-plugin'];
         const legacyBuiltinUUIDs = ['edbp-builtin-vanilla-001'];
         let purged = false;
 
-        // IDによるパージ
+        // 1. IDによるパージ
         legacyBuiltinIds.forEach(id => {
             if (this.installedPlugins[id]) {
                 delete this.installedPlugins[id];
                 purged = true;
-                console.log(`Purged legacy plugin by ID: ${id}`);
             }
             if (this.enabledPlugins.has(id)) {
                 this.enabledPlugins.delete(id);
@@ -53,21 +56,41 @@ export class PluginManager {
             }
         });
 
-        // UUIDによるパージ
+        // 2. UUIDによるパージ
         Object.keys(this.installedPlugins).forEach(id => {
             const plugin = this.installedPlugins[id];
             if (plugin && legacyBuiltinUUIDs.includes(plugin.uuid)) {
                 delete this.installedPlugins[id];
                 this.enabledPlugins.delete(id);
                 purged = true;
-                console.log(`Purged legacy plugin by UUID: ${plugin.uuid} (ID: ${id})`);
             }
         });
 
         if (purged) {
+            console.log('Legacy systems purged from local database.');
             this.saveInstalledPlugins();
             this.saveState();
         }
+    }
+
+    /**
+     * すべてのプラグインデータを完全に削除し、初期状態に戻します。
+     * 履歴消去などの操作と連動させるためのシステムです。
+     */
+    resetSystem() {
+        console.warn('EDBP System Reset initiated. Purging all local plugin data.');
+        this.installedPlugins = {};
+        this.enabledPlugins = new Set();
+        this.plugins.forEach(p => {
+            if (p && typeof p.onunload === 'function') p.onunload();
+        });
+        this.plugins.clear();
+
+        // localStorageの物理削除
+        localStorage.removeItem('edbb_installed_plugins');
+        localStorage.removeItem('edbb_enabled_plugins');
+
+        console.log('All plugin data has been completely removed.');
     }
 
 
