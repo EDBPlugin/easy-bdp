@@ -47,6 +47,15 @@ Blockly.Blocks['get_message_content'] = {
     this.setColour(30);
   },
 };
+Blockly.Blocks['message_contains_text'] = {
+  init: function () {
+    this.appendValueInput('WORD').setCheck('String').appendField('メッセージの内容に');
+    this.appendDummyInput().appendField('を含む');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');
+    this.setColour(30);
+  },
+};
 Blockly.Blocks['on_command_executed'] = {
   init: function () {
     this.appendDummyInput()
@@ -732,6 +741,13 @@ Blockly.Python.forBlock['on_member_remove'] = function (block) {
 Blockly.Python.forBlock['get_message_content'] = function (block) {
   return [
     '(ctx.content if "ctx" in locals() and hasattr(ctx, "content") else "")',
+    Blockly.Python.ORDER_ATOMIC,
+  ];
+};
+Blockly.Python.forBlock['message_contains_text'] = function (block) {
+  const word = Blockly.Python.valueToCode(block, 'WORD', Blockly.Python.ORDER_NONE) || '""';
+  return [
+    `(str(${word}).lower() in str(ctx.content).lower() if "ctx" in locals() and hasattr(ctx, "content") else False)`,
     Blockly.Python.ORDER_ATOMIC,
   ];
 };
