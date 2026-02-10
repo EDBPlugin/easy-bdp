@@ -294,12 +294,14 @@ html.is-mobile .blocklyFlyout {
 .modal-backdrop {
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-backdrop.show-modal {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .modal-content {

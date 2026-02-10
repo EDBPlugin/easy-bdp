@@ -584,7 +584,15 @@ class ShareModalController {
   toggle(isOpen, url = '') {
     if (!this.modalEl || !this.modalInput) return;
     this.modalEl.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+
     if (isOpen) {
+      if (typeof Blockly !== 'undefined') Blockly.hideChaff();
+
+      if (this.closeTimer) {
+        clearTimeout(this.closeTimer);
+        this.closeTimer = null;
+      }
+
       this.modalInput.value = url;
       this.modalEl.classList.remove('hidden');
       this.modalEl.classList.add('flex');
@@ -597,9 +605,12 @@ class ShareModalController {
       }, 0);
     } else {
       this.modalEl.classList.remove('show-modal');
-      setTimeout(() => {
+      if (this.closeTimer) clearTimeout(this.closeTimer);
+
+      this.closeTimer = setTimeout(() => {
         this.modalEl?.classList.remove('flex');
         this.modalEl?.classList.add('hidden');
+        this.closeTimer = null;
       }, 300);
       this.modalInput.value = '';
       this.thumbnailManager?.handleModalClosed();

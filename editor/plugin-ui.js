@@ -106,6 +106,18 @@ export class PluginUI {
             const canOpen = await this.showMobileWarning();
             if (!canOpen) return;
         }
+
+        // Blocklyのポップアップ（ツールチップやメニュー）を閉じる
+        if (this.pluginManager.workspace && typeof Blockly !== 'undefined') {
+            Blockly.hideChaff();
+        }
+
+        // 既存の終了タイマーがあればクリア
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+            this.closeTimer = null;
+        }
+
         this.modal.classList.remove('hidden');
         this.modal.classList.add('flex');
         void this.modal.offsetWidth;
@@ -114,10 +126,26 @@ export class PluginUI {
     }
 
     close() {
+        // 既存の終了タイマーがあればクリア
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+            this.closeTimer = null;
+        }
+
+        // モバイル表示用の詳細画面状態もリセット
+        this.modal.classList.remove('detail-open');
         this.modal.classList.remove('show-modal');
-        setTimeout(() => {
+
+        // モバイル警告モーダルが開いていればそれも閉じる
+        if (this.isMobileWarningOpen()) {
+            this.resolveMobileWarning(false);
+        }
+
+        this.closeTimer = setTimeout(() => {
+            if (!this.modal) return;
             this.modal.classList.remove('flex');
             this.modal.classList.add('hidden');
+            this.closeTimer = null;
         }, 300);
     }
 
@@ -434,8 +462,8 @@ export class PluginUI {
                     <button id="sharePluginBtn" class="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-900/20 transition-all" title="共有・エクスポート">
                         <i data-lucide="share-2" class="w-5 h-5"></i>
                     </button>
-                    <button id="togglePluginBtn" class="px-6 py-2 rounded-lg font-bold ${isEnabled ? 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'} transition-all">
-                        ${isEnabled ? '無効化' : '有効化'}
+                    <button id="togglePluginBtn" class="flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-bold ${isEnabled ? 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'} transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="btn-text">${isEnabled ? '無効化' : '有効化'}</span>
                     </button>
                     ${!isBuiltin ? `
                     <button id="uninstallPluginBtn" class="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" title="削除">
@@ -459,14 +487,37 @@ export class PluginUI {
 
         this.loadLocalREADME(plugin);
 
-        document.getElementById('togglePluginBtn').addEventListener('click', async () => {
-            if (isEnabled) {
-                await this.pluginManager.disablePlugin(plugin.id);
-            } else {
-                await this.pluginManager.enablePlugin(plugin.id);
+        const toggleBtn = document.getElementById('togglePluginBtn');
+        toggleBtn.addEventListener('click', async () => {
+            if (toggleBtn.disabled) return;
+
+            const btnText = toggleBtn.querySelector('.btn-text');
+            const originalText = btnText.textContent;
+
+            try {
+                toggleBtn.disabled = true;
+                btnText.textContent = '処理中...';
+
+                // 現在の状態を再確認（クロージャ内のisEnabledは古い可能性があるため）
+                const currentlyEnabled = this.pluginManager.isPluginEnabled(plugin.id);
+
+                if (currentlyEnabled) {
+                    await this.pluginManager.disablePlugin(plugin.id);
+                } else {
+                    await this.pluginManager.enablePlugin(plugin.id);
+                }
+
+                // リストの更新はバックグラウンドで（GitHub通信が含まれる可能性があるため待たない）
+                this.renderMarketplace();
+
+                // 詳細表示を即座に更新してレスポンスを良くする
+                this.showDetail(plugin);
+            } catch (error) {
+                console.error('Plugin toggle failed:', error);
+                alert('プラグインの切り替えに失敗しました: ' + error.message);
+                btnText.textContent = originalText;
+                toggleBtn.disabled = false;
             }
-            this.renderMarketplace();
-            this.showDetail(plugin);
         });
 
         document.getElementById('sharePluginBtn').addEventListener('click', async () => {

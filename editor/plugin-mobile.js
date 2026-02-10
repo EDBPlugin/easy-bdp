@@ -41,7 +41,10 @@
             mutations.forEach((mutation) => {
                 if (mutation.attributeName === 'class') {
                     if (pluginModal.classList.contains('hidden')) {
-                        handleClose();
+                        // 既に詳細が閉じられている場合は何もしない（無限ループ防止）
+                        if (pluginModal.classList.contains('detail-open')) {
+                            handleClose();
+                        }
                     }
                 }
             });
