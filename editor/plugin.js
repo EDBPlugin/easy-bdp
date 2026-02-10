@@ -76,7 +76,7 @@ export class PluginManager {
 
         // 公認プラグインリストの取得
         try {
-            const response = await fetch('https://raw.githubusercontent.com/EDBPlugin/EDBP-API/refs/heads/main/plugins.json');
+            const response = await fetch('https://raw.githubusercontent.com/EDBPlugin/EDBP-API/main/plugins.json');
             if (response.ok) {
                 this.certifiedPlugins = await response.json();
             }
