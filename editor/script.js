@@ -1451,8 +1451,18 @@ const initializeApp = async () => {
   });
 
   // --- モーダル表示ロジック (アニメーション付き) ---
+  const modalTimers = new Map();
   const toggleModal = (modal, isOpen) => {
+    if (!modal) return;
+
+    // 既存のタイマーをクリア
+    if (modalTimers.has(modal)) {
+      clearTimeout(modalTimers.get(modal));
+      modalTimers.delete(modal);
+    }
+
     if (isOpen) {
+      if (typeof Blockly !== 'undefined') Blockly.hideChaff();
       modal.classList.remove('hidden');
       modal.classList.add('flex');
       // Force reflow
@@ -1460,10 +1470,12 @@ const initializeApp = async () => {
       modal.classList.add('show-modal');
     } else {
       modal.classList.remove('show-modal');
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         modal.classList.remove('flex');
         modal.classList.add('hidden');
+        modalTimers.delete(modal);
       }, 300); // Wait for transition
+      modalTimers.set(modal, timer);
     }
   };
 
@@ -1499,11 +1511,7 @@ const initializeApp = async () => {
   });
 
   splitModalClose?.addEventListener('click', () => {
-    splitCodeModal.classList.remove('show-modal');
-    setTimeout(() => {
-      splitCodeModal.classList.remove('flex');
-      splitCodeModal.classList.add('hidden');
-    }, 300);
+    toggleModal(splitCodeModal, false);
   });
 
   splitDownloadAllBtn?.addEventListener('click', () => {

@@ -106,6 +106,18 @@ export class PluginUI {
             const canOpen = await this.showMobileWarning();
             if (!canOpen) return;
         }
+
+        // Blocklyのポップアップ（ツールチップやメニュー）を閉じる
+        if (this.pluginManager.workspace && typeof Blockly !== 'undefined') {
+            Blockly.hideChaff();
+        }
+
+        // 既存の終了タイマーがあればクリア
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+            this.closeTimer = null;
+        }
+
         this.modal.classList.remove('hidden');
         this.modal.classList.add('flex');
         void this.modal.offsetWidth;
@@ -114,10 +126,22 @@ export class PluginUI {
     }
 
     close() {
+        // 既存の終了タイマーがあればクリア
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+        }
+
         this.modal.classList.remove('show-modal');
-        setTimeout(() => {
+
+        // モバイル警告モーダルが開いていればそれも閉じる
+        if (this.isMobileWarningOpen()) {
+            this.resolveMobileWarning(false);
+        }
+
+        this.closeTimer = setTimeout(() => {
             this.modal.classList.remove('flex');
             this.modal.classList.add('hidden');
+            this.closeTimer = null;
         }, 300);
     }
 

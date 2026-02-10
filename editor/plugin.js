@@ -248,10 +248,7 @@ export class PluginManager {
         // 検索するパスの優先順位: URL内のパス/README.md -> ルート/README.md
         const possiblePaths = [
             `${subPath}README.md`,
-            `${subPath}readme.md`,
-            'README.md',
-            'readme.md',
-            'README.MD'
+            'README.md'
         ];
 
         // 重複を除去
