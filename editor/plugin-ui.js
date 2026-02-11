@@ -25,6 +25,12 @@ export class PluginUI {
         this.currentSearchId = 0;
         this.mobileWarningResolver = null;
 
+        this.bulkInstallModal = document.getElementById('pluginBulkInstallModal');
+        this.bulkInstallList = document.getElementById('pluginBulkInstallList');
+        this.bulkInstallConfirmBtn = document.getElementById('pluginBulkInstallConfirmBtn');
+        this.bulkInstallCancelBtn = document.getElementById('pluginBulkInstallCancelBtn');
+        this.bulkInstallCloseBtn = document.getElementById('pluginBulkInstallClose');
+
         this.init();
     }
 
@@ -98,6 +104,164 @@ export class PluginUI {
                 }
             });
         }
+
+        this.bulkInstallCloseBtn?.addEventListener('click', () => this.closeBulkInstall());
+        this.bulkInstallCancelBtn?.addEventListener('click', () => this.closeBulkInstall());
+        this.bulkInstallModal?.addEventListener('click', (e) => {
+            if (e.target === this.bulkInstallModal) this.closeBulkInstall();
+        });
+
+        // URLパラメータによるプラグインインストールのチェック
+        this.handleUrlParams();
+
+        // 一括共有ボタン
+        const bulkShareBtn = document.getElementById('pluginBulkShareBtn');
+        if (bulkShareBtn) {
+            bulkShareBtn.addEventListener('click', () => {
+                const enabledPlugins = this.pluginManager.getRegistry().filter(p =>
+                    this.pluginManager.isPluginEnabled(p.id) && p.installedFrom === 1 && p.repo
+                );
+
+                if (enabledPlugins.length === 0) {
+                    alert('共有可能な有効なプラグインがありません。\n(GitHubからインストールされたものが対象です)');
+                    return;
+                }
+
+                const repoNames = enabledPlugins.map(p => {
+                    const info = this.pluginManager.parseGitHubUrl(p.repo);
+                    if (!info) return null;
+                    let name = info.fullName;
+                    if (p.installRef && p.installRef !== 'main') {
+                        name += `@${p.installRef}`;
+                    }
+                    return name;
+                }).filter(name => name !== null);
+
+                if (repoNames.length === 0) {
+                    alert('共有可能なプラグインが見つかりませんでした。');
+                    return;
+                }
+
+                const baseUrl = window.location.origin + window.location.pathname;
+                const shareUrl = `${baseUrl}?install-plugins=${encodeURIComponent(repoNames.join(','))}`;
+
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert('有効なプラグインを一括インストールするためのURLをコピーしました！');
+                }).catch(err => {
+                    alert('URLのコピーに失敗しました。\n' + shareUrl);
+                });
+            });
+        }
+    }
+
+    async handleUrlParams() {
+        const params = new URLSearchParams(window.location.search);
+
+        // パラメータの取得（単数・複数どちらも一括インストールのUIで処理する）
+        const single = params.get('install-plugin');
+        const multiple = params.get('install-plugins');
+
+        if (single) {
+            this.clearUrlParam('install-plugin');
+            await this.handleBulkInstall(single);
+        } else if (multiple) {
+            this.clearUrlParam('install-plugins');
+            await this.handleBulkInstall(multiple);
+        }
+    }
+
+    clearUrlParam(key) {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete(key);
+        window.history.replaceState({}, '', newUrl);
+    }
+
+    async handleBulkInstall(installRepos) {
+        const repos = installRepos.split(',').map(r => r.trim()).filter(r => r.length > 0);
+        if (repos.length === 0) return;
+
+        this.bulkInstallList.innerHTML = '<div class="p-8 text-center text-slate-500">プラグイン情報を取得中...</div>';
+        this.bulkInstallModal.classList.remove('hidden');
+        this.bulkInstallModal.classList.add('flex');
+        void this.bulkInstallModal.offsetWidth;
+        this.bulkInstallModal.classList.add('show-modal');
+
+        const repoInfos = await Promise.all(repos.map(async (entry) => {
+            const [fullName, ref] = entry.split('@');
+            const parts = fullName.split('/');
+            if (parts.length !== 2) return null;
+
+            // 既にインストールされているかチェック
+            const installed = this.pluginManager.getRegistry();
+            const repoUrl = `https://github.com/${fullName}`;
+            const existing = installed.find(p => p.repo === repoUrl || p.repo === repoUrl + '.git');
+
+            return {
+                fullName,
+                ref: ref || 'main',
+                author: parts[0],
+                name: parts[1],
+                existing: !!existing
+            };
+        }));
+
+        const validInfos = repoInfos.filter(i => i !== null);
+        this.renderBulkInstallList(validInfos);
+
+        this.bulkInstallConfirmBtn.onclick = async () => {
+            const selectedEntries = Array.from(this.bulkInstallList.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            if (selectedEntries.length === 0) {
+                alert('インストールするプラグインを選択してください。');
+                return;
+            }
+
+            this.bulkInstallConfirmBtn.disabled = true;
+            const originalText = this.bulkInstallConfirmBtn.innerHTML;
+            this.bulkInstallConfirmBtn.innerHTML = '<i class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></i> <span>インストール中...</span>';
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const entry of selectedEntries) {
+                const [fullName, ref] = entry.split('@');
+                try {
+                    await this.pluginManager.installFromGitHub(fullName, ref || 'main');
+                    successCount++;
+                } catch (e) {
+                    console.error(`Failed to install ${fullName}:`, e);
+                    failCount++;
+                }
+            }
+
+            alert(`${successCount}個のプラグインをインストールしました。${failCount > 0 ? `\n${failCount}個のインストールに失敗しました。` : ''}`);
+            this.bulkInstallConfirmBtn.disabled = false;
+            this.bulkInstallConfirmBtn.innerHTML = originalText;
+            this.closeBulkInstall();
+            this.renderMarketplace();
+        };
+    }
+
+    renderBulkInstallList(infos) {
+        this.bulkInstallList.innerHTML = '';
+        infos.forEach(info => {
+            const item = document.createElement('label');
+            item.className = `flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer ${info.existing ? 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-500'}`;
+
+            const value = info.ref !== 'main' ? `${info.fullName}@${info.ref}` : info.fullName;
+            const versionLabel = info.ref !== 'main' ? `<span class="ml-2 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-mono text-[10px]">${info.ref}</span>` : '';
+
+            item.innerHTML = `
+                <input type="checkbox" value="${value}" ${info.existing ? 'disabled' : 'checked'} class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                <div class="flex-grow">
+                    <div class="font-bold text-slate-900 dark:text-white flex items-center">${info.name}${versionLabel}</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">開発者: ${info.author} ${info.existing ? '(インストール済み)' : ''}</div>
+                </div>
+            `;
+            this.bulkInstallList.appendChild(item);
+        });
+        lucide.createIcons();
     }
 
 
@@ -146,6 +310,14 @@ export class PluginUI {
             this.modal.classList.remove('flex');
             this.modal.classList.add('hidden');
             this.closeTimer = null;
+        }, 300);
+    }
+
+    closeBulkInstall() {
+        this.bulkInstallModal.classList.remove('show-modal');
+        setTimeout(() => {
+            this.bulkInstallModal.classList.add('hidden');
+            this.bulkInstallModal.classList.remove('flex');
         }, 300);
     }
 
@@ -523,13 +695,24 @@ export class PluginUI {
         document.getElementById('sharePluginBtn').addEventListener('click', async () => {
             const isSharable = this.pluginManager.isPluginSharable(plugin.id);
 
-            if (plugin.repo) {
-                // GitHubリポジトリがある場合はURLをコピー
-                try {
-                    await navigator.clipboard.writeText(plugin.repo);
-                    alert('リポジトリのURLをコピーしました！');
-                } catch (e) {
-                    alert('URLのコピーに失敗しました: ' + plugin.repo);
+            if (isSharable) {
+                // インストール用URLを生成
+                const installUrl = this.pluginManager.getInstallUrl(plugin.id);
+                if (installUrl) {
+                    try {
+                        await navigator.clipboard.writeText(installUrl);
+                        alert('このプラグインを共有するためのURLをコピーしました！\nこのリンクを開くと、直接インストール画面が表示されます。');
+                    } catch (e) {
+                        alert('URLのコピーに失敗しました: ' + installUrl);
+                    }
+                } else if (plugin.repo) {
+                    // フォールバック: リポジトリURL
+                    try {
+                        await navigator.clipboard.writeText(plugin.repo);
+                        alert('リポジトリのURLをコピーしました！');
+                    } catch (e) {
+                        alert('URLのコピーに失敗しました: ' + plugin.repo);
+                    }
                 }
             } else if (!isSharable) {
                 // 共有不可（ローカル）な場合はZIPエクスポートを提案

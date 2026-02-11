@@ -341,6 +341,7 @@ export class PluginManager {
             }
 
             manifest.installedFrom = 1; // 1: github
+            manifest.installRef = ref; // インストール時のブランチ/タグ/URLを記録
 
             // manifest.repo を実際のインストール元URLに強制的に書き換える
             const repoUrl = `https://github.com/${fullName}`;
@@ -484,6 +485,22 @@ export class PluginManager {
                 trustLevel: this.getManifestTrustLevel(plugin)
             };
         });
+    }
+
+    // プラグインインストール用のURLを生成
+    getInstallUrl(id) {
+        const meta = this.installedPlugins[id];
+        if (!meta || meta.installedFrom !== 1 || !meta.repo) return null;
+
+        const repoInfo = this.parseGitHubUrl(meta.repo);
+        if (!repoInfo) return null;
+
+        const baseUrl = window.location.origin + window.location.pathname;
+        let installQuery = repoInfo.fullName;
+        if (meta.installRef && meta.installRef !== 'main') {
+            installQuery += `@${meta.installRef}`;
+        }
+        return `${baseUrl}?install-plugin=${encodeURIComponent(installQuery)}`;
     }
 
     isPluginEnabled(id) {
