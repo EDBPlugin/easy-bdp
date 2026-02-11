@@ -14,6 +14,7 @@ let storage;
 
 const LIST_STORE_KEY = 'edbb_list_store';
 const JSON_DATA_STORE_KEY = 'edbb_json_store';
+const JSON_GUI_DATASET_LOCAL_KEY = 'edbb_json_gui_dataset_store_v1';
 
 const listStore = (() => {
   let lists = new Map();
@@ -977,9 +978,29 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
   let autoSaveTimer = null;
   let hasPendingAutoSave = false;
 
+  const readJsonDatasetLocalState = () => {
+    try {
+      const raw = localStorage.getItem(JSON_GUI_DATASET_LOCAL_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const persistJsonDatasetLocalState = () => {
+    try {
+      localStorage.setItem(JSON_GUI_DATASET_LOCAL_KEY, JSON.stringify(jsonDataStore.toJSON()));
+    } catch (error) {
+      // ignore storage write failures
+    }
+  };
+
   const flushAutoSave = () => {
     if (!hasPendingAutoSave) return;
     hasPendingAutoSave = false;
+    persistJsonDatasetLocalState();
     storage?.save?.();
   };
 
@@ -997,6 +1018,7 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
       clearTimeout(autoSaveTimer);
       autoSaveTimer = null;
     }
+    persistJsonDatasetLocalState();
     flushAutoSave();
   };
 
@@ -1287,6 +1309,14 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
   shareFeature?.onShareViewModeChange?.(applyShareViewState);
   applyShareViewState(shareFeature?.isShareViewMode?.() || false);
 
+  // Fallback source for legacy workspaces or save timing gaps.
+  const localState = readJsonDatasetLocalState();
+  if (localState) {
+    jsonDataStore.fromJSON(localState);
+    resolveDatasetSelection();
+    render();
+  }
+
   const originalGetExtraState = workspace.getExtraState?.bind(workspace);
   const originalSetExtraState = workspace.setExtraState?.bind(workspace);
 
@@ -1298,7 +1328,19 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
 
   workspace.setExtraState = (state) => {
     if (originalSetExtraState) originalSetExtraState(state);
-    jsonDataStore.fromJSON(state?.[JSON_DATA_STORE_KEY]);
+    const hasJsonStore =
+      Boolean(state) &&
+      typeof state === 'object' &&
+      Object.prototype.hasOwnProperty.call(state, JSON_DATA_STORE_KEY);
+    if (hasJsonStore) {
+      jsonDataStore.fromJSON(state?.[JSON_DATA_STORE_KEY]);
+    } else {
+      const fallbackState = readJsonDatasetLocalState();
+      if (fallbackState) {
+        jsonDataStore.fromJSON(fallbackState);
+      }
+    }
+    persistJsonDatasetLocalState();
     resolveDatasetSelection();
     render();
   };
