@@ -347,7 +347,6 @@ Blockly.Blocks['dict_keys'] = {
   },
 };
 const JSON_DATASET_EMPTY_ID = '__edbb_json_dataset_empty__';
-const JSON_RUNTIME_STORE_FILE = 'edbb_json_store.json';
 const getJsonDataStore = () => (typeof Blockly !== 'undefined' ? Blockly.edbbJsonDataStore : null);
 const getJsonDatasetOptions = () => {
   const store = getJsonDataStore();
@@ -357,16 +356,23 @@ const getJsonDatasetOptions = () => {
   }
   return names.map((name) => [name, name]);
 };
-const getJsonRuntimeStoreCode = () =>
-  `((globals().get('_edbb_json_cache')) if ('_edbb_json_cache' in globals()) else (globals().setdefault('_edbb_json_cache', _load_json_data(${JSON.stringify(JSON_RUNTIME_STORE_FILE)}))))`;
-const buildJsonDatasetAccessCode = (datasetName, fallbackLiteral = '{}') => {
+const toDatasetJsonFileName = (datasetName) => {
+  const base = String(datasetName ?? '').trim();
+  const safe = (base || 'dataset').replace(/[\\/:*?"<>|]/g, '_');
+  return `${safe}.json`;
+};
+const getJsonRuntimeStoreCode = (datasetName, fallbackLiteral = '{}') => {
   const safeName = JSON.stringify(String(datasetName ?? ''));
-  return `(${getJsonRuntimeStoreCode()}.setdefault(${safeName}, ${fallbackLiteral}))`;
+  const filename = JSON.stringify(toDatasetJsonFileName(datasetName));
+  return `((lambda _cache, _files: _cache.setdefault(${safeName}, (_load_json_data(_files.setdefault(${safeName}, ${filename})) if os.path.exists(_files.setdefault(${safeName}, ${filename})) else ${fallbackLiteral})))(globals().setdefault('_edbb_json_dataset_cache', {}), globals().setdefault('_edbb_json_dataset_files', {})))`;
+};
+const buildJsonDatasetAccessCode = (datasetName, fallbackLiteral = '{}') => {
+  return getJsonRuntimeStoreCode(datasetName, fallbackLiteral);
 };
 const buildJsonRuntimeSaveCode = () =>
-  `_save_json_data(${JSON.stringify(JSON_RUNTIME_STORE_FILE)}, globals().get('_edbb_json_cache', {}))\n`;
+  `_save_json_dataset_cache()\n`;
 const isJsonRuntimeDatasetCode = (code) =>
-  typeof code === 'string' && code.includes('_edbb_json_cache');
+  typeof code === 'string' && code.includes('_edbb_json_dataset_cache');
 class FieldJsonDatasetDropdown extends Blockly.FieldDropdown {
   constructor() {
     super(function () {

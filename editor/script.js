@@ -788,6 +788,16 @@ const buildInlineRuntimeHelpers = ({ usesJson, usesModal, usesLogging }) => {
     helpers += `            json.dump(data, f, ensure_ascii = False, indent = 4)\n`;
     helpers += `    except Exception as e:\n`;
     helpers += `        logging.error(f"JSON Save Error: {e}")\n\n`;
+    helpers += `def _save_json_dataset_cache():\n`;
+    helpers += `    _cache = globals().get('_edbb_json_dataset_cache', {})\n`;
+    helpers += `    _files = globals().get('_edbb_json_dataset_files', {})\n`;
+    helpers += `    if not isinstance(_cache, dict) or not isinstance(_files, dict):\n`;
+    helpers += `        return\n`;
+    helpers += `    for _dataset_name, _dataset_data in _cache.items():\n`;
+    helpers += `        _filename = _files.get(_dataset_name)\n`;
+    helpers += `        if not _filename:\n`;
+    helpers += `            continue\n`;
+    helpers += `        _save_json_data(_filename, _dataset_data)\n\n`;
   }
 
   if (usesModal) {
@@ -812,7 +822,11 @@ const generatePythonCode = () => {
   const bodyCode = cleanedCode;
 
   // --- Dependency Analysis ---
-  const usesJson = bodyCode.includes('_load_json_data') || bodyCode.includes('_save_json_data') || bodyCode.includes('json.');
+  const usesJson =
+    bodyCode.includes('_load_json_data') ||
+    bodyCode.includes('_save_json_data') ||
+    bodyCode.includes('_save_json_dataset_cache') ||
+    bodyCode.includes('json.');
   const usesModal = bodyCode.includes('EasyModal');
   const usesRandom = bodyCode.includes('random.');
   const usesAsyncio = bodyCode.includes('asyncio.');
@@ -1517,12 +1531,18 @@ const buildImports = (bodyCode, needsInteractionHandler) => {
   if (
     bodyCode.includes('_load_json_data') ||
     bodyCode.includes('_save_json_data') ||
+    bodyCode.includes('_save_json_dataset_cache') ||
     bodyCode.includes('json.')
   ) {
     imports.push('import json');
     imports.push('import os');
   }
-  if (bodyCode.includes('logging.') || bodyCode.includes('_load_json_data') || bodyCode.includes('_save_json_data')) {
+  if (
+    bodyCode.includes('logging.') ||
+    bodyCode.includes('_load_json_data') ||
+    bodyCode.includes('_save_json_data') ||
+    bodyCode.includes('_save_json_dataset_cache')
+  ) {
     imports.push('import logging');
   }
   return imports;
@@ -1532,6 +1552,7 @@ const buildSharedModule = (bodyCode) => {
   const usesJson =
     bodyCode.includes('_load_json_data') ||
     bodyCode.includes('_save_json_data') ||
+    bodyCode.includes('_save_json_dataset_cache') ||
     bodyCode.includes('json.');
   const usesModal = bodyCode.includes('EasyModal');
   const usesLogging = bodyCode.includes('logging.') || usesJson;
@@ -1560,6 +1581,16 @@ const buildSharedModule = (bodyCode) => {
     content += `            json.dump(data, f, ensure_ascii = False, indent = 4) \n`;
     content += `    except Exception as e: \n`;
     content += `        logging.error(f"JSON Save Error: {e}") \n\n`;
+    content += `def _save_json_dataset_cache(): \n`;
+    content += `    _cache = globals().get('_edbb_json_dataset_cache', {}) \n`;
+    content += `    _files = globals().get('_edbb_json_dataset_files', {}) \n`;
+    content += `    if not isinstance(_cache, dict) or not isinstance(_files, dict): \n`;
+    content += `        return \n`;
+    content += `    for _dataset_name, _dataset_data in _cache.items(): \n`;
+    content += `        _filename = _files.get(_dataset_name) \n`;
+    content += `        if not _filename: \n`;
+    content += `            continue \n`;
+    content += `        _save_json_data(_filename, _dataset_data) \n\n`;
   }
   if (usesModal) {
     content += `import discord\n\n`;
@@ -1700,10 +1731,11 @@ const generateSplitPythonFiles = () => {
     const usesJson =
       cleanedCode.includes('_load_json_data') ||
       cleanedCode.includes('_save_json_data') ||
+      cleanedCode.includes('_save_json_dataset_cache') ||
       cleanedCode.includes('json.');
     const usesModal = cleanedCode.includes('EasyModal');
     const sharedSymbols = [];
-    if (usesJson) sharedSymbols.push('_load_json_data', '_save_json_data');
+    if (usesJson) sharedSymbols.push('_load_json_data', '_save_json_data', '_save_json_dataset_cache');
     if (usesModal) sharedSymbols.push('EasyModal');
     const sharedImports =
       sharedModule && sharedSymbols.length
