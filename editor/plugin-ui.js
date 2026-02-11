@@ -551,8 +551,7 @@ export class PluginUI {
         const item = document.createElement('div');
         item.className = `p-3 rounded-lg cursor-pointer transition-colors ${isEnabled ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`;
 
-        const trustLevelInfo = plugin.trustLevel;
-        const level = (trustLevelInfo && typeof trustLevelInfo === 'object') ? trustLevelInfo.level : trustLevelInfo;
+        const level = plugin.trustLevel?.level ?? plugin.trustLevel;
 
         let trustBadge = '';
         if (plugin.author === 'EDBPlugin' || level === 'official') {
@@ -560,7 +559,7 @@ export class PluginUI {
         } else if (level === 'certified') {
             trustBadge = '<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-green-500 text-white leading-none">公認</span>';
         } else if (level === 'danger') {
-            const reason = (trustLevelInfo && typeof trustLevelInfo === 'object' && trustLevelInfo.reason) ? trustLevelInfo.reason : '危険性が報告されています。';
+            const reason = plugin.trustLevel?.reason ?? '危険性が報告されています。';
             trustBadge = `<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-red-500 text-white leading-none cursor-help" title="危険の理由: ${reason}">危険</span>`;
         }
 
@@ -598,20 +597,18 @@ export class PluginUI {
             readme = plugin.description || 'テスト用プラグインのデモページです。';
         }
 
-        const trustLevel = plugin.trustLevel?.level || plugin.trustLevel;
+        const level = plugin.trustLevel?.level ?? plugin.trustLevel;
         let trustBadge = '';
-        if (trustLevel === 'official' || plugin.author === 'EDBPlugin') {
+        if (plugin.author === 'EDBPlugin' || level === 'official') {
             trustBadge = '<span class="text-[10px] px-2 py-1 rounded bg-blue-500 text-white font-bold leading-none shrink-0">公式プラグイン</span>';
-        } else if (trustLevel === 'certified') {
+        } else if (level === 'certified') {
             trustBadge = '<span class="text-[10px] px-2 py-1 rounded bg-green-500 text-white font-bold leading-none shrink-0">公認プラグイン</span>';
-        } else if (trustLevel === 'danger') {
+        } else if (level === 'danger') {
             trustBadge = '<span class="text-[10px] px-2 py-1 rounded bg-red-500 text-white font-bold leading-none shrink-0">危険なプラグイン</span>';
         }
+        const dangerReason = level === 'danger' ? (plugin.trustLevel?.reason || '悪意のあるコードが含まれているか、重大なセキュリティリスクがある可能性があるため、インストールは推奨されません。') : '';
 
-
-        const dangerReason = trustLevel === 'danger' ? (plugin.trustLevel?.reason || '悪意のあるコードが含まれているか、重大なセキュリティリスクがある可能性があるため、インストールは推奨されません。') : '';
-
-        const dangerWarning = trustLevel === 'danger' ? `
+        const dangerWarning = level === 'danger' ? `
             <div class="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3">
                 <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 shrink-0 mt-0.5"></i>
                 <div class="text-sm">
@@ -754,20 +751,20 @@ export class PluginUI {
         const isEnabled = this.pluginManager.isPluginEnabled(plugin.id);
         const isBuiltin = plugin.id === 'vanilla-plugin';
 
-        const trustLevel = plugin.trustLevel?.level || plugin.trustLevel;
+        const level = plugin.trustLevel?.level ?? plugin.trustLevel;
         let trustBadge = '';
-        if (plugin.author === 'EDBPlugin' || trustLevel === 'official') {
+        if (plugin.author === 'EDBPlugin' || level === 'official') {
             trustBadge = '<span class="text-[10px] px-2 py-1 rounded bg-blue-500 text-white font-bold leading-none shrink-0">公式プラグイン</span>';
-        } else if (trustLevel === 'certified') {
+        } else if (level === 'certified') {
             trustBadge = '<span class="text-[10px] px-2 py-1 rounded bg-green-500 text-white font-bold leading-none shrink-0">公認プラグイン</span>';
-        } else if (trustLevel === 'danger') {
+        } else if (level === 'danger') {
             trustBadge = '<span class="text-[10px] px-2 py-1 rounded bg-red-500 text-white font-bold leading-none shrink-0">危険なプラグイン</span>';
         }
 
 
-        const dangerReason = trustLevel === 'danger' ? (plugin.trustLevel?.reason || 'このプラグインの使用は推奨されません。速やかにアンインストールすることを検討してください。') : '';
+        const dangerReason = level === 'danger' ? (plugin.trustLevel?.reason || 'このプラグインの使用は推奨されません。速やかにアンインストールすることを検討してください。') : '';
 
-        const dangerWarning = trustLevel === 'danger' ? `
+        const dangerWarning = level === 'danger' ? `
             <div class="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3">
                 <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 shrink-0 mt-0.5"></i>
                 <div class="text-sm">
