@@ -157,18 +157,13 @@
                 class="flex items-center gap-1 bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-800 shadow-sm">
                 <button id="importBtn"
                     class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800"
-                    title="JSONを読み込む">
+                    title="Load JSON">
                     <i data-lucide="upload" class="w-4.5 h-4.5"></i>
                 </button>
                 <button id="exportBtn"
                     class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800"
-                    title="JSONを保存する">
+                    title="Save JSON">
                     <i data-lucide="download" class="w-4.5 h-4.5"></i>
-                </button>
-                <button id="jsonGuiBtn"
-                    class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800"
-                    title="JSON GUIを開く">
-                    <i data-lucide="table-2" class="w-4.5 h-4.5"></i>
                 </button>
 
                 <div class="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
@@ -319,15 +314,9 @@
             <category name="データ保存 (JSON)" data-icon="💾" colour="#d35400">
                 <block type="json_load"></block>
                 <block type="json_save"></block>
-                <block type="dict_add"></block>
-                <block type="dict_delete"></block>
-                <block type="dict_has_key"></block>
-                <block type="dict_keys"></block>
-                <block type="json_dataset_get"></block>
-                <block type="json_dataset_get_value"></block>
-                <block type="json_dataset_set_value"></block>
-                <block type="json_dataset_delete_key"></block>
-                <block type="json_dataset_save_now"></block>
+                <block type="dict_create"></block>
+                <block type="dict_get"></block>
+                <block type="dict_set"></block>
             </category>
 
             <category name="チャンネル・ボイス" data-icon="🔊" colour="#00a8ff">
@@ -586,99 +575,6 @@
                     class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-white transition-colors">
                     <i data-lucide="download" class="w-4 h-4"></i>
                     <span>保存する</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="jsonGuiModal"
-        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-        aria-hidden="true">
-        <div
-            class="flex flex-col w-full max-w-6xl h-[88vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
-            <div
-                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
-                <div class="flex items-center gap-3">
-                    <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                        <i data-lucide="table-2" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">JSON GUIエディタ</h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">初心者向けの表形式JSONエディタ</p>
-                    </div>
-                </div>
-                <button id="jsonGuiModalClose"
-                    class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
-                <aside
-                    class="border-r border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/30 p-4 flex flex-col gap-3 overflow-y-auto">
-                    <div class="text-[11px] uppercase tracking-widest font-semibold text-slate-500 dark:text-slate-400">データセット</div>
-                    <select id="jsonGuiDatasetSelect"
-                        class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </select>
-                    <div class="grid grid-cols-1 gap-2">
-                        <button id="jsonGuiAddDatasetBtn" type="button"
-                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
-                            <i data-lucide="plus" class="w-4 h-4"></i>
-                            <span>データセット追加</span>
-                        </button>
-                        <button id="jsonGuiRenameDatasetBtn" type="button"
-                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                            <i data-lucide="pencil" class="w-4 h-4"></i>
-                            <span>名前変更</span>
-                        </button>
-                        <button id="jsonGuiDeleteDatasetBtn" type="button"
-                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            <span>削除</span>
-                        </button>
-                    </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        このデータは「JSONデータセット」「JSONデータセットの値」ブロックで直接使えます。
-                    </p>
-                </aside>
-                <section class="p-4 sm:p-6 overflow-y-auto flex flex-col gap-4">
-                    <div
-                        class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-xs sm:text-sm">
-                                <thead class="bg-slate-100/80 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
-                                    <tr>
-                                        <th class="px-3 py-2 text-left font-semibold">キー</th>
-                                        <th class="px-3 py-2 text-left font-semibold w-32">型</th>
-                                        <th class="px-3 py-2 text-left font-semibold">値</th>
-                                        <th class="px-3 py-2 text-right font-semibold w-24">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="jsonGuiRows" class="bg-white dark:bg-slate-900"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between gap-3 flex-wrap">
-                        <button id="jsonGuiAddRowBtn" type="button"
-                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
-                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                            <span>行を追加</span>
-                        </button>
-                        <span id="jsonGuiError"
-                            class="hidden text-xs text-rose-600 dark:text-rose-300 rounded-lg border border-rose-200 dark:border-rose-700 px-3 py-2 bg-rose-50 dark:bg-rose-900/20"></span>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
-                        <div class="text-[11px] uppercase tracking-widest font-semibold text-slate-500 dark:text-slate-400 mb-2">JSONプレビュー</div>
-                        <textarea id="jsonGuiPreview" readonly
-                            class="w-full min-h-[220px] rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-700 dark:text-slate-200"></textarea>
-                    </div>
-                </section>
-            </div>
-            <div
-                class="flex items-center justify-end gap-2 px-6 py-4 bg-white/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800">
-                <button id="jsonGuiCloseBtn" type="button"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="check-circle" class="w-4 h-4"></i>
-                    <span>閉じる</span>
                 </button>
             </div>
         </div>
