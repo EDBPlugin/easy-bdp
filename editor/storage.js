@@ -30,7 +30,7 @@ class WorkspaceShareCodec {
     }
   }
 
-  static decompress(encoded, workspace) {
+  static async decompress(encoded, workspace) {
     if (!workspace || !encoded) return false;
     const lz = typeof window !== 'undefined' ? window.LZString : undefined;
     if (!lz?.decompressFromEncodedURIComponent) {
@@ -40,55 +40,66 @@ class WorkspaceShareCodec {
     try {
       const text = lz.decompressFromEncodedURIComponent(encoded);
       if (!text) throw new Error('データを展開できませんでした。');
-      // 復号後はJSONを戻してそのままBlocklyへ読み込む
       const payload = JSON.parse(text);
 
-      // プラグイン情報が含まれている場合は適用
-      if (payload.workspace && (payload.pluginUUIDs || payload.plugins || payload.pluginInfo)) {
-        Blockly.serialization.workspaces.load(payload.workspace, workspace);
+      const isExtendedPayload = !!(payload.workspace && (payload.pluginUUIDs || payload.plugins || payload.pluginInfo));
+      const workspaceData = isExtendedPayload ? payload.workspace : payload;
 
-        // プラグインの有効化と未インストールのチェック
-        if (workspace.pluginManager) {
-          const uuids = payload.pluginUUIDs || [];
-          const pluginInfo = payload.pluginInfo || [];
-          const missingPlugins = [];
+      // プラグイン情報の処理を先に行う (Blockly読込前に定義を揃えるため)
+      if (isExtendedPayload && workspace.pluginManager) {
+        const uuids = payload.pluginUUIDs || [];
+        const pluginInfo = payload.pluginInfo || [];
+        const missingPlugins = [];
 
-          // インストール済みチェック
-          if (pluginInfo.length > 0) {
-            pluginInfo.forEach(entry => {
-              const [fullName] = entry.split('@');
-              const repoUrl = `https://github.com/${fullName}`;
-              const isInstalled = workspace.pluginManager.getRegistry().some(p =>
-                p.repo === repoUrl || p.repo === repoUrl + '.git'
-              );
-              if (!isInstalled) {
-                missingPlugins.push(entry);
-              }
-            });
-          }
-
-          // 有効化
-          uuids.forEach(uuid => {
-            const pluginId = workspace.pluginManager.getPluginIdByUUID(uuid);
-            if (pluginId) {
-              workspace.pluginManager.enablePlugin(pluginId);
+        // インストール済みチェック
+        if (pluginInfo.length > 0) {
+          pluginInfo.forEach(entry => {
+            const [fullName] = entry.split('@');
+            const repoUrl = `https://github.com/${fullName}`;
+            const isInstalled = workspace.pluginManager.getRegistry().some(p =>
+              p.repo === repoUrl || p.repo === repoUrl + '.git'
+            );
+            if (!isInstalled) {
+              missingPlugins.push(entry);
             }
           });
+        }
 
-          // 互換性のため古い形式もサポート
-          const oldPlugins = payload.plugins || [];
-          oldPlugins.forEach(pluginId => {
-            workspace.pluginManager.enablePlugin(pluginId);
-          });
-
-          // 未インストールがあれば促す
-          if (missingPlugins.length > 0) {
-            workspace.pluginManager.suggestPlugins(missingPlugins);
+        // 有効化 (awaitして定義を確定させる)
+        for (const uuid of uuids) {
+          const pluginId = workspace.pluginManager.getPluginIdByUUID(uuid);
+          if (pluginId) {
+            try {
+              await workspace.pluginManager.enablePlugin(pluginId);
+            } catch (e) {
+              console.warn(`Plugin activation failed during share import: ${pluginId}`, e);
+            }
           }
         }
-      } else {
-        // 互換性のため、古い形式（直接workspaceデータ）もサポート
-        Blockly.serialization.workspaces.load(payload, workspace);
+
+        // 互換性のため古い形式もサポート
+        const oldPlugins = payload.plugins || [];
+        for (const pluginId of oldPlugins) {
+          try {
+            await workspace.pluginManager.enablePlugin(pluginId);
+          } catch (e) {
+            console.warn(`Old plugin activation failed: ${pluginId}`, e);
+          }
+        }
+
+        // 未インストールがあれば後で促す
+        if (missingPlugins.length > 0) {
+          // 非同期で提案 (読込完了後に表示されるように)
+          setTimeout(() => workspace.pluginManager.suggestPlugins(missingPlugins), 500);
+        }
+      }
+
+      // 最後にワークスペースを読み込む
+      try {
+        Blockly.serialization.workspaces.load(workspaceData, workspace);
+      } catch (loadError) {
+        console.warn('Blockly load encountered errors (possibly missing block definitions):', loadError);
+        // 部分的に読み込める場合もあるため、致命的エラーにはしない
       }
 
       return true;
@@ -235,8 +246,8 @@ export default class WorkspaceStorage {
   }
 
   // 極小データを復元
-  importMinified(encoded) {
-    return WorkspaceShareCodec.decompress(encoded, this.#workspace);
+  async importMinified(encoded) {
+    return await WorkspaceShareCodec.decompress(encoded, this.#workspace);
   }
 
   // 現在のワークスペース状態をlocalStorageへ保存
