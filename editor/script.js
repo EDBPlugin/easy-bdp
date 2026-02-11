@@ -673,6 +673,97 @@ const extractInteractionEventsSafe = (code) => {
   };
 };
 
+const PYTHON_IDENTIFIER_PATTERN = (() => {
+  try {
+    return new RegExp('^[_\\p{L}][_\\p{L}\\p{N}]*$', 'u');
+  } catch (error) {
+    return /^[A-Za-z_][A-Za-z0-9_]*$/;
+  }
+})();
+
+const isPythonIdentifierLike = (value) => PYTHON_IDENTIFIER_PATTERN.test(String(value ?? ''));
+
+const COMMAND_VALIDATION_RULES = {
+  on_command_executed: {
+    label: 'スラッシュコマンド',
+    normalize: (rawName) => String(rawName ?? '').trim().toLowerCase(),
+    invalidMessage:
+      'このエディターではコマンド名を Python の関数名にも使うため、先頭は文字または_、以降は文字/数字/_のみ使用できます。',
+  },
+  prefix_command: {
+    label: 'プレフィックスコマンド',
+    normalize: (rawName) => String(rawName ?? '').trim().replace(/^[!~#&?]/, ''),
+    invalidMessage:
+      'このエディターではコマンド名を Python の関数名にも使うため、先頭は文字または_、以降は文字/数字/_のみ使用できます。',
+  },
+};
+
+const formatBlockRef = (block) => {
+  const shortId = String(block?.id || '').slice(0, 8);
+  return shortId ? `ブロックID: ${shortId}` : 'ブロックID不明';
+};
+
+const analyzeWorkspaceForCodegen = (workspaceRef) => {
+  if (!workspaceRef) return [];
+
+  const diagnostics = [];
+  const commandRegistry = new Map();
+  const handlerRegistry = new Map();
+
+  workspaceRef.getAllBlocks(false).forEach((block) => {
+    if (!block || block.isShadow?.()) return;
+    if (typeof block.isEnabled === 'function' && !block.isEnabled()) return;
+
+    const rule = COMMAND_VALIDATION_RULES[block.type];
+    if (!rule) return;
+
+    const rawName = block.getFieldValue('COMMAND_NAME');
+    const normalizedName = rule.normalize(rawName);
+    const blockRef = formatBlockRef(block);
+    const shownName = normalizedName || '(空)';
+
+    if (!normalizedName) {
+      diagnostics.push({
+        blockId: block.id,
+        message: `${rule.label}名が空です。${blockRef}`,
+      });
+      return;
+    }
+
+    if (!isPythonIdentifierLike(normalizedName)) {
+      diagnostics.push({
+        blockId: block.id,
+        message: `${rule.label}名「${shownName}」は無効です。${rule.invalidMessage} ${blockRef}`,
+      });
+      return;
+    }
+
+    const commandKey = `${block.type}:${normalizedName}`;
+    const firstRegisteredCommand = commandRegistry.get(commandKey);
+    if (firstRegisteredCommand) {
+      diagnostics.push({
+        blockId: block.id,
+        message: `${rule.label}名「${shownName}」が重複しています。${formatBlockRef(firstRegisteredCommand.block)} / ${blockRef}`,
+      });
+    } else {
+      commandRegistry.set(commandKey, { block, normalizedName });
+    }
+
+    const handlerName = `${normalizedName}_cmd`;
+    const firstRegisteredHandler = handlerRegistry.get(handlerName);
+    if (firstRegisteredHandler && firstRegisteredHandler.block.id !== block.id) {
+      diagnostics.push({
+        blockId: block.id,
+        message: `Python側の関数名「${handlerName}」が重複します。${formatBlockRef(firstRegisteredHandler.block)} / ${blockRef}`,
+      });
+    } else {
+      handlerRegistry.set(handlerName, { block, handlerName });
+    }
+  });
+
+  return diagnostics;
+};
+
 // --- Code Generation & UI Sync ---
 const buildInlineRuntimeHelpers = ({ usesJson, usesModal, usesLogging }) => {
   let helpers = '';
@@ -1770,6 +1861,8 @@ const initializeApp = async () => {
   const codeModal = document.getElementById('codeModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
   const codeOutput = document.getElementById('codeOutput');
+  const codeGenErrorBox = document.getElementById('codeGenErrorBox');
+  const codeGenErrorList = document.getElementById('codeGenErrorList');
   const copyCodeBtn = document.getElementById('copyCodeBtn');
   const splitCodeBtn = document.getElementById('splitCodeBtn');
   const splitCodeModal = document.getElementById('splitCodeModal');
@@ -2186,6 +2279,45 @@ const initializeApp = async () => {
     }
   };
 
+  const hideCodegenErrors = () => {
+    if (!codeGenErrorBox || !codeGenErrorList) return;
+    codeGenErrorList.innerHTML = '';
+    codeGenErrorBox.classList.add('hidden');
+  };
+
+  const showCodegenErrors = (diagnostics) => {
+    if (!Array.isArray(diagnostics) || !diagnostics.length) {
+      hideCodegenErrors();
+      return;
+    }
+    if (!codeGenErrorBox || !codeGenErrorList) {
+      const messages = diagnostics.map((item) => item.message).join('\n');
+      window.alert(`静的構文解析エラー:\n${messages}`);
+      return;
+    }
+    codeGenErrorList.innerHTML = '';
+    diagnostics.forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item.message;
+      codeGenErrorList.appendChild(li);
+    });
+    codeGenErrorBox.classList.remove('hidden');
+  };
+
+  const validateBeforeCodegen = () => {
+    const diagnostics = analyzeWorkspaceForCodegen(workspace);
+    if (!diagnostics.length) {
+      hideCodegenErrors();
+      return true;
+    }
+    showCodegenErrors(diagnostics);
+    if (codeOutput) {
+      codeOutput.textContent = '';
+    }
+    toggleModal(codeModal, true);
+    return false;
+  };
+
   const updateSaveJsonMethodHint = () => {
     if (!saveJsonMethodHint) return;
     const mode = saveJsonMethodSelect?.value || 'download';
@@ -2268,12 +2400,14 @@ const initializeApp = async () => {
     showCodeBtn.blur();
     // Blocklyの選択ハイライトなどを解除
     if (workspace) Blockly.hideChaff();
+    if (!validateBeforeCodegen()) return;
     codeOutput.textContent = generatePythonCode();
     toggleModal(codeModal, true);
   });
 
   const openSplitModal = () => {
     if (!splitCodeModal) return;
+    if (!validateBeforeCodegen()) return;
     const files = generateSplitPythonFiles();
     renderSplitFiles(files);
     splitCodeModal.classList.remove('hidden');
@@ -2300,6 +2434,10 @@ const initializeApp = async () => {
   });
 
   splitDownloadAllBtn?.addEventListener('click', () => {
+    if (!validateBeforeCodegen()) {
+      toggleModal(splitCodeModal, false);
+      return;
+    }
     const files = generateSplitPythonFiles();
     Object.entries(files).forEach(([path, content]) => {
       if (content == null) return;

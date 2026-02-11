@@ -460,6 +460,18 @@
                     </ol>
                 </div>
 
+                <div id="codeGenErrorBox"
+                    class="hidden mb-6 p-4 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/20 text-rose-900 dark:text-rose-200">
+                    <h3 class="flex items-center gap-2 font-bold text-sm">
+                        <i data-lucide="triangle-alert" class="w-4 h-4"></i>
+                        静的構文解析エラー
+                    </h3>
+                    <p class="mt-2 text-xs font-medium text-rose-700 dark:text-rose-300">
+                        問題を修正してから、もう一度コード生成を実行してください。
+                    </p>
+                    <ul id="codeGenErrorList" class="mt-3 space-y-1 text-xs font-medium list-disc list-inside"></ul>
+                </div>
+
                 <div
                     class="relative group rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800">
                     <div
