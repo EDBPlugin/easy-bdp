@@ -354,6 +354,7 @@ export class PluginUI {
 
         this.modal.classList.remove('hidden');
         this.modal.classList.add('flex');
+        this.modal.setAttribute('aria-hidden', 'false');
         void this.modal.offsetWidth;
         this.modal.classList.add('show-modal');
         this.renderMarketplace();
@@ -379,6 +380,7 @@ export class PluginUI {
             if (!this.modal) return;
             this.modal.classList.remove('flex');
             this.modal.classList.add('hidden');
+            this.modal.setAttribute('aria-hidden', 'true');
             this.closeTimer = null;
         }, 300);
     }
