@@ -2188,10 +2188,13 @@ const initializeApp = async () => {
   };
 
   const pluginUI = new PluginUI(pluginManager);
+  pluginManager.onPluginsSuggested((entries) => {
+    pluginUI.handleBulkInstall(entries.join(','));
+  });
   await pluginManager.init();
 
   // --- Load Saved Data ---
-  const sharedApplied = shareFeature.applySharedLayoutFromQuery();
+  const sharedApplied = await shareFeature.applySharedLayoutFromQuery();
   if (!sharedApplied) {
     storage?.load();
     // Keep block interactivity aligned with current (non-share) mode.

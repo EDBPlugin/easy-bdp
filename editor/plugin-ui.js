@@ -187,20 +187,33 @@ export class PluginUI {
         this.bulkInstallModal.classList.add('show-modal');
 
         const repoInfos = await Promise.all(repos.map(async (entry) => {
-            const [fullName, ref] = entry.split('@');
-            const parts = fullName.split('/');
-            if (parts.length !== 2) return null;
+            // URLか fullName@ref かを判定してパース
+            let info = this.pluginManager.parseGitHubUrl(entry);
+            let repoUrl = entry;
+
+            if (!info && entry.includes('/')) {
+                // 旧形式 fullName@ref
+                const [fullName, ref] = entry.split('@');
+                repoUrl = `https://github.com/${fullName}${ref ? `/tree/${ref}` : ''}`;
+                info = this.pluginManager.parseGitHubUrl(repoUrl);
+            }
+
+            if (!info) return null;
 
             // 既にインストールされているかチェック
             const installed = this.pluginManager.getRegistry();
-            const repoUrl = `https://github.com/${fullName}`;
-            const existing = installed.find(p => p.repo === repoUrl || p.repo === repoUrl + '.git');
+            const cleanTarget = repoUrl.split('?')[0].replace(/\/$/, '').replace(/\.git$/, '');
+            const existing = installed.find(p => {
+                const pClean = p.repo?.split('?')[0].replace(/\/$/, '').replace(/\.git$/, '');
+                return pClean === cleanTarget;
+            });
 
             return {
-                fullName,
-                ref: ref || 'main',
-                author: parts[0],
-                name: parts[1],
+                fullName: info.fullName,
+                repoUrl: repoUrl,
+                ref: info.branch || 'main',
+                author: info.owner,
+                name: info.repo,
                 existing: !!existing
             };
         }));
@@ -224,13 +237,17 @@ export class PluginUI {
             let successCount = 0;
             let failCount = 0;
 
-            for (const entry of selectedEntries) {
-                const [fullName, ref] = entry.split('@');
+            for (const entryUrl of selectedEntries) {
+                const info = this.pluginManager.parseGitHubUrl(entryUrl);
+                if (!info) {
+                    failCount++;
+                    continue;
+                }
                 try {
-                    await this.pluginManager.installFromGitHub(fullName, ref || 'main');
+                    await this.pluginManager.installFromGitHub(info.fullName, entryUrl);
                     successCount++;
                 } catch (e) {
-                    console.error(`Failed to install ${fullName}:`, e);
+                    console.error(`Failed to install ${info.fullName}:`, e);
                     failCount++;
                 }
             }
@@ -246,24 +263,77 @@ export class PluginUI {
     renderBulkInstallList(infos) {
         this.bulkInstallList.innerHTML = '';
         infos.forEach(info => {
-            const item = document.createElement('label');
-            item.className = `flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer ${info.existing ? 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-500'}`;
+            const container = document.createElement('div');
+            container.className = 'flex flex-col gap-2';
 
-            const value = info.ref !== 'main' ? `${info.fullName}@${info.ref}` : info.fullName;
+            const item = document.createElement('div');
+            item.className = `flex items-center gap-3 p-4 rounded-xl border transition-all ${info.existing ? 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-500 cursor-pointer'}`;
+
+            const value = info.repoUrl;
             const versionLabel = info.ref !== 'main' ? `<span class="ml-2 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-mono text-[10px]">${info.ref}</span>` : '';
 
             item.innerHTML = `
-                <input type="checkbox" value="${value}" ${info.existing ? 'disabled' : 'checked'} class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                <div class="flex-grow">
-                    <div class="font-bold text-slate-900 dark:text-white flex items-center">${info.name}${versionLabel}</div>
-                    <div class="text-xs text-slate-500 dark:text-slate-400">開発者: ${info.author} ${info.existing ? '(インストール済み)' : ''}</div>
+                <input type="checkbox" value="${value}" ${info.existing ? 'disabled' : 'checked'} class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0">
+                <div class="flex-grow info-area">
+                    <div class="font-bold text-lg text-slate-900 dark:text-white flex items-center">${info.name}${versionLabel}</div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">開発者: ${info.author} ${info.existing ? '(インストール済み)' : ''}</div>
                 </div>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-slate-300 detail-icon"></i>
             `;
-            this.bulkInstallList.appendChild(item);
+
+            const detailView = document.createElement('div');
+            detailView.className = 'hidden p-4 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-sm overflow-hidden';
+            detailView.innerHTML = '<div class="animate-pulse flex flex-col gap-2"><div class="h-3 bg-slate-200 dark:bg-slate-800 rounded w-full"></div><div class="h-3 bg-slate-200 dark:bg-slate-800 rounded w-5/6"></div></div>';
+
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            const infoArea = item.querySelector('.info-area');
+            const detailIcon = item.querySelector('.detail-icon');
+
+            const toggleDetail = async (e) => {
+                // チェックボックス自体のクリックなら無視（デフォルト挙動に任せる）
+                if (e.target === checkbox) return;
+
+                const isHidden = detailView.classList.contains('hidden');
+
+                // 他のプラグインの詳細を閉じる
+                this.bulkInstallList.querySelectorAll('.detail-view').forEach(el => {
+                    if (el !== detailView) el.classList.add('hidden');
+                });
+                this.bulkInstallList.querySelectorAll('.detail-icon').forEach(el => {
+                    if (el !== detailIcon) el.style.transform = 'rotate(0deg)';
+                });
+
+                if (isHidden) {
+                    detailView.classList.remove('hidden');
+                    detailView.classList.add('detail-view');
+                    detailIcon.style.transform = 'rotate(180deg)';
+                    detailIcon.style.transition = 'transform 0.2s';
+
+                    // READMEの読み込み
+                    try {
+                        const readme = await this.pluginManager.getREADME(info.repoUrl);
+                        detailView.innerHTML = `<div class="prose dark:prose-invert max-w-none 
+                            prose-h1:text-2xl prose-h1:font-bold prose-h1:mb-4 prose-h1:text-slate-900 dark:prose-h1:text-white
+                            prose-h2:text-xl prose-h2:font-bold prose-h2:mt-6 prose-h2:mb-3 prose-h2:text-slate-800 dark:prose-h2:text-slate-100
+                            prose-h3:text-lg prose-h3:font-bold prose-h3:mt-4 prose-h3:mb-2
+                            prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-p:leading-relaxed">${this.renderMarkdown(readme)}</div>`;
+                    } catch (err) {
+                        detailView.innerHTML = `<p class="text-xs text-red-500">READMEの取得に失敗しました: ${err.message}</p>`;
+                    }
+                } else {
+                    detailView.classList.add('hidden');
+                    detailIcon.style.transform = 'rotate(0deg)';
+                }
+            };
+
+            item.addEventListener('click', toggleDetail);
+
+            container.appendChild(item);
+            container.appendChild(detailView);
+            this.bulkInstallList.appendChild(container);
         });
         lucide.createIcons();
     }
-
 
     async open() {
         if (this.shouldShowMobileWarning()) {
@@ -533,7 +603,7 @@ export class PluginUI {
             
             <div class="prose dark:prose-invert max-w-none border-t border-slate-100 dark:border-slate-800 pt-6">
                 <div class="bg-slate-50 dark:bg-slate-950/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 font-sans text-sm leading-relaxed">
-                    <div class="readme-content">${this.renderMarkdown(readme)}</div>
+                    <div class="readme-content prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-h1:font-bold prose-h2:font-bold">${this.renderMarkdown(readme)}</div>
                 </div>
             </div>
         `;

@@ -4,6 +4,27 @@
  */
 
 export class PluginManager {
+    /**
+     * リトライ機能付きのfetch
+     */
+    async fetchWithRetry(url, options = {}, retries = 3, backoff = 500) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (response.ok) return response;
+                // レート制限やサーバーエラー時はしばらく待ってリトライ
+                if (response.status === 403 || response.status >= 500) {
+                    await new Promise(r => setTimeout(r, backoff * (i + 1)));
+                    continue;
+                }
+                return response;
+            } catch (err) {
+                if (i === retries - 1) throw err;
+                await new Promise(r => setTimeout(r, backoff * (i + 1)));
+            }
+        }
+    }
+
     constructor(workspace) {
         this.workspace = workspace;
         this.plugins = new Map();
@@ -99,7 +120,7 @@ export class PluginManager {
 
         // 公認プラグインリストの取得
         try {
-            const response = await fetch('https://raw.githubusercontent.com/EDBPlugin/EDBP-API/main/plugins.json');
+            const response = await this.fetchWithRetry('https://raw.githubusercontent.com/EDBPlugin/EDBP-API/main/plugins.json');
             if (response.ok) {
                 this.certifiedPlugins = await response.json();
             }
@@ -107,9 +128,10 @@ export class PluginManager {
             console.warn('Failed to fetch certified plugins list', e);
         }
 
-        for (const pluginId of this.enabledPlugins) {
-            await this.enablePlugin(pluginId);
-        }
+        const enablePromises = Array.from(this.enabledPlugins).map(pluginId =>
+            this.enablePlugin(pluginId).catch(err => console.error(`Failed to enable ${pluginId} during init`, err))
+        );
+        await Promise.all(enablePromises);
     }
 
 
@@ -124,7 +146,7 @@ export class PluginManager {
             }
 
             const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc`;
-            const response = await fetch(url);
+            const response = await this.fetchWithRetry(url);
 
             if (!response.ok) {
                 if (response.status === 403) throw new Error('GitHub API Rate Limit Exceeded');
@@ -257,7 +279,7 @@ export class PluginManager {
         for (const path of uniquePaths) {
             try {
                 const url = `https://raw.githubusercontent.com/${fullName}/${branch}/${path}`;
-                const response = await fetch(url);
+                const response = await this.fetchWithRetry(url, {}, 2, 300);
                 if (response.ok) return await response.text();
             } catch (e) { }
         }
@@ -296,6 +318,10 @@ export class PluginManager {
                 const releaseAssetMatch = normalizedUrl.match(/\/releases\/download\/([^\/]+)\//);
                 if (releaseAssetMatch) return decodeURIComponent(releaseAssetMatch[1]);
 
+                // リポジトリURL自体が渡された場合は、そのブランチを抽出
+                const repoInfo = this.parseGitHubUrl(value);
+                if (repoInfo && repoInfo.branch) return repoInfo.branch;
+
                 return null;
             };
 
@@ -312,14 +338,19 @@ export class PluginManager {
 
             const fetchRepoFile = async (filePath) => {
                 const apiUrl = `https://api.github.com/repos/${fullName}/contents/${filePath}?ref=${encodeURIComponent(ref)}`;
-                const response = await fetch(apiUrl, {
-                    headers: { Accept: 'application/vnd.github+json' }
-                });
-                if (!response.ok) return null;
+                try {
+                    const response = await this.fetchWithRetry(apiUrl, {
+                        headers: { Accept: 'application/vnd.github+json' }
+                    });
+                    if (!response.ok) return null;
 
-                const data = await response.json();
-                if (!data || data.type !== 'file' || !data.content) return null;
-                return decodeBase64Utf8(data.content);
+                    const data = await response.json();
+                    if (!data || data.type !== 'file' || !data.content) return null;
+                    return decodeBase64Utf8(data.content);
+                } catch (e) {
+                    console.warn(`Failed to fetch file ${filePath} from GitHub`, e);
+                    return null;
+                }
             };
 
             const manifestText = await fetchRepoFile('manifest.json');
@@ -512,12 +543,37 @@ export class PluginManager {
         for (const id of this.enabledPlugins) {
             if (this.isPluginSharable(id)) {
                 const meta = this.installedPlugins[id];
-                if (meta && meta.affectsBlocks) {
+                if (meta) {
                     uuids.push(meta.uuid);
                 }
             }
         }
         return uuids;
+    }
+
+    // 共有された際に、レシピエント側でインストールを促すための情報を取得
+    getSharablePluginsInfo() {
+        const infos = [];
+        for (const id of this.enabledPlugins) {
+            if (this.isPluginSharable(id)) {
+                const meta = this.installedPlugins[id];
+                if (meta.repo) {
+                    infos.push(meta.repo);
+                }
+            }
+        }
+        return infos;
+    }
+
+    // 未インストールの共有プラグインがある場合に呼び出すコールバックを登録
+    onPluginsSuggested(callback) {
+        this.suggestCallback = callback;
+    }
+
+    suggestPlugins(pluginEntries) {
+        if (typeof this.suggestCallback === 'function' && pluginEntries && pluginEntries.length > 0) {
+            this.suggestCallback(pluginEntries);
+        }
     }
 
     hasNonSharablePlugin() {
