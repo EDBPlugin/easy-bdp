@@ -8,6 +8,27 @@
     <meta name="theme-color" content="#f6f4ef">
     <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
     <title id="page-title">Easy Discord Bot Builder</title>
+    <script>
+        // Guard against double Shadow DOM attachment (common in some libraries/proxies)
+        (function () {
+            const org = Element.prototype.attachShadow;
+            if (org && !org._guarded) {
+                Element.prototype.attachShadow = function (opts) {
+                    try {
+                        return org.call(this, opts);
+                    } catch (e) {
+                        if (e.name === 'NotSupportedError' &&
+                            (e.message.includes('already hosts') || this.shadowRoot)) {
+                            console.warn('Prevented redundant attachShadow call on:', this);
+                            return this.shadowRoot;
+                        }
+                        throw e;
+                    }
+                };
+                Element.prototype.attachShadow._guarded = true;
+            }
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
