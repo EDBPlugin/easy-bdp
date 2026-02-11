@@ -242,12 +242,17 @@ class ShareThumbnailManager {
     const blocks = this.workspace.getAllBlocks(false);
     if (!blocks.length) throw new Error('NO_BLOCKS_FOUND');
 
+    // キャプチャ用にクローンを作成
     const clonedCanvas = canvasSvg.cloneNode(true);
-    ['width', 'height', 'transform'].forEach((attr) => clonedCanvas.removeAttribute(attr));
+    ['width', 'height', 'transform'].forEach((attr) => {
+      if (clonedCanvas.removeAttribute) clonedCanvas.removeAttribute(attr);
+    });
 
-    const cssPayload = (window.Blockly?.Css?.CONTENT || []).join('') + BLOCKLY_CAPTURE_EXTRA_CSS;
-    clonedCanvas.insertAdjacentHTML('afterbegin', `<style>${cssPayload}</style>`);
+    // スタイル情報の取得
+    const content = window.Blockly?.Css?.CONTENT;
+    const cssPayload = (Array.isArray(content) ? content.join('') : (content || '')) + (BLOCKLY_CAPTURE_EXTRA_CSS || '');
 
+    // 境界ボックスの取得
     const bbox = canvasSvg.getBBox();
     const padding = SHARE_THUMBNAIL_PADDING;
     const minDimension = SHARE_THUMBNAIL_MIN_DIMENSION;
@@ -256,47 +261,69 @@ class ShareThumbnailManager {
     const viewX = bbox.x - padding;
     const viewY = bbox.y - padding;
 
+    // SVG文字列の構築
     const xml = new XMLSerializer().serializeToString(clonedCanvas);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${viewWidth}" height="${viewHeight}" viewBox="${viewX} ${viewY} ${viewWidth} ${viewHeight}">${xml}</svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${viewWidth}" height="${viewHeight}" viewBox="${viewX} ${viewY} ${viewWidth} ${viewHeight}">
+<style>${cssPayload}</style>
+${xml}
+</svg>`;
 
-    const svgDataUrl = this.toBase64Svg(svg);
     const scaleFactor = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
 
     return await new Promise((resolve, reject) => {
       const img = new Image();
+      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
       img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.ceil(viewWidth * scaleFactor);
-        canvas.height = Math.ceil(viewHeight * scaleFactor);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('CANVAS_CONTEXT_NOT_AVAILABLE'));
-        ctx.scale(scaleFactor, scaleFactor);
-        ctx.drawImage(img, 0, 0);
         try {
-          const watermarkImage = await this.loadWatermarkImage();
-          if (watermarkImage) {
-            const paddingPx = Math.max(12, Math.min(48, Math.round(Math.min(viewWidth, viewHeight) * 0.06)));
-            const maxWidth = Math.max(80, Math.min(220, viewWidth * 0.25));
-            const naturalRatio =
-              watermarkImage.naturalWidth && watermarkImage.naturalHeight
-                ? watermarkImage.naturalWidth / watermarkImage.naturalHeight
-                : 1;
-            const targetWidth = Math.max(
-              80,
-              Math.min(maxWidth, watermarkImage.naturalWidth || maxWidth),
-            );
-            const targetHeight = Math.round(targetWidth / naturalRatio);
-            const targetX = paddingPx;
-            const targetY = viewHeight - targetHeight - paddingPx;
-            ctx.drawImage(watermarkImage, targetX, targetY, targetWidth, targetHeight);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.ceil(viewWidth * scaleFactor);
+          canvas.height = Math.ceil(viewHeight * scaleFactor);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            URL.revokeObjectURL(url);
+            return reject(new Error('CANVAS_CONTEXT_NOT_AVAILABLE'));
           }
-        } catch (error) {
-          console.warn('Failed to load watermark', error);
+
+          // 背景を白（または透明）で塗りつぶし
+          // 透明なままでも良いが、SNS共有を考慮すると背景があったほうが良い場合がある
+          // ここでは透明なまま進め、必要に応じて背景色を追加できる
+
+          ctx.scale(scaleFactor, scaleFactor);
+          ctx.drawImage(img, 0, 0);
+
+          try {
+            const watermarkImage = await this.loadWatermarkImage();
+            if (watermarkImage) {
+              const paddingPx = Math.max(12, Math.min(48, Math.round(Math.min(viewWidth, viewHeight) * 0.06)));
+              const maxWidth = Math.max(80, Math.min(220, viewWidth * 0.25));
+              const naturalRatio = watermarkImage.naturalWidth && watermarkImage.naturalHeight ?
+                watermarkImage.naturalWidth / watermarkImage.naturalHeight : 1;
+              const targetWidth = Math.max(80, Math.min(maxWidth, watermarkImage.naturalWidth || maxWidth));
+              const targetHeight = Math.round(targetWidth / naturalRatio);
+              const targetX = paddingPx;
+              const targetY = viewHeight - targetHeight - paddingPx;
+              ctx.drawImage(watermarkImage, targetX, targetY, targetWidth, targetHeight);
+            }
+          } catch (e) {
+            console.warn('Watermark load failed', e);
+          }
+
+          const result = canvas.toDataURL('image/png');
+          URL.revokeObjectURL(url);
+          resolve(result);
+        } catch (err) {
+          URL.revokeObjectURL(url);
+          reject(err);
         }
-        resolve(canvas.toDataURL('image/png'));
       };
-      img.onerror = reject;
-      img.src = svgDataUrl;
+
+      img.onerror = (err) => {
+        URL.revokeObjectURL(url);
+        reject(err);
+      };
+      img.src = url;
     });
   }
 
@@ -584,7 +611,15 @@ class ShareModalController {
   toggle(isOpen, url = '') {
     if (!this.modalEl || !this.modalInput) return;
     this.modalEl.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+
     if (isOpen) {
+      if (typeof Blockly !== 'undefined') Blockly.hideChaff();
+
+      if (this.closeTimer) {
+        clearTimeout(this.closeTimer);
+        this.closeTimer = null;
+      }
+
       this.modalInput.value = url;
       this.modalEl.classList.remove('hidden');
       this.modalEl.classList.add('flex');
@@ -597,9 +632,12 @@ class ShareModalController {
       }, 0);
     } else {
       this.modalEl.classList.remove('show-modal');
-      setTimeout(() => {
+      if (this.closeTimer) clearTimeout(this.closeTimer);
+
+      this.closeTimer = setTimeout(() => {
         this.modalEl?.classList.remove('flex');
         this.modalEl?.classList.add('hidden');
+        this.closeTimer = null;
       }, 300);
       this.modalInput.value = '';
       this.thumbnailManager?.handleModalClosed();
@@ -618,12 +656,6 @@ class ShareModalController {
 
   // Shareボタン押下時の処理フロー
   async handleShareButtonClick() {
-    // 共有不可能なプラグインが有効な場合は共有を制限
-    if (this.pluginManager?.hasNonSharablePlugin()) {
-      this.statusNotifier?.show('共有できないプラグイン（ローカルZIPなど）が有効なため、共有機能を利用できません。', 'error');
-      return;
-    }
-
     if (!this.shareBtn || this.shareBtn.disabled) return;
 
     this.shareBtn.disabled = true;
@@ -631,6 +663,12 @@ class ShareModalController {
     try {
       const { encoded, url } = this.exportSharePayload();
       this.toggle(true, url);
+
+      // 127.0.0.1 (ローカル開発環境) の場合は短縮URLの生成をスキップ
+      if (window.location.hostname === '127.0.0.1') {
+        return;
+      }
+
       try {
         const shortUrl = await this.createShortShareUrl(encoded);
         if (shortUrl && this.isModalOpen() && this.modalInput) {
@@ -882,7 +920,7 @@ class ShareImportModalController {
       this.confirmBtn.setAttribute('aria-busy', 'true');
     }
     try {
-      this.tryImportEncodedPayload(this.pendingShareEncoded);
+      await this.tryImportEncodedPayload(this.pendingShareEncoded);
       this.statusNotifier?.show('共有ブロックの編集を開始します。(Tips: ブラウザバックで元のブロックを復元できます)', 'success');
       await this.finalize(true);
     } catch (error) {
@@ -905,14 +943,14 @@ class ShareImportModalController {
   }
 
   // URLクエリに含まれる共有データを適用
-  applySharedLayoutFromQuery() {
+  async applySharedLayoutFromQuery() {
     const params = new URLSearchParams(window.location.search);
     const encoded = params.get(SHARE_QUERY_KEY);
     if (!encoded) return false;
 
     this.pendingShareEncoded = encoded;
     try {
-      this.tryImportEncodedPayload(encoded);
+      await this.tryImportEncodedPayload(encoded);
       this.historyManager?.registerShareView(encoded); // 閲覧ビューのURLを履歴に固定
       this.viewStateController?.setMode(true);
       this.statusNotifier?.show('共有ブロックを閲覧専用で開いています', 'info');
@@ -936,8 +974,9 @@ class ShareImportModalController {
   }
 
   // storageへ共有データを書き戻す (失敗時は例外)
-  tryImportEncodedPayload(encoded) {
-    if (!this.storage || !this.storage.importMinified(encoded)) {
+  async tryImportEncodedPayload(encoded) {
+    const success = await this.storage?.importMinified(encoded);
+    if (!success) {
       throw new Error('LOAD_FAILED');
     }
   }
@@ -981,16 +1020,9 @@ class ShareFeature {
     const shareBtn = document.getElementById('shareBtn');
     if (!shareBtn) return;
 
-    const pm = this.storage?.pluginManager || this.shareModalController?.pluginManager;
-
-    if (pm?.hasNonSharablePlugin()) {
-      // 自作ブロックがある場合はボタンを完全に非表示にする
-      shareBtn.classList.add('hidden');
-    } else {
-      shareBtn.classList.remove('hidden');
-      shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-      shareBtn.title = '';
-    }
+    shareBtn.classList.remove('hidden');
+    shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    shareBtn.title = '';
   }
 
   // 共有URLを組み立て
@@ -1015,8 +1047,8 @@ class ShareFeature {
   }
 
   // 共有クエリを強制適用させる
-  applySharedLayoutFromQuery() {
-    return this.shareImportModalController.applySharedLayoutFromQuery();
+  async applySharedLayoutFromQuery() {
+    return await this.shareImportModalController.applySharedLayoutFromQuery();
   }
 
   // 閲覧モードの真偽を返す
@@ -1032,7 +1064,7 @@ class ShareFeature {
   // 外部へ公開するAPIを取得
   getPublicApi() {
     return {
-      applySharedLayoutFromQuery: () => this.applySharedLayoutFromQuery(),
+      applySharedLayoutFromQuery: async () => await this.applySharedLayoutFromQuery(),
       isShareViewMode: () => this.isShareViewMode(),
       onShareViewModeChange: (listener) => this.onShareViewModeChange(listener),
       applyUiState: () => this.viewStateController.applyUiState(),

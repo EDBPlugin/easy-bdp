@@ -47,6 +47,15 @@ Blockly.Blocks['get_message_content'] = {
     this.setColour(30);
   },
 };
+Blockly.Blocks['message_contains_text'] = {
+  init: function () {
+    this.appendValueInput('WORD').setCheck('String').appendField('メッセージの内容に');
+    this.appendDummyInput().appendField('を含む');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');
+    this.setColour(30);
+  },
+};
 Blockly.Blocks['on_command_executed'] = {
   init: function () {
     this.appendDummyInput()
@@ -295,31 +304,161 @@ Blockly.Blocks['json_save'] = {
     this.setColour(30);
   },
 };
-Blockly.Blocks['dict_create'] = {
+Blockly.Blocks['dict_add'] = {
   init: function () {
-    this.appendDummyInput().appendField('📦 空の辞書(データ)を作成');
-    this.setOutput(true, null);
-    this.setColour(30);
-  },
-};
-Blockly.Blocks['dict_get'] = {
-  init: function () {
-    this.appendValueInput('DICT').setCheck(null).appendField('辞書');
-    this.appendValueInput('KEY').setCheck('String').appendField('からキー');
-    this.appendDummyInput().appendField('の値を取得');
-    this.setOutput(true, null);
-    this.setColour(30);
-  },
-};
-Blockly.Blocks['dict_set'] = {
-  init: function () {
-    this.appendValueInput('DICT').setCheck(null).appendField('辞書');
-    this.appendValueInput('KEY').setCheck('String').appendField('のキー');
-    this.appendValueInput('VALUE').setCheck(null).appendField('に値');
-    this.appendDummyInput().appendField('を設定');
+    this.appendValueInput('DICT').setCheck(null).appendField('🧩 JSONに');
+    this.appendValueInput('KEY').setCheck('String').appendField('キー');
+    this.appendValueInput('VALUE').setCheck(null).appendField('値を追加');
+    this.appendDummyInput().appendField('(同じキーは上書き)');
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(30);
+    this.setTooltip('JSONオブジェクトにキーと値を追加します。');
+  },
+};
+Blockly.Blocks['dict_delete'] = {
+  init: function () {
+    this.appendValueInput('DICT').setCheck(null).appendField('🗑️ JSONから');
+    this.appendValueInput('KEY').setCheck('String').appendField('キーを削除');
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(30);
+    this.setTooltip('JSONオブジェクトから指定したキーを削除します。');
+  },
+};
+Blockly.Blocks['dict_has_key'] = {
+  init: function () {
+    this.appendValueInput('DICT').setCheck(null).appendField('❓ JSONに');
+    this.appendValueInput('KEY').setCheck('String').appendField('キーがある');
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');
+    this.setColour(30);
+    this.setTooltip('指定したキーが存在すれば true を返します。');
+  },
+};
+Blockly.Blocks['dict_keys'] = {
+  init: function () {
+    this.appendValueInput('DICT').setCheck(null).appendField('📋 JSONのキー一覧');
+    this.setOutput(true, 'Array');
+    this.setColour(30);
+    this.setTooltip('JSONオブジェクトのキー一覧をリストで返します。');
+  },
+};
+const JSON_DATASET_EMPTY_ID = '__edbb_json_dataset_empty__';
+const getJsonDataStore = () => (typeof Blockly !== 'undefined' ? Blockly.edbbJsonDataStore : null);
+const getJsonDatasetOptions = () => {
+  const store = getJsonDataStore();
+  const names = store?.getDatasetNames?.() || [];
+  if (!names.length) {
+    return [['データセット未作成', JSON_DATASET_EMPTY_ID]];
+  }
+  return names.map((name) => [name, name]);
+};
+const toDatasetJsonFileName = (datasetName) => {
+  const base = String(datasetName ?? '').trim();
+  const safe = (base || 'dataset').replace(/[\\/:*?"<>|]/g, '_');
+  return `${safe}.json`;
+};
+const getJsonRuntimeStoreCode = (datasetName, fallbackLiteral = '{}') => {
+  const safeName = JSON.stringify(String(datasetName ?? ''));
+  const filename = JSON.stringify(toDatasetJsonFileName(datasetName));
+  return `((lambda _cache, _files: _cache.setdefault(${safeName}, (_load_json_data(_files.setdefault(${safeName}, ${filename})) if os.path.exists(_files.setdefault(${safeName}, ${filename})) else ${fallbackLiteral})))(globals().setdefault('_edbb_json_dataset_cache', {}), globals().setdefault('_edbb_json_dataset_files', {})))`;
+};
+const buildJsonDatasetAccessCode = (datasetName, fallbackLiteral = '{}') => {
+  return getJsonRuntimeStoreCode(datasetName, fallbackLiteral);
+};
+const buildJsonRuntimeSaveCode = () =>
+  `_save_json_dataset_cache()\n`;
+const isJsonRuntimeDatasetCode = (code) =>
+  typeof code === 'string' && code.includes('_edbb_json_dataset_cache');
+class FieldJsonDatasetDropdown extends Blockly.FieldDropdown {
+  constructor() {
+    super(function () {
+      return getJsonDatasetOptions();
+    });
+  }
+
+  init() {
+    super.init();
+    this.ensureValidValue_();
+  }
+
+  ensureValidValue_() {
+    const options = getJsonDatasetOptions();
+    const values = options.map((option) => option[1]);
+    const current = this.getValue();
+    if (!current || !values.includes(current)) {
+      this.setValue(values[0]);
+    }
+  }
+
+  getText() {
+    const options = getJsonDatasetOptions();
+    const current = this.getValue();
+    const match = options.find((option) => option[1] === current);
+    return match ? match[0] : 'データセット未作成';
+  }
+}
+Blockly.Blocks['json_dataset_get'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('📦 JSONデータセット')
+      .appendField(new FieldJsonDatasetDropdown(), 'DATASET');
+    this.setOutput(true, null);
+    this.setColour(30);
+    this.setTooltip('選択したJSONデータセット全体を取り出します。');
+  },
+};
+Blockly.Blocks['json_dataset_get_value'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('🔎 JSONデータセット')
+      .appendField(new FieldJsonDatasetDropdown(), 'DATASET');
+    this.appendValueInput('KEY').setCheck('String').appendField('のキー');
+    this.setInputsInline(true);
+    this.setOutput(true, null);
+    this.setColour(30);
+    this.setTooltip('指定したキーの値を取り出します。キーが無い場合は None です。');
+  },
+};
+Blockly.Blocks['json_dataset_set_value'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('🧩 JSONデータセット')
+      .appendField(new FieldJsonDatasetDropdown(), 'DATASET');
+    this.appendValueInput('KEY').setCheck('String').appendField('のキー');
+    this.appendValueInput('VALUE').setCheck(null).appendField('を');
+    this.appendDummyInput().appendField('に設定して保存');
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(30);
+    this.setTooltip('JSONデータセットにキーと値を保存し、ファイルに永続化します。');
+  },
+};
+Blockly.Blocks['json_dataset_delete_key'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField('🗑️ JSONデータセット')
+      .appendField(new FieldJsonDatasetDropdown(), 'DATASET');
+    this.appendValueInput('KEY').setCheck('String').appendField('のキー');
+    this.appendDummyInput().appendField('を削除して保存');
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(30);
+    this.setTooltip('JSONデータセットからキーを削除し、ファイルに永続化します。');
+  },
+};
+Blockly.Blocks['json_dataset_save_now'] = {
+  init: function () {
+    this.appendDummyInput().appendField('💾 JSONデータセットを今すぐ保存');
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(30);
+    this.setTooltip('現在のJSONデータセットをファイルに保存します。');
   },
 };
 Blockly.Blocks['join_voice_channel'] = {
@@ -703,6 +842,10 @@ Blockly.Blocks['get_input_value'] = {
 };
 
 // Code Generators (Include previous ones)
+if (Blockly?.Python) {
+  Blockly.Python.INDENT = '    ';
+}
+
 const getBranchCode = (block, name) => {
   let code = Blockly.Python.statementToCode(block, name);
   if (!code || code.trim() === '') return Blockly.Python.INDENT + 'pass\n';
@@ -732,6 +875,13 @@ Blockly.Python.forBlock['on_member_remove'] = function (block) {
 Blockly.Python.forBlock['get_message_content'] = function (block) {
   return [
     '(ctx.content if "ctx" in locals() and hasattr(ctx, "content") else "")',
+    Blockly.Python.ORDER_ATOMIC,
+  ];
+};
+Blockly.Python.forBlock['message_contains_text'] = function (block) {
+  const word = Blockly.Python.valueToCode(block, 'WORD', Blockly.Python.ORDER_NONE) || '""';
+  return [
+    `(str(${word}).lower() in str(ctx.content).lower() if "ctx" in locals() and hasattr(ctx, "content") else False)`,
     Blockly.Python.ORDER_ATOMIC,
   ];
 };
@@ -870,22 +1020,88 @@ Blockly.Python.forBlock['json_save'] = function(block) {
     const value = Blockly.Python.valueToCode(block, 'DATA', Blockly.Python.ORDER_NONE) || 'None';
     return `_save_json_data(${key}, ${value})\n`;
 };
-Blockly.Python.forBlock['dict_create'] = function (block) {
-  return ['{}', Blockly.Python.ORDER_ATOMIC];
-};
-Blockly.Python.forBlock['dict_get'] = function (block) {
-  const dictCode = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_NONE) || '{}';
-  const keyCode = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
-  const code = `(${dictCode}.get(${keyCode}, None))`;
-  return [code, Blockly.Python.ORDER_ATOMIC];
-};
-Blockly.Python.forBlock['dict_set'] = function (block) {
-  const dictCode = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_NONE) || '{}';
+Blockly.Python.forBlock['dict_add'] = function (block) {
+  const dictCode = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || '{}';
   const keyCode = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
   const valueCode = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || 'None';
-  return `${dictCode}.update({${keyCode}: ${valueCode}})\n`;
+  let code = `${dictCode}[${keyCode}] = ${valueCode}\n`;
+  if (isJsonRuntimeDatasetCode(dictCode)) {
+    code += buildJsonRuntimeSaveCode();
+  }
+  return code;
+};
+Blockly.Python.forBlock['dict_delete'] = function (block) {
+  const dictCode = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || '{}';
+  const keyCode = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
+  let code = `if ${keyCode} in ${dictCode}:\n    del ${dictCode}[${keyCode}]\n`;
+  if (isJsonRuntimeDatasetCode(dictCode)) {
+    code += buildJsonRuntimeSaveCode();
+  }
+  return code;
+};
+Blockly.Python.forBlock['dict_has_key'] = function (block) {
+  const dictCode = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || '{}';
+  const keyCode = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
+  return [`(${keyCode} in ${dictCode})`, Blockly.Python.ORDER_RELATIONAL];
+};
+Blockly.Python.forBlock['dict_keys'] = function (block) {
+  const dictCode = Blockly.Python.valueToCode(block, 'DICT', Blockly.Python.ORDER_MEMBER) || '{}';
+  return [`list(${dictCode}.keys())`, Blockly.Python.ORDER_FUNCTION_CALL];
 };
 // チャンネル・ボイス
+const getJsonDatasetLiteral = (datasetName) => {
+  const store = getJsonDataStore();
+  if (!store || !datasetName || datasetName === JSON_DATASET_EMPTY_ID) {
+    return '{}';
+  }
+  const literal = store.toPythonLiteral?.(datasetName);
+  if (typeof literal === 'string' && literal.trim()) {
+    return literal;
+  }
+  return '{}';
+};
+Blockly.Python.forBlock['json_dataset_get'] = function (block) {
+  const datasetName = block.getFieldValue('DATASET');
+  const literal = getJsonDatasetLiteral(datasetName);
+  return [buildJsonDatasetAccessCode(datasetName, literal), Blockly.Python.ORDER_ATOMIC];
+};
+Blockly.Python.forBlock['json_dataset_get_value'] = function (block) {
+  const datasetName = block.getFieldValue('DATASET');
+  const keyCode = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
+  const literal = getJsonDatasetLiteral(datasetName);
+  const datasetCode = buildJsonDatasetAccessCode(datasetName, literal);
+  return [`(${datasetCode}.get(${keyCode}, None))`, Blockly.Python.ORDER_ATOMIC];
+};
+Blockly.Python.forBlock['json_dataset_set_value'] = function (block) {
+  const datasetName = block.getFieldValue('DATASET');
+  const keyCode = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
+  const valueCode = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || 'None';
+  const literal = getJsonDatasetLiteral(datasetName);
+  const datasetCode = buildJsonDatasetAccessCode(datasetName, literal);
+  const datasetVar = Blockly.Python.nameDB_
+    ? Blockly.Python.nameDB_.getDistinctName('__edbb_dataset', Blockly.Names.VARIABLE_NAME)
+    : '__edbb_dataset';
+  let code = `${datasetVar} = ${datasetCode}\n`;
+  code += `${datasetVar}[${keyCode}] = ${valueCode}\n`;
+  code += buildJsonRuntimeSaveCode();
+  return code;
+};
+Blockly.Python.forBlock['json_dataset_delete_key'] = function (block) {
+  const datasetName = block.getFieldValue('DATASET');
+  const keyCode = Blockly.Python.valueToCode(block, 'KEY', Blockly.Python.ORDER_NONE) || '""';
+  const literal = getJsonDatasetLiteral(datasetName);
+  const datasetCode = buildJsonDatasetAccessCode(datasetName, literal);
+  const datasetVar = Blockly.Python.nameDB_
+    ? Blockly.Python.nameDB_.getDistinctName('__edbb_dataset', Blockly.Names.VARIABLE_NAME)
+    : '__edbb_dataset';
+  let code = `${datasetVar} = ${datasetCode}\n`;
+  code += `if ${keyCode} in ${datasetVar}:\n    del ${datasetVar}[${keyCode}]\n`;
+  code += buildJsonRuntimeSaveCode();
+  return code;
+};
+Blockly.Python.forBlock['json_dataset_save_now'] = function () {
+  return buildJsonRuntimeSaveCode();
+};
 Blockly.Python.forBlock['join_voice_channel'] = function (block) {
   return `\nif 'user' in locals() and user.voice:\n    await user.voice.channel.connect()\n`;
 };

@@ -294,12 +294,14 @@ html.is-mobile .blocklyFlyout {
 .modal-backdrop {
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-backdrop.show-modal {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .modal-content {
@@ -626,6 +628,32 @@ html.is-mobile #listPanel {
   right: 12px;
   width: auto;
   max-height: 45%;
+}
+
+.json-gui__cell-input,
+.json-gui__cell-select {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  border-radius: 8px;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.json-gui__cell-input:focus,
+.json-gui__cell-select:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25);
+}
+
+.dark .json-gui__cell-input,
+.dark .json-gui__cell-select {
+  border-color: rgba(51, 65, 85, 0.85);
+  background: rgba(2, 6, 23, 0.8);
+  color: #e2e8f0;
 }
 
 /* Modern UI Overrides */

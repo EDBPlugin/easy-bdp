@@ -12,13 +12,14 @@ class WorkspaceShareCodec {
       // 生のBlocklyデータからIDを間引いたうえでJSON→LZ圧縮する
       const raw = Blockly.serialization.workspaces.save(workspace);
       const stripped = WorkspaceShareCodec.#stripIds(raw);
-      
+
       // プラグイン情報の付与
       const payloadObj = {
-          workspace: stripped,
-          pluginUUIDs: workspace.pluginManager?.getPluginUUIDsForShare() || []
+        workspace: stripped,
+        pluginUUIDs: workspace.pluginManager?.getPluginUUIDsForShare() || [],
+        pluginInfo: workspace.pluginManager?.getSharablePluginsInfo() || []
       };
-      
+
       const payload = JSON.stringify(payloadObj);
       const compressed = lz.compressToEncodedURIComponent(payload);
       if (!compressed) throw new Error('圧縮に失敗しました。');
@@ -29,7 +30,7 @@ class WorkspaceShareCodec {
     }
   }
 
-  static decompress(encoded, workspace) {
+  static async decompress(encoded, workspace) {
     if (!workspace || !encoded) return false;
     const lz = typeof window !== 'undefined' ? window.LZString : undefined;
     if (!lz?.decompressFromEncodedURIComponent) {
@@ -39,37 +40,78 @@ class WorkspaceShareCodec {
     try {
       const text = lz.decompressFromEncodedURIComponent(encoded);
       if (!text) throw new Error('データを展開できませんでした。');
-      // 復号後はJSONを戻してそのままBlocklyへ読み込む
-      const payload = JSON.parse(text);
-      
-      // プラグイン情報が含まれている場合は適用
-      if (payload.workspace && (payload.pluginUUIDs || payload.plugins)) {
-          Blockly.serialization.workspaces.load(payload.workspace, workspace);
-          
-          // プラグインの有効化
-          if (workspace.pluginManager) {
-              const uuids = payload.pluginUUIDs || [];
-              uuids.forEach(uuid => {
-                  const pluginId = workspace.pluginManager.getPluginIdByUUID(uuid);
-                  if (pluginId) {
-                      workspace.pluginManager.enablePlugin(pluginId);
-                  }
-              });
-              
-              // 互換性のため古い形式もサポート
-              const oldPlugins = payload.plugins || [];
-              oldPlugins.forEach(pluginId => {
-                  workspace.pluginManager.enablePlugin(pluginId);
-              });
-          }
-      } else {
-          // 互換性のため、古い形式（直接workspaceデータ）もサポート
-          Blockly.serialization.workspaces.load(payload, workspace);
+
+      // 基本的な構造チェック (JSONの断片として妥当か)
+      if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+        throw new Error('復号されたデータ形式が不正です。');
       }
-      
+
+      const payload = JSON.parse(text);
+
+      const isExtendedPayload = !!(payload && typeof payload === 'object' && payload.workspace);
+      const workspaceData = isExtendedPayload ? payload.workspace : payload;
+
+      // プラグイン情報の処理を先に行う (Blockly読込前に定義を揃えるため)
+      if (isExtendedPayload && workspace.pluginManager) {
+        const uuids = payload.pluginUUIDs || [];
+        const pluginInfo = payload.pluginInfo || [];
+        const missingPlugins = [];
+
+        // インストール済みチェック
+        if (pluginInfo.length > 0) {
+          pluginInfo.forEach(entry => {
+            // entry がリポジトリURLそのものになったため、正規化してチェック
+            const cleanUrl = entry.split('?')[0].replace(/\/$/, '').replace(/\.git$/, '');
+            const isInstalled = workspace.pluginManager.getRegistry().some(p => {
+              const pClean = p.repo?.split('?')[0].replace(/\/$/, '').replace(/\.git$/, '');
+              return pClean === cleanUrl;
+            });
+            if (!isInstalled) {
+              missingPlugins.push(entry);
+            }
+          });
+        }
+
+        // 有効化 (awaitして定義を確定させる)
+        for (const uuid of uuids) {
+          const pluginId = workspace.pluginManager.getPluginIdByUUID(uuid);
+          if (pluginId) {
+            try {
+              // タイムアウト付きで有効化を試みる
+              const enablePromise = workspace.pluginManager.enablePlugin(pluginId);
+              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 3000));
+              await Promise.race([enablePromise, timeoutPromise]);
+            } catch (e) {
+              console.warn(`Plugin activation failed or timed out: ${pluginId}`, e);
+            }
+          }
+        }
+
+        // 未インストールがあれば後で促す
+        if (missingPlugins.length > 0) {
+          // 確実にワークスペース読込が終わった後に表示させる
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              if (workspace.pluginManager.suggestPlugins) {
+                workspace.pluginManager.suggestPlugins(missingPlugins);
+              }
+            }, 1000);
+          });
+        }
+      }
+
+      // 最後にワークスペースを読み込む
+      try {
+        if (workspaceData) {
+          Blockly.serialization.workspaces.load(workspaceData, workspace);
+        }
+      } catch (loadError) {
+        console.warn('Blockly load encountered errors (possibly missing block definitions):', loadError);
+      }
+
       return true;
     } catch (error) {
-      console.error('圧縮ワークスペースの読み込みに失敗しました。', error);
+      console.error('圧縮ワークスペースの読込みに致命的な失敗が発生しました。', error);
       return false;
     }
   }
@@ -128,6 +170,21 @@ export default class WorkspaceStorage {
     return `EDBB-${safeTitle}-${timestamp}.json`;
   }
 
+  static normalizeDownloadName(rawName, fallbackName) {
+    const fallback =
+      typeof fallbackName === 'string' && fallbackName.trim()
+        ? fallbackName.trim()
+        : WorkspaceStorage.buildDownloadName(WorkspaceStorage.DEFAULT_TITLE);
+    if (!rawName || typeof rawName !== 'string') {
+      return fallback;
+    }
+    const cleaned = rawName.trim().replace(/[\\/:*?"<>|]/g, '');
+    if (!cleaned) {
+      return fallback;
+    }
+    return /\.json$/i.test(cleaned) ? cleaned : `${cleaned}.json`;
+  }
+
   #resolveTitle() {
     try {
       const provided = typeof this.#titleProvider === 'function' ? this.#titleProvider() : '';
@@ -136,6 +193,11 @@ export default class WorkspaceStorage {
       console.warn('Failed to resolve project title', error);
       return WorkspaceStorage.DEFAULT_TITLE;
     }
+  }
+
+  #resolveDownloadName(fileName) {
+    const fallback = WorkspaceStorage.buildDownloadName(this.#resolveTitle());
+    return WorkspaceStorage.normalizeDownloadName(fileName, fallback);
   }
 
   // XMLかどうかの大まかな判定
@@ -191,8 +253,8 @@ export default class WorkspaceStorage {
   }
 
   // 極小データを復元
-  importMinified(encoded) {
-    return WorkspaceShareCodec.decompress(encoded, this.#workspace);
+  async importMinified(encoded) {
+    return await WorkspaceShareCodec.decompress(encoded, this.#workspace);
   }
 
   // 現在のワークスペース状態をlocalStorageへ保存
@@ -223,20 +285,59 @@ export default class WorkspaceStorage {
   }
 
   // JSONファイルとしてダウンロード
-  exportFile() {
-    const json = this.exportText({ pretty: true });
-    if (!json) return;
+  exportFile({ pretty = true, fileName } = {}) {
+    const json = this.exportText({ pretty });
+    if (!json) return false;
     try {
-      const fileName = WorkspaceStorage.buildDownloadName(this.#resolveTitle());
-      const blob = new Blob([json], { type: 'application/json' });
+      const resolvedName = this.#resolveDownloadName(fileName);
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = resolvedName;
       a.click();
       URL.revokeObjectURL(url);
+      return true;
     } catch (error) {
       console.error('ワークスペースのエクスポートに失敗しました。', error);
+      return false;
+    }
+  }
+
+  getDefaultExportFileName() {
+    return this.#resolveDownloadName('');
+  }
+
+  async saveFileWithPicker({ pretty = true, fileName } = {}) {
+    if (typeof window === 'undefined' || typeof window.showSaveFilePicker !== 'function') {
+      return false;
+    }
+    const json = this.exportText({ pretty });
+    if (!json) return false;
+
+    const resolvedName = this.#resolveDownloadName(fileName);
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: resolvedName,
+        types: [
+          {
+            description: 'JSON Files',
+            accept: {
+              'application/json': ['.json'],
+            },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(new Blob([json], { type: 'application/json;charset=utf-8' }));
+      await writable.close();
+      return true;
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        return false;
+      }
+      console.error('ファイルピッカー経由の保存に失敗しました。', error);
+      return false;
     }
   }
 

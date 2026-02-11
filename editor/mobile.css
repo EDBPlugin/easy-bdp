@@ -19,3 +19,141 @@
 .blocklyMobileInput::-internal-autofill-selected {
   background: transparent;
 }
+
+/* --- Plugin Modal Mobile Optimization --- */
+html.is-mobile #pluginModal>div {
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+html.is-mobile #pluginModal .flex.flex-1 {
+  flex-direction: column !important;
+  position: relative;
+}
+
+html.is-mobile #pluginModal .w-80 {
+  width: 100% !important;
+  border-right: none !important;
+  flex: 1;
+  display: block;
+}
+
+html.is-mobile #pluginModal.detail-open .w-80 {
+  display: none !important;
+}
+
+html.is-mobile #pluginDetail {
+  padding: 1.5rem !important;
+  display: none;
+}
+
+html.is-mobile #pluginModal.detail-open #pluginDetail {
+  display: block !important;
+  width: 100%;
+  height: 100%;
+}
+
+html.is-mobile #pluginDetail>.flex.justify-between {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 1.5rem;
+}
+
+html.is-mobile #pluginDetail h1 {
+  font-size: 1.75rem !important;
+  flex-wrap: wrap;
+  gap: 0.5rem !important;
+}
+
+html.is-mobile #pluginDetail h1 span {
+  font-size: 0.75rem !important;
+  padding: 0.25rem 0.5rem !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center;
+}
+
+html.is-mobile #pluginDetail .flex.items-center.gap-2 {
+  width: 100%;
+  justify-content: stretch;
+  flex-wrap: wrap;
+  gap: 0.75rem !important;
+}
+
+html.is-mobile #sharePluginBtn,
+html.is-mobile #uninstallPluginBtn {
+  flex: 0 0 calc(50% - 0.375rem);
+  justify-content: center;
+  background: var(--surface-muted) !important;
+  border: 1px solid var(--stroke) !important;
+  padding: 0.75rem !important;
+}
+
+html.is-mobile #togglePluginBtn {
+  flex: 1 1 100% !important;
+  padding: 1rem !important;
+  font-size: 1rem !important;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+html.is-mobile #installFromGhBtn {
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%) !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+/* Modal Header Fixes */
+html.is-mobile #pluginModal .flex.items-center.justify-between.px-6.py-4 {
+  padding: 1rem !important;
+}
+
+html.is-mobile #pluginModal h2 {
+  font-size: 1.1rem !important;
+}
+
+html.is-mobile #pluginMobileBackBtn {
+  display: inline-flex;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Make detail content more readable on small screens */
+html.is-mobile .readme-content {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Header Cleanup */
+html.is-mobile #quickActions button {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+html.is-mobile #pluginBtn {
+  width: 100%;
+  justify-content: center;
+  margin-left: 0 !important;
+}
+
+html.is-mobile #shareBtn,
+html.is-mobile #showCodeBtn {
+  margin-left: 0 !important;
+}
+
+html.is-mobile #shareBtn span,
+html.is-mobile #showCodeBtn span,
+html.is-mobile #pluginBtn span {
+  display: inline !important;
+}
+
+/* Improve Detail View spacing */
+html.is-mobile #pluginDetailContent>div:first-child {
+  border-bottom: 1px solid rgba(var(--stroke), 0.1);
+  padding-bottom: 1rem;
+}

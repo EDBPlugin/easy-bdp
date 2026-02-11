@@ -2,13 +2,37 @@
 <html lang="ja" class="light">
 
 <head>
+    <script>
+        // Guard against double Shadow DOM attachment (common in some libraries/proxies)
+        (function () {
+            const org = Element.prototype.attachShadow;
+            if (org && !org._guarded) {
+                Element.prototype.attachShadow = function (opts) {
+                    try {
+                        return org.call(this, opts);
+                    } catch (e) {
+                        // Check for the specific error message even if shadowRoot is null (could be a closed shadow root)
+                        if (e.name === 'NotSupportedError' &&
+                            (e.message.includes('already hosts') || this.shadowRoot)) {
+                            console.warn('Prevented redundant attachShadow call on:', this);
+                            return this.shadowRoot; // Note: returns null if closed, but prevents the crash
+                        }
+                        throw e;
+                    }
+                };
+                Element.prototype.attachShadow._guarded = true;
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Easy Discord Bot Builder</title> <!-- nは更新したときに見やすくするものです -->
 
     <link rel="icon" type="image/svg+xml" href="../static/icon.svg">
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (JIT) - Note: Use the Tailwind CLI for production builds to avoid the browser console warning. -->
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -50,6 +74,7 @@
     <script src="https://unpkg.com/blockly@11.2.2/msg/ja.js"></script>
     <script src="https://unpkg.com/@blockly/field-multilineinput@4.0.4/dist/index.js"></script>
     <script src="./mobile.js"></script>
+    <script src="./plugin-mobile.js"></script>
     <link rel="stylesheet" href="./mobile.css">
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -162,6 +187,11 @@
                     title="Save JSON">
                     <i data-lucide="download" class="w-4.5 h-4.5"></i>
                 </button>
+                <button id="jsonGuiBtn"
+                    class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors rounded-md hover:bg-slate-50 dark:hover:bg-slate-800"
+                    title="JSON GUIを開く">
+                    <i data-lucide="table-2" class="w-4.5 h-4.5"></i>
+                </button>
 
                 <div class="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
                 <button id="themeToggle"
@@ -263,6 +293,7 @@
                 <block type="on_command_executed"></block>
                 <block type="prefix_command"></block>
                 <block type="get_message_content"></block>
+                <block type="message_contains_text"></block>
                 <block type="get_command_arg"></block>
             </category>
 
@@ -310,9 +341,15 @@
             <category name="データ保存 (JSON)" data-icon="💾" colour="#d35400">
                 <block type="json_load"></block>
                 <block type="json_save"></block>
-                <block type="dict_create"></block>
-                <block type="dict_get"></block>
-                <block type="dict_set"></block>
+                <block type="dict_add"></block>
+                <block type="dict_delete"></block>
+                <block type="dict_has_key"></block>
+                <block type="dict_keys"></block>
+                <block type="json_dataset_get"></block>
+                <block type="json_dataset_get_value"></block>
+                <block type="json_dataset_set_value"></block>
+                <block type="json_dataset_delete_key"></block>
+                <block type="json_dataset_save_now"></block>
             </category>
 
             <category name="チャンネル・ボイス" data-icon="🔊" colour="#00a8ff">
@@ -445,6 +482,18 @@
                     </ol>
                 </div>
 
+                <div id="codeGenErrorBox"
+                    class="hidden mb-6 p-4 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/20 text-rose-900 dark:text-rose-200">
+                    <h3 class="flex items-center gap-2 font-bold text-sm">
+                        <i data-lucide="triangle-alert" class="w-4 h-4"></i>
+                        静的構文解析エラー
+                    </h3>
+                    <p class="mt-2 text-xs font-medium text-rose-700 dark:text-rose-300">
+                        問題を修正してから、もう一度コード生成を実行してください。
+                    </p>
+                    <ul id="codeGenErrorList" class="mt-3 space-y-1 text-xs font-medium list-disc list-inside"></ul>
+                </div>
+
                 <div
                     class="relative group rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800">
                     <div
@@ -509,6 +558,171 @@
     </div>
 
     <!-- 共有ブロック読込モーダル -->
+    <!-- JSON Save Modal -->
+    <div id="saveJsonModal"
+        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        aria-hidden="true">
+        <div
+            class="flex flex-col w-full max-w-xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
+            <div
+                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        <i data-lucide="save" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">JSON保存</h2>
+                    </div>
+                </div>
+                <button id="saveJsonCloseBtn"
+                    class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex flex-col gap-4 p-6 bg-slate-50/60 dark:bg-slate-950/40 flex-grow overflow-y-auto">
+                <div
+                    class="rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-white dark:bg-slate-900 p-4 text-sm text-slate-600 dark:text-slate-300">
+                    プロジェクトの内容をJSONで保存します。ファイル名は変更できます。
+                </div>
+
+                <label for="saveJsonFilename" class="flex flex-col gap-2 text-sm">
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">ファイル名</span>
+                    <input id="saveJsonFilename" type="text"
+                        class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">`.json`の拡張子は自動で補完されます</span>
+                </label>
+
+                <label for="saveJsonPretty"
+                    class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                    <input id="saveJsonPretty" type="checkbox" checked
+                        class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span>整形して保存する</span>
+                </label>
+
+                <label for="saveJsonMethod" class="flex flex-col gap-2 text-sm">
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">保存方法</span>
+                    <select id="saveJsonMethod"
+                        class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="download">通常ダウンロード</option>
+                        <option value="picker">保存先を選んで保存（対応ブラウザのみ）</option>
+                    </select>
+                </label>
+                <p id="saveJsonMethodHint" class="text-xs text-slate-500 dark:text-slate-400"></p>
+            </div>
+            <div
+                class="flex items-center justify-end gap-2 px-6 py-4 bg-white/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800">
+                <button id="saveJsonCancelBtn" type="button"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    <span>キャンセル</span>
+                </button>
+                <button id="saveJsonConfirmBtn" type="button"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-white transition-colors">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>保存する</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="jsonGuiModal"
+        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        aria-hidden="true">
+        <div
+            class="flex flex-col w-full max-w-6xl h-[88vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
+            <div
+                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        <i data-lucide="table-2" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">JSON GUIエディタ</h2>
+                    </div>
+                </div>
+                <button id="jsonGuiModalClose"
+                    class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
+                <aside
+                    class="border-r border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/30 p-4 flex flex-col gap-3 overflow-y-auto">
+                    <div class="text-[11px] uppercase tracking-widest font-semibold text-slate-500 dark:text-slate-400">
+                        データセット
+                    </div>
+                    <select id="jsonGuiDatasetSelect"
+                        class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </select>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button id="jsonGuiAddDatasetBtn" type="button"
+                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>データセット追加</span>
+                        </button>
+                        <button id="jsonGuiRenameDatasetBtn" type="button"
+                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                            <span>名前変更</span>
+                        </button>
+                        <button id="jsonGuiDeleteDatasetBtn" type="button"
+                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            <span>削除</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        このデータは「JSONデータセット」「JSONデータセットの値」ブロックで直接使えます。
+                    </p>
+                </aside>
+                <section class="p-4 sm:p-6 overflow-y-auto flex flex-col gap-4">
+                    <div
+                        class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs sm:text-sm">
+                                <thead class="bg-slate-100/80 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-semibold">キー</th>
+                                        <th class="px-3 py-2 text-left font-semibold w-32">型</th>
+                                        <th class="px-3 py-2 text-left font-semibold">値</th>
+                                        <th class="px-3 py-2 text-right font-semibold w-24">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="jsonGuiRows" class="bg-white dark:bg-slate-900"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <button id="jsonGuiAddRowBtn" type="button"
+                            class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                            <span>行を追加</span>
+                        </button>
+                        <span id="jsonGuiError"
+                            class="hidden text-xs text-rose-600 dark:text-rose-300 rounded-lg border border-rose-200 dark:border-rose-700 px-3 py-2 bg-rose-50 dark:bg-rose-900/20"></span>
+                    </div>
+                    <div
+                        class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+                        <div
+                            class="text-[11px] uppercase tracking-widest font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                            JSONプレビュー
+                        </div>
+                        <textarea id="jsonGuiPreview" readonly
+                            class="w-full min-h-[220px] rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-700 dark:text-slate-200"></textarea>
+                    </div>
+                </section>
+            </div>
+            <div
+                class="flex items-center justify-end gap-2 px-6 py-4 bg-white/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800">
+                <button id="jsonGuiCloseBtn" type="button"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>閉じる</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="shareImportModal"
         class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
         aria-hidden="true">
@@ -589,7 +803,7 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-slate-900 dark:text-white">スマホでのプラグイン利用について</h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">モバイル環境での動作は非推奨です</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">モバイル環境での動作は非推奨ですが、対応しました</p>
                     </div>
                 </div>
                 <button id="pluginMobileWarningClose"
@@ -600,7 +814,7 @@
             <div class="flex flex-col gap-4 p-6 bg-slate-50/60 dark:bg-slate-950/40 flex-grow overflow-y-auto">
                 <div
                     class="p-4 rounded-xl border border-amber-100 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-900/10 text-amber-800 dark:text-amber-200 text-sm leading-relaxed">
-                    プラグイン機能はPC向けに最適化されており、スマートフォンでは表示崩れや操作しづらさが発生する場合があります。
+                    プラグイン自体が対応してない場合がありますので、連絡はEDBPにしないでください。※作成者に直接連絡してください。
                 </div>
             </div>
             <div
@@ -625,9 +839,54 @@
         </div>
     </div>
 
-    <div id="pluginModal"
-        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+    <!-- プラグイン一括インストールモーダル -->
+    <div id="pluginBulkInstallModal"
+        class="modal-backdrop hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
         aria-hidden="true">
+        <div
+            class="flex flex-col w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
+            <div
+                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        <i data-lucide="download-cloud" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">プラグインを一括インストール</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">プロジェクトに必要なプラグインを選択してください</p>
+                    </div>
+                </div>
+                <button id="pluginBulkInstallClose"
+                    class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100/80 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="pluginBulkInstallList"
+                class="flex flex-col gap-2 p-6 bg-slate-50/60 dark:bg-slate-950/40 flex-grow overflow-y-auto">
+                <!-- プラグインリスト -->
+            </div>
+            <div
+                class="flex flex-col gap-4 px-6 py-5 bg-white/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800">
+                <div class="text-xs text-slate-500 dark:text-slate-400 text-center">
+                    <span id="bulkInstallStatusText">チェックしたプラグインをすべてインストールします。</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <button id="pluginBulkInstallConfirmBtn" type="button"
+                        class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>選択したプラグインを入れる</span>
+                    </button>
+                    <button id="pluginBulkInstallCancelBtn" type="button"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <span>キャンセル</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pluginModal"
+        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
         <div
             class="flex flex-col w-full max-w-7xl h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
             <div
@@ -671,14 +930,32 @@
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             <span>ZIPからインストール</span>
                         </button>
+                        <button id="pluginBulkShareBtn"
+                            class="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                            <i data-lucide="share-2" class="w-4 h-4"></i>
+                            <span>有効なプラグインを共有</span>
+                        </button>
                     </div>
                     <div id="pluginList" class="flex-1 overflow-y-auto p-3 space-y-2">
                         <!-- プラグインアイテムがここに動的に追加される -->
                     </div>
+                    <!-- システムリセット（非表示、開発者/デバッグ用） -->
+                    <div class="p-4 border-t border-slate-100 dark:border-slate-800 hidden">
+                        <button id="resetSystemBtn"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-lg border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            <span>システムリセット（全データ消去）</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- メイン: プラグイン詳細 -->
-                <div id="pluginDetail" class="flex-1 overflow-y-auto p-8 bg-white dark:bg-slate-900">
+                <div id="pluginDetail" class="flex-1 overflow-y-auto p-8 bg-white dark:bg-slate-900 relative">
+                    <button id="pluginMobileBackBtn"
+                        class="hidden mb-6 items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold transition-all active:scale-95">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                        <span>プラグイン一覧に戻る</span>
+                    </button>
                     <div id="pluginDetailEmpty" class="h-full flex flex-col items-center justify-center text-slate-400">
                         <i data-lucide="puzzle" class="w-12 h-12 mb-4 opacity-20"></i>
                         <p>プラグインを選択して詳細を表示します</p>
