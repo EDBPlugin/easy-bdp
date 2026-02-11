@@ -2,6 +2,28 @@
 <html lang="ja" class="light">
 
 <head>
+    <script>
+        // Guard against double Shadow DOM attachment (common in some libraries/proxies)
+        (function () {
+            const org = Element.prototype.attachShadow;
+            if (org && !org._guarded) {
+                Element.prototype.attachShadow = function (opts) {
+                    try {
+                        return org.call(this, opts);
+                    } catch (e) {
+                        // Check for the specific error message even if shadowRoot is null (could be a closed shadow root)
+                        if (e.name === 'NotSupportedError' &&
+                            (e.message.includes('already hosts') || this.shadowRoot)) {
+                            console.warn('Prevented redundant attachShadow call on:', this);
+                            return this.shadowRoot; // Note: returns null if closed, but prevents the crash
+                        }
+                        throw e;
+                    }
+                };
+                Element.prototype.attachShadow._guarded = true;
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Easy Discord Bot Builder</title> <!-- nは更新したときに見やすくするものです -->
@@ -864,8 +886,7 @@
     </div>
 
     <div id="pluginModal"
-        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-        aria-hidden="true">
+        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
         <div
             class="flex flex-col w-full max-w-7xl h-[90vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
             <div
