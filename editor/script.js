@@ -2467,31 +2467,27 @@ const initializeApp = async () => {
 };
 
 // Initialize app when DOM is ready and all modules are loaded
-// Use a small delay to ensure all module imports are complete
 const startApp = async (retryCount = 0) => {
   if (window.__edbb_initialized) return;
 
-  // Limit retries to prevent infinite loops (approx 10 seconds)
+  // Use a second flag to prevent overlapping initialization attempts
+  if (window.__edbb_starting && retryCount === 0) return;
+  window.__edbb_starting = true;
+
+  // Limit retries
   if (retryCount > 100) {
-    console.error('App initialization timed out: Blockly or modules failed to load.');
-    const saveStatus = document.getElementById('saveStatus');
-    if (saveStatus) {
-      saveStatus.textContent = 'Load Timeout!';
-      saveStatus.classList.remove('bg-emerald-100', 'text-emerald-800');
-      saveStatus.classList.add('bg-red-100', 'text-red-800');
-      saveStatus.setAttribute('data-show', 'true');
-    }
+    console.error('App initialization timed out.');
+    window.__edbb_starting = false;
     return;
   }
 
-  // Ensure Blockly is fully initialized with custom blocks
+  // Ensure Blockly is fully initialized
   if (typeof Blockly === 'undefined' || !Blockly.Blocks || !Blockly.Python) {
-    // If Blockly is not ready, retry after a short delay
     setTimeout(() => startApp(retryCount + 1), 100);
     return;
   }
 
-  // Dynamically load blocks.js if not already loaded
+  // Dynamically load blocks.js
   if (!Blockly.Blocks['on_ready']) {
     try {
       await import('./blocks.js');
@@ -2500,35 +2496,30 @@ const startApp = async (retryCount = 0) => {
     }
   }
 
-  // Verify custom blocks are registered
   if (!Blockly.Blocks['on_ready']) {
-    // Custom blocks not yet registered, retry
     setTimeout(() => startApp(retryCount + 1), 100);
     return;
   }
 
-  // All systems ready, initialize the app
+  // All systems ready
   try {
     await initializeApp();
+    window.__edbb_initialized = true;
   } catch (e) {
     console.error('App initialization failed:', e);
-    // Attempt to notify user
-    const saveStatus = document.getElementById('saveStatus');
-    if (saveStatus) {
-      saveStatus.textContent = 'Init Error!';
-      saveStatus.classList.remove('bg-emerald-100', 'text-emerald-800');
-      saveStatus.classList.add('bg-red-100', 'text-red-800');
-      saveStatus.setAttribute('data-show', 'true');
-    }
+  } finally {
+    window.__edbb_starting = false;
   }
 };
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    // Add a small delay to ensure module imports are complete
-    setTimeout(startApp, 50);
-  });
-} else {
-  // DOM already loaded, start app with delay
+const triggerStart = () => {
+  if (window.__start_triggered) return;
+  window.__start_triggered = true;
   setTimeout(startApp, 50);
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', triggerStart);
+} else {
+  triggerStart();
 }
