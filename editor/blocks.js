@@ -364,7 +364,7 @@ const toDatasetJsonFileName = (datasetName) => {
 const getJsonRuntimeStoreCode = (datasetName, fallbackLiteral = '{}') => {
   const safeName = JSON.stringify(String(datasetName ?? ''));
   const filename = JSON.stringify(toDatasetJsonFileName(datasetName));
-  return `((lambda _cache, _files: _cache.setdefault(${safeName}, (_load_json_data(_files.setdefault(${safeName}, ${filename})) if os.path.exists(_files.setdefault(${safeName}, ${filename})) else ${fallbackLiteral})))(globals().setdefault('_edbb_json_dataset_cache', {}), globals().setdefault('_edbb_json_dataset_files', {})))`;
+  return `((lambda _cache, _files: _cache.setdefault(${safeName}, (_load_json_data(_files.setdefault(${safeName}, ${filename})) if os.path.exists(_resolve_json_path(_files.setdefault(${safeName}, ${filename}))) else ${fallbackLiteral})))(globals().setdefault('_edbb_json_dataset_cache', {}), globals().setdefault('_edbb_json_dataset_files', {})))`;
 };
 const buildJsonDatasetAccessCode = (datasetName, fallbackLiteral = '{}') => {
   return getJsonRuntimeStoreCode(datasetName, fallbackLiteral);

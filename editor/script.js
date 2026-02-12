@@ -773,18 +773,26 @@ const buildInlineRuntimeHelpers = ({ usesJson, usesModal, usesLogging }) => {
   }
 
   if (usesJson) {
+    helpers += `_JSON_DATA_DIR = 'json'\n\n`;
+    helpers += `def _resolve_json_path(filename):\n`;
+    helpers += `    _raw_name = '' if filename is None else str(filename).strip()\n`;
+    helpers += `    _safe_name = os.path.basename(_raw_name) if _raw_name else 'dataset.json'\n`;
+    helpers += `    return os.path.join(_JSON_DATA_DIR, _safe_name)\n\n`;
     helpers += `def _load_json_data(filename):\n`;
-    helpers += `    if not os.path.exists(filename):\n`;
+    helpers += `    _path = _resolve_json_path(filename)\n`;
+    helpers += `    if not os.path.exists(_path):\n`;
     helpers += `        return {}\n`;
     helpers += `    try:\n`;
-    helpers += `        with open(filename, 'r', encoding = 'utf-8') as f:\n`;
+    helpers += `        with open(_path, 'r', encoding = 'utf-8') as f:\n`;
     helpers += `            return json.load(f)\n`;
     helpers += `    except Exception as e:\n`;
     helpers += `        logging.error(f"JSON Load Error: {e}")\n`;
     helpers += `        return {}\n\n`;
     helpers += `def _save_json_data(filename, data):\n`;
     helpers += `    try:\n`;
-    helpers += `        with open(filename, 'w', encoding = 'utf-8') as f:\n`;
+    helpers += `        _path = _resolve_json_path(filename)\n`;
+    helpers += `        os.makedirs(os.path.dirname(_path), exist_ok = True)\n`;
+    helpers += `        with open(_path, 'w', encoding = 'utf-8') as f:\n`;
     helpers += `            json.dump(data, f, ensure_ascii = False, indent = 4)\n`;
     helpers += `    except Exception as e:\n`;
     helpers += `        logging.error(f"JSON Save Error: {e}")\n\n`;
@@ -1607,18 +1615,26 @@ const buildSharedModule = (bodyCode) => {
   }
   if (usesJson) {
     content += `import json\nimport os\n\n`;
+    content += `_JSON_DATA_DIR = 'json'\n\n`;
+    content += `def _resolve_json_path(filename): \n`;
+    content += `    _raw_name = '' if filename is None else str(filename).strip() \n`;
+    content += `    _safe_name = os.path.basename(_raw_name) if _raw_name else 'dataset.json' \n`;
+    content += `    return os.path.join(_JSON_DATA_DIR, _safe_name) \n\n`;
     content += `def _load_json_data(filename): \n`;
-    content += `    if not os.path.exists(filename): \n`;
+    content += `    _path = _resolve_json_path(filename) \n`;
+    content += `    if not os.path.exists(_path): \n`;
     content += `        return {}\n`;
     content += `    try: \n`;
-    content += `        with open(filename, 'r', encoding = 'utf-8') as f: \n`;
+    content += `        with open(_path, 'r', encoding = 'utf-8') as f: \n`;
     content += `            return json.load(f) \n`;
     content += `    except Exception as e: \n`;
     content += `        logging.error(f"JSON Load Error: {e}") \n`;
     content += `        return {}\n\n`;
     content += `def _save_json_data(filename, data): \n`;
     content += `    try: \n`;
-    content += `        with open(filename, 'w', encoding = 'utf-8') as f: \n`;
+    content += `        _path = _resolve_json_path(filename) \n`;
+    content += `        os.makedirs(os.path.dirname(_path), exist_ok = True) \n`;
+    content += `        with open(_path, 'w', encoding = 'utf-8') as f: \n`;
     content += `            json.dump(data, f, ensure_ascii = False, indent = 4) \n`;
     content += `    except Exception as e: \n`;
     content += `        logging.error(f"JSON Save Error: {e}") \n\n`;
