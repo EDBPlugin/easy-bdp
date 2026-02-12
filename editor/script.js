@@ -1794,6 +1794,7 @@ const generateSplitPythonFiles = () => {
   const botFile = `
 # Easy Discord Bot Builder - Split Cogs Version
 
+import os
 import discord
 from discord.ext import commands
 
@@ -1810,8 +1811,18 @@ class EasyBot(commands.Bot):
 bot = EasyBot(command_prefix='!', intents=intents)
 
 if __name__ == "__main__":
-    print('\\x1b[31m!!!!Warning!!!! If you have not set a token, please set the token in the "TOKEN" section at the end of the code before execution.\\x1b[0m')
-    bot.run('TOKEN')
+    # トークンの設定
+    # Set your token here
+    token = "TOKEN"
+
+    # Token check
+    token = os.getenv("DISCORD_TOKEN", token) # 環境変数DISCORD_TOKENがあればそちらを優先 (If DISCORD_TOKEN environment variable is set, it will be used)
+    if token == "TOKEN":
+        print('\\x1b[31m!!!!注意!!!! トークンを設定していない場合は、環境変数DISCORD_TOKENを設定するか、上のtoken変数を書き換えてください。\\x1b[0m')
+        print('\\x1b[31m!!!!Warning!!!! If you have not set a token, please set the DISCORD_TOKEN environment variable or replace the token variable above.\\x1b[0m')
+        exit(1)
+
+    bot.run(token)
 `.trim();
 
   files['bot.py'] = botFile;
