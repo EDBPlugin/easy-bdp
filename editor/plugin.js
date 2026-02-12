@@ -407,26 +407,17 @@ export class PluginManager {
 
     /**
      * GitHubからmanifest.jsonを取得してオブジェクトとして返します
+     * APIではなく raw を使用することで、マーケットプレイス表示時のAPIレート制限を回避します。
      */
     async getManifestFromGitHub(fullName, ref = 'main') {
-        const decodeBase64Utf8 = (encoded) => {
-            const binary = atob(encoded.replace(/\n/g, ''));
-            const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-            return new TextDecoder('utf-8').decode(bytes);
-        };
-
         try {
-            const apiUrl = `https://api.github.com/repos/${fullName}/contents/manifest.json?ref=${encodeURIComponent(ref)}`;
-            const response = await this.fetchWithRetry(apiUrl, {
-                headers: { Accept: 'application/vnd.github+json' }
-            });
+            const url = `https://raw.githubusercontent.com/${fullName}/${encodeURIComponent(ref)}/manifest.json`;
+            const response = await this.fetchWithRetry(url);
             if (!response.ok) return null;
 
-            const data = await response.json();
-            if (!data || data.type !== 'file' || !data.content) return null;
-            return JSON.parse(decodeBase64Utf8(data.content));
+            return await response.json();
         } catch (e) {
-            console.warn('Failed to fetch manifest from GitHub', e);
+            console.warn('Failed to fetch manifest from GitHub (raw)', e);
             return null;
         }
     }
