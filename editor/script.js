@@ -2483,7 +2483,7 @@ const initializeApp = async () => {
         // Success - show success toast
         if (runBotStatus && runBotStatusText) {
           runBotStatus.dataset.state = 'success';
-          runBotStatusText.textContent = 'BOTの実行を開始しました';
+          runBotStatusText.textContent = 'BOTの起動を開始しました';
           runBotStatus.setAttribute('data-show', 'true');
           setTimeout(() => runBotStatus.setAttribute('data-show', 'false'), 3000);
         }
