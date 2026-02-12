@@ -731,7 +731,7 @@ export class PluginUI {
         }
 
         if (!validation.valid) {
-            badges.push('<span class="text-[10px] px-2 py-1 rounded bg-slate-400 text-white font-bold leading-none shrink-0">不可</span>');
+            badges.push('<span class="text-[10px] px-2 py-1 rounded bg-slate-400 text-white font-bold leading-none shrink-0">使用不可のプラグイン</span>');
         }
         const trustBadge = badges.join(' ');
 
@@ -897,7 +897,7 @@ export class PluginUI {
         const invalidReason = !validation.valid ? `必須項目が不足しています: ${validation.missing.join(', ')}` : (plugin.trustLevel?.invalidReason || '');
 
         if (!validation.valid || isInvalid) {
-            badges.push('<span class="text-[10px] px-2 py-1 rounded bg-slate-400 text-white font-bold leading-none shrink-0">不可</span>');
+            badges.push('<span class="text-[10px] px-2 py-1 rounded bg-slate-400 text-white font-bold leading-none shrink-0">使用不可のプラグイン</span>');
         }
         const trustBadge = badges.join(' ');
 
@@ -950,7 +950,7 @@ export class PluginUI {
                         <i data-lucide="share-2" class="w-5 h-5"></i>
                     </button>
                     <button id="togglePluginBtn" ${(!validation.valid || isInvalid) ? 'disabled' : ''} class="flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-bold ${(!validation.valid || isInvalid) ? 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600' : isEnabled ? 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'} transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span class="btn-text">${(!validation.valid || isInvalid) ? '不可' : isEnabled ? '無効化' : '有効化'}</span>
+                        <span class="btn-text">${(!validation.valid || isInvalid) ? '使用不可' : isEnabled ? '無効化' : '有効化'}</span>
                     </button>
                     ${!isBuiltin ? `
                     <button id="uninstallPluginBtn" class="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all" title="削除">
