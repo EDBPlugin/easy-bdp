@@ -709,8 +709,10 @@ const analyzeWorkspaceForCodegen = (workspaceRef) => {
   const diagnostics = [];
   const commandRegistry = new Map();
   const handlerRegistry = new Map();
+  const relevantBlockIds = getCodegenRelevantBlockIds(workspaceRef);
 
-  workspaceRef.getAllBlocks(false).forEach((block) => {
+  relevantBlockIds.forEach((blockId) => {
+    const block = workspaceRef.getBlockById(blockId);
     if (!block || block.isShadow?.()) return;
     if (typeof block.isEnabled === 'function' && !block.isEnabled()) return;
 
@@ -764,6 +766,78 @@ const analyzeWorkspaceForCodegen = (workspaceRef) => {
   return diagnostics;
 };
 
+const hasNonShadowConnectedDescendant = (block) => {
+  if (!block?.getChildren) return false;
+
+  const stack = [...(block.getChildren(false) || [])];
+  while (stack.length) {
+    const child = stack.pop();
+    if (!child) continue;
+
+    const disabled = typeof child.isEnabled === 'function' && !child.isEnabled();
+    if (!child.isShadow?.() && !disabled) {
+      return true;
+    }
+
+    if (child.getChildren) {
+      stack.push(...(child.getChildren(false) || []));
+    }
+  }
+
+  return false;
+};
+
+const isOrphanTopBlock = (block) => {
+  if (!block || block.isShadow?.()) return false;
+  if (typeof block.isEnabled === 'function' && !block.isEnabled()) return false;
+  if (block.getParent?.()) return false;
+  if (block.previousConnection || block.outputConnection) return true;
+  return !hasNonShadowConnectedDescendant(block);
+};
+
+const getCodegenTopBlocks = (workspaceRef) => {
+  if (!workspaceRef?.getTopBlocks) return [];
+  return workspaceRef
+    .getTopBlocks(true)
+    .filter((block) => block && !block.isShadow?.())
+    .filter((block) => !(typeof block.isEnabled === 'function' && !block.isEnabled()))
+    .filter((block) => !isOrphanTopBlock(block));
+};
+
+const getCodegenRelevantBlockIds = (workspaceRef) => {
+  const ids = new Set();
+  getCodegenTopBlocks(workspaceRef).forEach((topBlock) => {
+    const descendants = topBlock?.getDescendants?.(false) || [topBlock];
+    descendants.forEach((block) => {
+      if (!block || block.isShadow?.()) return;
+      if (typeof block.isEnabled === 'function' && !block.isEnabled()) return;
+      ids.add(block.id);
+    });
+  });
+  return ids;
+};
+
+const workspaceToCodeExcludingOrphans = (workspaceRef) => {
+  if (!workspaceRef) return '';
+
+  const generator = Blockly.Python;
+  const code = [];
+  generator.init(workspaceRef);
+
+  getCodegenTopBlocks(workspaceRef).forEach((block) => {
+    let line = generator.blockToCode(block);
+    if (Array.isArray(line)) line = line[0];
+    if (line) code.push(line);
+  });
+
+  if (typeof generator.finish !== 'function') {
+    return code.join('\n');
+  }
+
+  const finishedCode = generator.finish(code.join('\n'));
+  return String(finishedCode || '').replace(/^\s+\n/, '');
+};
+
 // --- Code Generation & UI Sync ---
 const buildInlineRuntimeHelpers = ({ usesJson, usesModal, usesLogging }) => {
   let helpers = '';
@@ -813,7 +887,7 @@ const buildInlineRuntimeHelpers = ({ usesJson, usesModal, usesLogging }) => {
 
 const generatePythonCode = () => {
   if (!workspace) return '';
-  const rawCode = Blockly.Python.workspaceToCode(workspace);
+  const rawCode = workspaceToCodeExcludingOrphans(workspace);
   const {
     cleanedCode,
     hasComponentEvents,
@@ -1683,7 +1757,7 @@ const deriveGroupMeta = (block) => {
 
 const generateSplitPythonFiles = () => {
   if (!workspace) return {};
-  const topBlocks = workspace.getTopBlocks(true);
+  const topBlocks = getCodegenTopBlocks(workspace);
   const topBlockEntries = topBlocks.map((block) => ({
     block,
     rawGroup: blockCodeToString(Blockly.Python.blockToCode(block)),
