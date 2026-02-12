@@ -2519,10 +2519,31 @@ const initializeApp = async () => {
 
   downloadZipBtn?.addEventListener('click', async () => {
     if (!validateBeforeCodegen()) return;
-    const code = generatePythonCode();
+    let code = generatePythonCode();
+
+    // Inject imports for .env support
+    if (!code.includes('from dotenv import load_dotenv')) {
+      code = code.replace('import discord', 'import os\nfrom dotenv import load_dotenv\nimport discord');
+    }
+
+    // Replace the main execution block to use .env
+    const mainBlockRegex = /if __name__ == "__main__":[\s\S]+?bot\.run\("TOKEN"\)/;
+    const newMainBlock = `if __name__ == "__main__":
+    load_dotenv()
+    token = os.getenv("TOKEN")
+    
+    if not token:
+        print("Error: TOKEN not found in .env file.")
+        print("Please set your bot token in the .env file: TOKEN=... ")
+    else:
+        bot.run(token)`;
+
+    code = code.replace(mainBlockRegex, newMainBlock);
+
     const zip = new JSZip();
-    zip.file('bot-project.py', code);
+    zip.file('bot.py', code);
     zip.file('.env', 'TOKEN=YOUR_TOKEN_HERE');
+    zip.file('requirements.txt', 'discord.py[voice]\npython-dotenv');
 
     const content = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(content);

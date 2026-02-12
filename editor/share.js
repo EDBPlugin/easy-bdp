@@ -6,10 +6,11 @@ const SHARE_IMPORT_SKIP_KEY = 'share_import_dialog_skip';
 const SHARE_CANONICAL_ORIGIN = 'https://share.himais0giiiin.com';
 const SHARE_BETA_ORIGIN = 'https://beta-edbb.himaiso.workers.dev';
 const BLOCKLY_CAPTURE_EXTRA_CSS = [
-  '.blocklyText { fill:#fff !important; }',
+  '.blocklyText { fill:#fff !important; font-family: "Plus Jakarta Sans", "Noto Sans JP", sans-serif !important; }',
   '.blocklyEditableText { fill: #fff !important; }',
-  '.blocklyEditableText .blocklyText:not(.blocklyDropdownText) { fill:#000 !important; }',
+  '.blocklyEditableText .blocklyText:not(.blocklyDropdownText) { fill:#000 !important; font-family: "Plus Jakarta Sans", "Noto Sans JP", sans-serif !important; }',
 ].join('');
+
 const SHARE_THUMBNAIL_PADDING = 32;
 const SHARE_THUMBNAIL_MIN_DIMENSION = 64;
 const SHARE_THUMBNAIL_WATERMARK_SRC = '/static/c-by-EDBB.svg';

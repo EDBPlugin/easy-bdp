@@ -158,6 +158,11 @@ body {
 
 /* --- Blockly Toolbox Styling Fixes --- */
 
+.blocklyText {
+  font-family: "Plus Jakarta Sans", "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif !important;
+}
+
+
 /* ツールボックス全体の背景など */
 .blocklyToolboxDiv {
   background-color: rgba(248, 250, 252, 0.95) !important;
