@@ -217,9 +217,9 @@
                 <span class="hidden sm:inline">共有</span>
             </button>
 
-            <!-- Run Bot Button -->
+            <!-- Run Bot Button (Desktop only) -->
             <button id="runBotBtn"
-                class="ml-2 group relative inline-flex items-center justify-center gap-2 px-4 py-2.5 font-semibold text-white transition-all duration-200 bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 active:scale-95 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40">
+                class="ml-2 group relative hidden md:inline-flex items-center justify-center gap-2 px-4 py-2.5 font-semibold text-white transition-all duration-200 bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 active:scale-95 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40">
                 <i data-lucide="play" class="w-4 h-4 transition-transform group-hover:scale-110"></i>
                 <span class="hidden sm:inline">起動</span>
             </button>
@@ -1086,6 +1086,14 @@
                     class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 overflow-hidden flex justify-center items-center h-80">
                     <img id="runnerDownloadImage" src="/static/edbb-runner-howto.gif"
                         class="max-w-full max-h-full object-contain" alt="edbb-runner 使い方">
+                </div>
+
+                <div
+                    class="p-3 rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-900/10 flex items-center gap-2">
+                    <i data-lucide="monitor" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"></i>
+                    <p class="text-xs font-medium text-blue-900 dark:text-blue-100">
+                        現在Windows専用機能です
+                    </p>
                 </div>
 
                 <div
