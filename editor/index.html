@@ -1058,6 +1058,70 @@
         </div>
     </div>
 
+    <!-- Runner Download Modal -->
+    <div id="runnerDownloadModal"
+        class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        aria-hidden="true">
+        <div
+            class="flex flex-col w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
+            <div
+                class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">実行ボタンにはedbb-runnerが必要です</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">edbb-runnerを起動して、ワンクリックでボットの動作確認しましょう！</p>
+                    </div>
+                </div>
+                <button id="runnerDownloadModalClose"
+                    class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100/80 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex flex-col gap-4 p-6 bg-slate-50/60 dark:bg-slate-950/40 flex-grow overflow-y-auto">
+                <!-- Image -->
+                <div id="runnerDownloadImageContainer"
+                    class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 overflow-hidden flex justify-center items-center h-80">
+                    <img id="runnerDownloadImage" src="/static/edbb-runner-howto.gif"
+                        class="max-w-full max-h-full object-contain" alt="edbb-runner 使い方">
+                </div>
+
+                <div
+                    class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col gap-3">
+                    <div class="flex items-start gap-3">
+                        <div
+                            class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shrink-0">
+                            <i data-lucide="info" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-slate-900 dark:text-white mb-1">使い方</p>
+                            <ol class="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-decimal list-inside">
+                                <li>下のボタンからedbb-runner.zipをダウンロードし、展開する</li>
+                                <li>「edbb-runnerを起動.bat」をダブルクリックする</li>
+                                <li>DiscordのBOTトークンを入力する</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="flex flex-wrap items-center justify-end gap-3 px-6 py-4 bg-white/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800">
+                <button id="runnerDownloadCancelBtn" type="button"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    <span>キャンセル</span>
+                </button>
+                <button id="runnerDownloadBtn" type="button"
+                    class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 text-white shadow-lg shadow-emerald-500/20 transition-all">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>ダウンロードはこちら</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         if (typeof window.extractInteractionEvents !== "function") {
             window.extractInteractionEvents = function (code) {

@@ -1915,6 +1915,10 @@ const initializeApp = async () => {
   const saveJsonPrettyCheckbox = document.getElementById('saveJsonPretty');
   const saveJsonMethodSelect = document.getElementById('saveJsonMethod');
   const saveJsonMethodHint = document.getElementById('saveJsonMethodHint');
+  const runnerDownloadModal = document.getElementById('runnerDownloadModal');
+  const runnerDownloadModalClose = document.getElementById('runnerDownloadModalClose');
+  const runnerDownloadCancelBtn = document.getElementById('runnerDownloadCancelBtn');
+  const runnerDownloadBtn = document.getElementById('runnerDownloadBtn');
 
   const importBtn = document.getElementById('importBtn');
   const exportBtn = document.getElementById('exportBtn');
@@ -2497,24 +2501,40 @@ const initializeApp = async () => {
         setTimeout(() => runBotStatus.setAttribute('data-show', 'false'), 3000);
       }
 
-      // Show download dialog after a short delay
+      // Show download modal after a short delay
       setTimeout(() => {
-        const hostname = window.location.hostname || '';
-        const isBetaHost = /^beta(\.|-)/i.test(hostname);
-        const downloadUrl = isBetaHost
-          ? 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/beta.zip'
-          : 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip';
-
-        const shouldDownload = confirm(
-          'edbb-runnerが起動していない可能性があります。\n\n' +
-          'edbb-runnerをダウンロードして実行してください。\n' +
-          'ダウンロードページを開きますか？'
-        );
-
-        if (shouldDownload) {
-          window.open(downloadUrl, '_blank');
+        if (runnerDownloadModal) {
+          toggleModal(runnerDownloadModal, true);
         }
       }, 500);
+    }
+  });
+
+  // Runner Download Modal handlers
+  const closeRunnerDownloadModal = () => {
+    if (runnerDownloadModal) {
+      toggleModal(runnerDownloadModal, false);
+    }
+  };
+
+  runnerDownloadModalClose?.addEventListener('click', closeRunnerDownloadModal);
+  runnerDownloadCancelBtn?.addEventListener('click', closeRunnerDownloadModal);
+
+  runnerDownloadBtn?.addEventListener('click', () => {
+    const hostname = window.location.hostname || '';
+    const isBetaHost = /^beta(\.|-)/i.test(hostname);
+    const downloadUrl = isBetaHost
+      ? 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/beta.zip'
+      : 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip';
+
+    window.open(downloadUrl, '_blank');
+    closeRunnerDownloadModal();
+  });
+
+  // Close modal on backdrop click
+  runnerDownloadModal?.addEventListener('click', (e) => {
+    if (e.target === runnerDownloadModal) {
+      closeRunnerDownloadModal();
     }
   });
 
