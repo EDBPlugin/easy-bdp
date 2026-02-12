@@ -1,87 +1,172 @@
-# CDM プラグイン作成手順書
+# EDBP プラグイン開発完全ガイド (Complete Guide)
 
-CDM (Easy Discord Bot Builder) の機能を拡張するためのプラグイン作成ガイドです。
+EDBP (Easy Discord Bot Builder) の機能を拡張するためのプラグインを作成するための公式ガイドです。
 
-## 1. プラグインの基本構造
+---
 
-プラグインは以下の2つのファイルを含む ZIP 形式で配布・インストールされます。
+## 1. クイックスタート
 
-- `manifest.json`: プラグインのメタデータ（必須）
-- `plugin.js`: プラグインの実行コード（必須）
+プラグインは、以下の2つのファイルを同梱したフォルダ（または ZIP 形式）で構成されます。
 
-### manifest.json の例
+1.  **`manifest.json`**: プラグインのメタデータ。
+2.  **`plugin.js`**: プラグインのロジックを記述した JavaScript ファイル。
+
+GitHub で公開する場合は、リポジトリのルートにこれらのファイルを配置し、トピックに `edbp-plugin` を追加してください。
+
+---
+
+## 2. manifest.json の仕様 (改造版)
+
+プラグインの情報を定義します。以下のフィールドが推奨されます。
 
 ```json
 {
-  "name": "My Plugin",
-  "author": "YourName",
+  "id": "my-custom-plugin",
+  "name": "サンプルプラグイン",
   "version": "1.0.0",
-  "description": "プラグインの説明文です。",
+  "author": "あなたの名前",
+  "description": "このプラグインは新しいコマンドブロックを追加します。",
+  "icon": "https://example.com/icon.png",
+  "tags": ["utility", "commands"],
   "affectsStyle": false,
   "affectsBlocks": true,
-  "isCustom": true,
-  "repo": "https://github.com/YourName/my-plugin"
+  "repo": "https://github.com/YourName/my-plugin",
+  "license": "MIT",
+  "minAppVersion": "1.0.0"
 }
 ```
 
-| 項目 | 型 | 説明 |
-| :--- | :--- | :--- |
-| `name` | string | プラグインの表示名。 |
-| `author` | string | 開発者名。 |
-| `affectsStyle` | boolean | スタイル（CSSなど）に干渉するかどうか。 |
-| `affectsBlocks` | boolean | ブロック（Blockly）に干渉するかどうか。 |
-| `isCustom` | boolean | 自作プラグインかどうか。`true` の場合、セキュリティのため共有機能が制限されます。 |
-| `repo` | string | GitHub リポジトリの URL（マーケットプレイス連携に必要）。 |
+### フィールド詳細
+
+| フィールド | 型 | 必須 | 説明 |
+| :--- | :--- | :--- | :--- |
+| `id` | string | 任意 | システム内部で使用されるID。未指定時は名前から自動生成されます。 |
+| `name` | string | **必須** | プラグインの表示名。 |
+| `version` | string | **必須** | プラグインのバージョン。 |
+| `author` | string | **必須** | 開発者名。 |
+| `description`| string | 任意 | 短い説明文。 |
+| `icon` | string | 任意 | アイコンのURLまたは絵文字。 |
+| `tags` | string[] | 任意 | 検索に使用されるタグ。 |
+| `affectsStyle`| boolean| **必須** | CSS等でUIに干渉するかどうか。 |
+| `affectsBlocks`| boolean| **必須** | Blocklyブロックの追加・変更を行うかどうか。 |
+| `repo` | string | 任意 | ソースコードのリポジトリURL（GitHubなど）。 |
+| `license` | string | 任意 | ライセンス（例: MIT, Apache-2.0）。 |
 
 ---
 
-## 2. プラグインの実装 (plugin.js)
+## 3. plugin.js の実装
 
-`plugin.js` は、以下の `Plugin` クラスを定義し、`workspace` を受け取るコンストラクタを持つ必要があります。
+プラグインは、`Plugin` クラスをエクスポートする形式で記述します。
 
 ```javascript
 class Plugin {
+    /**
+     * @param {Blockly.Workspace} workspace 
+     */
     constructor(workspace) {
         this.workspace = workspace;
+        this.styleElement = null;
     }
 
-    // プラグインが有効化された時に呼ばれる
+    /**
+     * プラグインが有効化された時に実行される
+     */
     async onload() {
         console.log("Plugin Loaded!");
+        
+        // 1. スタイルの追加
+        this.applyStyles();
+
+        // 2. ブロックの登録
         this.registerBlocks();
     }
 
-    // プラグインが無効化された時に呼ばれる
+    /**
+     * プラグインが無効化または削除された時に実行される
+     * ※必ずクリーンアップを行ってください
+     */
     async onunload() {
         console.log("Plugin Unloaded");
-        // 追加した要素の削除などのクリーンアップを行う
+        
+        // スタイルの削除
+        if (this.styleElement) {
+            this.styleElement.remove();
+        }
+
+        // ブロックの削除（必要に応じて）
+        // ※通常、Blockly.Blocksからの削除のみでOK
+    }
+
+    applyStyles() {
+        const css = `
+            .my-custom-block-style {
+                color: #555;
+            }
+        `;
+        this.styleElement = document.createElement('style');
+        this.styleElement.textContent = css;
+        document.head.appendChild(this.styleElement);
     }
 
     registerBlocks() {
-        // Blockly ブロックの登録ロジック
+        // ブロックの定義
+        Blockly.Blocks['my_plugin_hello'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("こんにちは！");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(160);
+            }
+        };
+
+        // コード生成ロジック (Python)
+        // Blockly.Python はグローバルにアクセス可能です
+        Blockly.Python['my_plugin_hello'] = function(block) {
+            return 'print("Hello from Plugin!")\n';
+        };
     }
 }
 ```
 
 ---
 
-## 3. マーケットプレイスへの公開
+## 4. 高度なテクニック
 
-作成したプラグインを CDM のマーケットプレイス（「GitHubで探す」）に表示させるには、以下の手順が必要です。
+### 独自のツールボックスカテゴリ
+既存のカテゴリにブロックを追加するだけでなく、独自のカテゴリを作成することも可能です。
 
-1.  GitHub リポジトリを作成し、コードをアップロードする。
-2.  リポジトリの **Topics** に `edbp-plugin` を追加する。
-3.  リポジトリのルートに `manifest.json` と `plugin.js` を配置する。
-
-### 公式・公認バッジについて
-
-- **公式バッジ**: `EDBPlugin` 組織のリポジトリであること。
-- **公認バッジ**: `EDBPlugin/EDBP-API` の `1.json` リストに登録されていること。
+### 外部ライブラリの利用
+`onload` 内で `script` タグを動的に生成することで、外部 JS ライブラリを読み込めます。ただし、セキュリティ上の理由から推奨されません。
 
 ---
 
-## 4. 注意事項
+## 5. 公開とセキュリティ
 
-- **CORS制限**: ブラウザから直接外部リソースを取得する場合、CORS 制限に注意してください。CDM 本体はプロキシを使用して GitHub からのインストールをサポートしています。
-- **共有制限**: `isCustom: true` かつ `affectsBlocks: true` のプラグインが有効な場合、そのプロジェクトは共有リンクを作成できません。
-- **UUID**: インストール時にシステムによって一意の UUID が割り振られます。共有機能はこの UUID を使用してプラグインを特定します。
+### トピックの追加
+GitHub リポジトリのトピックに **`edbp-plugin`** を追加してください。
+EDBP の「GitHub で探す」機能で自動的にクロールされるようになります。
+
+### ホワイトリスト（公認）について
+公式チームによる審査を通過すると「公認」バッジが付与されます。
+公認を受けたプラグインは、共有URL機能において制限なく利用できるようになります。
+
+### セキュリティ上の注意点
+*   `isCustom: true` に設定されている場合、セキュリティ保護のためそのプラグインを含むプロジェクトの「共有」が制限されることがあります。
+*   ユーザーのトークンを外部に送信するような悪意のあるコードは、発見次第ブラックリストに登録され、実行がブロックされます。
+
+---
+
+---
+
+## 7. プラグイン検索エンジン
+
+EDBP のプラグイン検索では、以下のコマンドを使用することで高度なフィルタリングが可能です。
+
+| コマンド | 説明 | 例 |
+| :--- | :--- | :--- |
+| `tag:` | 指定したタグ（トピック）で検索します。 | `tag:utility` |
+| `author:` | 特定の開発者のプラグインを検索します。 | `author:YourName` |
+| `badge:` | バッジ（信頼レベル）でフィルタリングします。 | `badge:公式`, `badge:公認`, `badge:使用不可` |
+
+※複数のコマンドを組み合わせて使用することも可能です（例: `tag:utility badge:公式`）。

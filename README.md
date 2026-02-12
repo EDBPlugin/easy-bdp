@@ -62,6 +62,10 @@ cd easy-bdc
 
 このプロジェクトは [MIT License](LICENSE) の下で公開されています。
 
+## 🔌 プラグイン開発
+
+独自のブロックや機能を追加したい開発者の方は、[プラグイン開発ガイド](spec/Plugin.md) をご覧ください。
+
 ## 🌟 Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=himais0giiiin/easy-bdc&type=date&legend=top-left)](https://www.star-history.com/?repos=journey-ad/Moe-Counter&type=Date#himais0giiiin/easy-bdc&type=date&legend=top-left)
