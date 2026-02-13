@@ -2858,10 +2858,16 @@ const initializeApp = async () => {
     const hostname = window.location.hostname || '';
     const isBetaHost = /^beta(\.|-)/i.test(hostname);
     const downloadUrl = isBetaHost
-      ? 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/beta.zip'
-      : 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip';
+      ? 'https://codeload.github.com/himais0giiiin/edbb-runner/zip/refs/heads/beta'
+      : 'https://codeload.github.com/himais0giiiin/edbb-runner/zip/refs/heads/main';
 
-    window.open(downloadUrl, '_blank');
+    // Use direct archive endpoint + anchor click to avoid popup blockers.
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     closeRunnerDownloadModal();
   });
 
