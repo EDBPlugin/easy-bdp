@@ -1958,6 +1958,7 @@ const initializeApp = async () => {
   // ヘッダーのコード生成ボタン
   const showCodeBtn = document.getElementById('showCodeBtn');
   const runBotBtn = document.getElementById('runBotBtn');
+  const runBotBtnLabel = runBotBtn?.querySelector('span');
   // モーダル関連
   const codeModal = document.getElementById('codeModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
@@ -1982,6 +1983,17 @@ const initializeApp = async () => {
   const runnerDownloadModalClose = document.getElementById('runnerDownloadModalClose');
   const runnerDownloadCancelBtn = document.getElementById('runnerDownloadCancelBtn');
   const runnerDownloadBtn = document.getElementById('runnerDownloadBtn');
+  const runnerConsoleModal = document.getElementById('runnerConsoleModal');
+  const runnerConsoleCloseBtn = document.getElementById('runnerConsoleCloseBtn');
+  const runnerConsoleClearBtn = document.getElementById('runnerConsoleClearBtn');
+  const runnerConsoleOutput = document.getElementById('runnerConsoleOutput');
+  const runnerConsoleStateText = document.getElementById('runnerConsoleStateText');
+  const splitViewTabCodeBtn = document.getElementById('splitViewTabCodeBtn');
+  const splitViewTabConsoleBtn = document.getElementById('splitViewTabConsoleBtn');
+  const splitViewCodePanel = document.getElementById('splitViewCodePanel');
+  const splitViewConsolePanel = document.getElementById('splitViewConsolePanel');
+  const splitRunnerConsoleOutput = document.getElementById('splitRunnerConsoleOutput');
+  const splitRunnerConsoleStateText = document.getElementById('splitRunnerConsoleStateText');
 
   const importBtn = document.getElementById('importBtn');
   const exportBtn = document.getElementById('exportBtn');
@@ -1989,6 +2001,8 @@ const initializeApp = async () => {
   const workspaceContainer = document.getElementById('workspace-container');
   const layoutBlockBtn = document.getElementById('layoutBlockBtn');
   const layoutSplitBtn = document.getElementById('layoutSplitBtn');
+  const hljsThemeLight = document.getElementById('hljsThemeLight');
+  const hljsThemeDark = document.getElementById('hljsThemeDark');
   const projectTitleInput = document.getElementById('projectTitleInput');
   const initialScale = isMobileDevice ? 0.85 : 1.0;
   const maxScale = isMobileDevice ? 2.2 : 3;
@@ -1999,6 +2013,16 @@ const initializeApp = async () => {
 
   const supportsSaveFilePicker =
     typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function';
+
+  const applyCodeTheme = (theme) => {
+    const useDark = theme === 'dark';
+    if (hljsThemeLight) hljsThemeLight.disabled = useDark;
+    if (hljsThemeDark) hljsThemeDark.disabled = !useDark;
+    const liveCodeOutput = document.getElementById('codePreviewContent');
+    if (liveCodeOutput?.textContent?.trim()) {
+      hljs.highlightElement(liveCodeOutput);
+    }
+  };
 
   const getDefaultJsonFileName = () =>
     storage?.getDefaultExportFileName?.() ||
@@ -2044,6 +2068,7 @@ const initializeApp = async () => {
 
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'dark') html.classList.add('dark');
+  applyCodeTheme(savedTheme === 'dark' ? 'dark' : 'light');
   const initialTheme = savedTheme === 'dark' ? modernDarkTheme : modernLightTheme;
   applyMobileToolboxIcons(toolbox);
 
@@ -2176,9 +2201,15 @@ const initializeApp = async () => {
         'dark:text-indigo-400',
       );
       layoutSplitBtn.classList.add('text-slate-500', 'dark:text-slate-400');
+      if (!isRunnerConsoleModalOpen()) {
+        stopRunnerConsolePolling();
+      }
     }
     if (workspace) {
       setTimeout(() => Blockly.svgResize(workspace), 450);
+    }
+    if (mode === 'split') {
+      scheduleLiveCodeRefresh();
     }
   };
 
@@ -2187,14 +2218,74 @@ const initializeApp = async () => {
 
   // Live Preview Sync
   const liveCodeOutput = document.getElementById('codePreviewContent');
-  workspace.addChangeListener((e) => {
+  let livePreviewFrame = null;
+  const refreshLiveCodePreview = () => {
     if (
-      workspaceContainer.classList.contains('split-view') &&
-      !e.isUiEvent &&
-      liveCodeOutput
+      !workspaceContainer.classList.contains('split-view') ||
+      !liveCodeOutput
     ) {
+      return;
+    }
+    try {
       liveCodeOutput.textContent = generatePythonCode();
       hljs.highlightElement(liveCodeOutput);
+    } catch (error) {
+      liveCodeOutput.textContent = `# Code preview update failed\n# ${error?.message || 'unknown error'}`;
+    }
+  };
+  const scheduleLiveCodeRefresh = () => {
+    if (livePreviewFrame != null) return;
+    livePreviewFrame = requestAnimationFrame(() => {
+      livePreviewFrame = null;
+      refreshLiveCodePreview();
+    });
+  };
+  let splitViewActiveTab = 'code';
+  const setSplitViewTab = (tab) => {
+    splitViewActiveTab = tab === 'console' ? 'console' : 'code';
+    const showConsole = splitViewActiveTab === 'console';
+    splitViewCodePanel?.classList.toggle('hidden', showConsole);
+    splitViewConsolePanel?.classList.toggle('hidden', !showConsole);
+
+    if (splitViewTabCodeBtn && splitViewTabConsoleBtn) {
+      splitViewTabCodeBtn.classList.toggle('bg-emerald-500/20', !showConsole);
+      splitViewTabCodeBtn.classList.toggle('border-emerald-400/30', !showConsole);
+      splitViewTabCodeBtn.classList.toggle('text-emerald-700', !showConsole);
+      splitViewTabCodeBtn.classList.toggle('dark:text-emerald-200', !showConsole);
+      splitViewTabCodeBtn.classList.toggle('text-slate-700', showConsole);
+      splitViewTabCodeBtn.classList.toggle('dark:text-slate-300', showConsole);
+      splitViewTabCodeBtn.classList.toggle('border-transparent', showConsole);
+      splitViewTabCodeBtn.classList.toggle('hover:bg-slate-100', showConsole);
+      splitViewTabCodeBtn.classList.toggle('dark:hover:bg-slate-800/60', showConsole);
+
+      splitViewTabConsoleBtn.classList.toggle('bg-emerald-500/20', showConsole);
+      splitViewTabConsoleBtn.classList.toggle('border-emerald-400/30', showConsole);
+      splitViewTabConsoleBtn.classList.toggle('text-emerald-700', showConsole);
+      splitViewTabConsoleBtn.classList.toggle('dark:text-emerald-200', showConsole);
+      splitViewTabConsoleBtn.classList.toggle('text-slate-700', !showConsole);
+      splitViewTabConsoleBtn.classList.toggle('dark:text-slate-300', !showConsole);
+      splitViewTabConsoleBtn.classList.toggle('border-transparent', !showConsole);
+      splitViewTabConsoleBtn.classList.toggle('hover:bg-slate-100', !showConsole);
+      splitViewTabConsoleBtn.classList.toggle('dark:hover:bg-slate-800/60', !showConsole);
+    }
+    if (!showConsole) {
+      scheduleLiveCodeRefresh();
+    }
+  };
+  splitViewTabCodeBtn?.addEventListener('click', () => setSplitViewTab('code'));
+  splitViewTabConsoleBtn?.addEventListener('click', () => {
+    if (splitViewActiveTab === 'console') {
+      setSplitViewTab('code');
+      return;
+    }
+    setSplitViewTab('console');
+    startRunnerConsolePolling(false);
+  });
+  setSplitViewTab('code');
+
+  workspace.addChangeListener((e) => {
+    if (workspaceContainer.classList.contains('split-view')) {
+      scheduleLiveCodeRefresh();
     }
 
     // Auto-save
@@ -2313,6 +2404,7 @@ const initializeApp = async () => {
     html.classList.remove(currentTheme);
     html.classList.add(newTheme);
     localStorage.setItem('theme', newTheme);
+    applyCodeTheme(newTheme);
     if (workspace) {
       workspace.setTheme(newTheme === 'dark' ? modernDarkTheme : modernLightTheme);
     }
@@ -2385,6 +2477,166 @@ const initializeApp = async () => {
         modalTimers.delete(modal);
       }, 300); // Wait for transition
       modalTimers.set(modal, timer);
+    }
+  };
+
+  const RUNNER_CONSOLE_MAX_LINES = 1500;
+  let runnerConsoleOffset = 0;
+  let runnerConsolePollTimer = null;
+  let runnerConsolePollInFlight = false;
+  let runnerConsolePollSession = 0;
+  let runnerConsoleBuffer = [];
+  let runBotButtonState = 'idle';
+
+  const setRunBotButtonState = (state) => {
+    if (!runBotBtn) return;
+    runBotButtonState = state;
+    const isBusy = state === 'starting' || state === 'running';
+    runBotBtn.classList.toggle('bg-amber-600', isBusy);
+    runBotBtn.classList.toggle('hover:bg-amber-700', isBusy);
+    runBotBtn.classList.toggle('shadow-amber-500/20', isBusy);
+    runBotBtn.classList.toggle('bg-emerald-600', !isBusy);
+    runBotBtn.classList.toggle('hover:bg-emerald-700', !isBusy);
+    runBotBtn.classList.toggle('shadow-emerald-500/20', !isBusy);
+    if (runBotBtnLabel) {
+      runBotBtnLabel.textContent =
+        state === 'running' ? '起動中' : state === 'starting' ? '起動中...' : '起動';
+    }
+  };
+  setRunBotButtonState('idle');
+
+  const setRunnerConsoleState = (text) => {
+    if (runnerConsoleStateText) runnerConsoleStateText.textContent = text;
+    if (splitRunnerConsoleStateText) splitRunnerConsoleStateText.textContent = text;
+  };
+
+  const appendRunnerConsoleLines = (lines = []) => {
+    if (!Array.isArray(lines) || !lines.length) return;
+    runnerConsoleBuffer.push(...lines.map((line) => String(line)));
+    if (runnerConsoleBuffer.length > RUNNER_CONSOLE_MAX_LINES) {
+      runnerConsoleBuffer.splice(0, runnerConsoleBuffer.length - RUNNER_CONSOLE_MAX_LINES);
+    }
+    const chunk = runnerConsoleBuffer.length ? `${runnerConsoleBuffer.join('\n')}\n` : '';
+    const outputs = [runnerConsoleOutput, splitRunnerConsoleOutput].filter(Boolean);
+    outputs.forEach((outputEl) => {
+      const autoScroll =
+        outputEl.scrollTop + outputEl.clientHeight >=
+        outputEl.scrollHeight - 24;
+      outputEl.textContent = chunk;
+      if (autoScroll) {
+        outputEl.scrollTop = outputEl.scrollHeight;
+      }
+    });
+  };
+
+  const clearRunnerConsoleView = () => {
+    runnerConsoleBuffer = [];
+    if (runnerConsoleOutput) runnerConsoleOutput.textContent = '';
+    if (splitRunnerConsoleOutput) splitRunnerConsoleOutput.textContent = '';
+  };
+
+  const isRunnerConsoleModalOpen = () => {
+    return !!runnerConsoleModal?.classList.contains('show-modal');
+  };
+
+  const isSplitConsoleVisible = () => {
+    return workspaceContainer?.classList.contains('split-view') && splitViewActiveTab === 'console';
+  };
+
+  const shouldPollRunnerConsole = () => {
+    return isRunnerConsoleModalOpen() || isSplitConsoleVisible();
+  };
+
+  const stopRunnerConsolePolling = () => {
+    if (runnerConsolePollTimer) {
+      clearInterval(runnerConsolePollTimer);
+      runnerConsolePollTimer = null;
+    }
+    runnerConsolePollSession += 1;
+    runnerConsolePollInFlight = false;
+  };
+
+  const pollRunnerConsoleLogs = async (session = runnerConsolePollSession) => {
+    if (!shouldPollRunnerConsole() || runnerConsolePollInFlight || session !== runnerConsolePollSession) return;
+    runnerConsolePollInFlight = true;
+    const requestOffset = runnerConsoleOffset;
+    try {
+      const response = await fetch(`http://localhost:6859/logs?offset=${requestOffset}`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(3500),
+      });
+      if (session !== runnerConsolePollSession) return;
+      if (!response.ok) throw new Error('logs endpoint failed');
+      const payload = await response.json();
+      if (typeof payload.next_offset === 'number') {
+        runnerConsoleOffset = Math.max(runnerConsoleOffset, payload.next_offset);
+      }
+      if (Array.isArray(payload.logs) && payload.logs.length) {
+        appendRunnerConsoleLines(payload.logs);
+      }
+      if (payload.bot_running === true) {
+        setRunnerConsoleState('BOT 実行中');
+        setRunBotButtonState('running');
+      } else {
+        setRunnerConsoleState('Runner 接続中');
+        if (runBotButtonState === 'running') {
+          setRunBotButtonState('idle');
+        }
+      }
+    } catch (error) {
+      setRunnerConsoleState('Runner に接続できません');
+      if (runBotButtonState !== 'running') {
+        setRunBotButtonState('idle');
+      }
+    } finally {
+      if (session === runnerConsolePollSession) {
+        runnerConsolePollInFlight = false;
+      }
+    }
+  };
+
+  const startRunnerConsolePolling = (reset = false) => {
+    runnerConsolePollSession += 1;
+    const session = runnerConsolePollSession;
+    runnerConsolePollInFlight = false;
+    if (reset) {
+      runnerConsoleOffset = 0;
+      clearRunnerConsoleView();
+    }
+    if (runnerConsolePollTimer) {
+      clearInterval(runnerConsolePollTimer);
+      runnerConsolePollTimer = null;
+    }
+    void pollRunnerConsoleLogs(session);
+    runnerConsolePollTimer = setInterval(() => {
+      if (!shouldPollRunnerConsole()) {
+        stopRunnerConsolePolling();
+        return;
+      }
+      void pollRunnerConsoleLogs(session);
+    }, 1000);
+  };
+
+  const openRunnerConsole = ({ reset = false } = {}) => {
+    setLayout('split');
+    setSplitViewTab('console');
+    setRunnerConsoleState('接続中...');
+    startRunnerConsolePolling(reset);
+  };
+
+  const openRunnerConsoleModal = ({ reset = false } = {}) => {
+    if (!runnerConsoleModal) return;
+    toggleModal(runnerConsoleModal, true);
+    setRunnerConsoleState('接続中...');
+    startRunnerConsolePolling(reset);
+  };
+
+  const closeRunnerConsole = () => {
+    if (runnerConsoleModal) {
+      toggleModal(runnerConsoleModal, false);
+    }
+    if (!shouldPollRunnerConsole()) {
+      stopRunnerConsolePolling();
     }
   };
 
@@ -2519,6 +2771,9 @@ const initializeApp = async () => {
     runBotBtn.blur();
     if (workspace) Blockly.hideChaff();
     if (!validateBeforeCodegen()) return;
+    setRunBotButtonState('starting');
+    openRunnerConsole({ reset: true });
+    appendRunnerConsoleLines(['[editor] 起動リクエストを送信しています...']);
 
     // Show toast with loading state
     const runBotStatus = document.getElementById('runBotStatus');
@@ -2556,6 +2811,11 @@ const initializeApp = async () => {
       }
     } catch (error) {
       console.error('Failed to run bot:', error);
+      setRunBotButtonState('idle');
+      appendRunnerConsoleLines([
+        `[editor] 起動に失敗しました: ${error?.message || 'unknown error'}`,
+        '[editor] edbb-runner が起動しているか確認してください。',
+      ]);
 
       // Error - show error toast
       if (runBotStatus && runBotStatusText) {
@@ -2581,6 +2841,16 @@ const initializeApp = async () => {
     }
   };
 
+  runnerConsoleCloseBtn?.addEventListener('click', closeRunnerConsole);
+  runnerConsoleClearBtn?.addEventListener('click', () => {
+    clearRunnerConsoleView();
+  });
+  runnerConsoleModal?.addEventListener('click', (event) => {
+    if (event.target === runnerConsoleModal) {
+      closeRunnerConsole();
+    }
+  });
+
   runnerDownloadModalClose?.addEventListener('click', closeRunnerDownloadModal);
   runnerDownloadCancelBtn?.addEventListener('click', closeRunnerDownloadModal);
 
@@ -2588,10 +2858,16 @@ const initializeApp = async () => {
     const hostname = window.location.hostname || '';
     const isBetaHost = /^beta(\.|-)/i.test(hostname);
     const downloadUrl = isBetaHost
-      ? 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/beta.zip'
+      ? 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip'
       : 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip';
 
-    window.open(downloadUrl, '_blank');
+    // Use direct archive endpoint + anchor click to avoid popup blockers.
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     closeRunnerDownloadModal();
   });
 
