@@ -2480,8 +2480,12 @@ const initializeApp = async () => {
     }
   };
 
+  const RUNNER_CONSOLE_MAX_LINES = 1500;
   let runnerConsoleOffset = 0;
   let runnerConsolePollTimer = null;
+  let runnerConsolePollInFlight = false;
+  let runnerConsolePollSession = 0;
+  let runnerConsoleBuffer = [];
   let runBotButtonState = 'idle';
 
   const setRunBotButtonState = (state) => {
@@ -2508,13 +2512,17 @@ const initializeApp = async () => {
 
   const appendRunnerConsoleLines = (lines = []) => {
     if (!Array.isArray(lines) || !lines.length) return;
-    const chunk = `${lines.join('\n')}\n`;
+    runnerConsoleBuffer.push(...lines.map((line) => String(line)));
+    if (runnerConsoleBuffer.length > RUNNER_CONSOLE_MAX_LINES) {
+      runnerConsoleBuffer.splice(0, runnerConsoleBuffer.length - RUNNER_CONSOLE_MAX_LINES);
+    }
+    const chunk = runnerConsoleBuffer.length ? `${runnerConsoleBuffer.join('\n')}\n` : '';
     const outputs = [runnerConsoleOutput, splitRunnerConsoleOutput].filter(Boolean);
     outputs.forEach((outputEl) => {
       const autoScroll =
         outputEl.scrollTop + outputEl.clientHeight >=
         outputEl.scrollHeight - 24;
-      outputEl.textContent += chunk;
+      outputEl.textContent = chunk;
       if (autoScroll) {
         outputEl.scrollTop = outputEl.scrollHeight;
       }
@@ -2522,6 +2530,7 @@ const initializeApp = async () => {
   };
 
   const clearRunnerConsoleView = () => {
+    runnerConsoleBuffer = [];
     if (runnerConsoleOutput) runnerConsoleOutput.textContent = '';
     if (splitRunnerConsoleOutput) splitRunnerConsoleOutput.textContent = '';
   };
@@ -2543,19 +2552,24 @@ const initializeApp = async () => {
       clearInterval(runnerConsolePollTimer);
       runnerConsolePollTimer = null;
     }
+    runnerConsolePollSession += 1;
+    runnerConsolePollInFlight = false;
   };
 
-  const pollRunnerConsoleLogs = async () => {
-    if (!shouldPollRunnerConsole()) return;
+  const pollRunnerConsoleLogs = async (session = runnerConsolePollSession) => {
+    if (!shouldPollRunnerConsole() || runnerConsolePollInFlight || session !== runnerConsolePollSession) return;
+    runnerConsolePollInFlight = true;
+    const requestOffset = runnerConsoleOffset;
     try {
-      const response = await fetch(`http://localhost:6859/logs?offset=${runnerConsoleOffset}`, {
+      const response = await fetch(`http://localhost:6859/logs?offset=${requestOffset}`, {
         method: 'GET',
         signal: AbortSignal.timeout(3500),
       });
+      if (session !== runnerConsolePollSession) return;
       if (!response.ok) throw new Error('logs endpoint failed');
       const payload = await response.json();
       if (typeof payload.next_offset === 'number') {
-        runnerConsoleOffset = payload.next_offset;
+        runnerConsoleOffset = Math.max(runnerConsoleOffset, payload.next_offset);
       }
       if (Array.isArray(payload.logs) && payload.logs.length) {
         appendRunnerConsoleLines(payload.logs);
@@ -2574,22 +2588,32 @@ const initializeApp = async () => {
       if (runBotButtonState !== 'running') {
         setRunBotButtonState('idle');
       }
+    } finally {
+      if (session === runnerConsolePollSession) {
+        runnerConsolePollInFlight = false;
+      }
     }
   };
 
   const startRunnerConsolePolling = (reset = false) => {
+    runnerConsolePollSession += 1;
+    const session = runnerConsolePollSession;
+    runnerConsolePollInFlight = false;
     if (reset) {
       runnerConsoleOffset = 0;
       clearRunnerConsoleView();
     }
-    stopRunnerConsolePolling();
-    void pollRunnerConsoleLogs();
+    if (runnerConsolePollTimer) {
+      clearInterval(runnerConsolePollTimer);
+      runnerConsolePollTimer = null;
+    }
+    void pollRunnerConsoleLogs(session);
     runnerConsolePollTimer = setInterval(() => {
       if (!shouldPollRunnerConsole()) {
         stopRunnerConsolePolling();
         return;
       }
-      void pollRunnerConsoleLogs();
+      void pollRunnerConsoleLogs(session);
     }, 1000);
   };
 
