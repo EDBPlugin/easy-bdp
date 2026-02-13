@@ -2858,7 +2858,7 @@ const initializeApp = async () => {
     const hostname = window.location.hostname || '';
     const isBetaHost = /^beta(\.|-)/i.test(hostname);
     const downloadUrl = isBetaHost
-      ? 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/beta.zip'
+      ? 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip'
       : 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip';
 
     window.open(downloadUrl, '_blank');
