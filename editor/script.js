@@ -21,6 +21,9 @@ const detectOS = () => {
     return 'windows';
   } else if (userAgent.indexOf('mac') !== -1 || platform.indexOf('mac') !== -1) {
     return 'macos';
+  } else if (userAgent.indexOf('android') !== -1 || platform.indexOf('android') !== -1) {
+    // Android検出（Linuxより先にチェック。AndroidのuserAgentにも'linux'が含まれるため）
+    return 'android';
   } else if (userAgent.indexOf('linux') !== -1 || platform.indexOf('linux') !== -1) {
     return 'linux';
   } else {

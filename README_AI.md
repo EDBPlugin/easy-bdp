@@ -73,7 +73,7 @@ Blocklyとdiscord.pyの両方に精通しており、既存の `editor/blocks.js
 2. その後、タスク完了を告げてください。
 
 #### 【実装例のテンプレート】
-```javascript
+````javascript
 // === (1) manifest.json ===
 {
   "id": "my-awesome-plugin",
@@ -172,7 +172,7 @@ class Plugin {
 # [プラグイン名]
 ...
 ```
-```
+````
 
 #### 【高度な対応機能 (Advanced Capabilities)】
 あなたは単に新しいコードを書くだけでなく、以下の高度なタスクも実行可能です。
