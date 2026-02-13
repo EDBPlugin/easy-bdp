@@ -2861,7 +2861,13 @@ const initializeApp = async () => {
       ? 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip'
       : 'https://github.com/himais0giiiin/edbb-runner/archive/refs/heads/main.zip';
 
-    window.open(downloadUrl, '_blank');
+    // Use direct archive endpoint + anchor click to avoid popup blockers.
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     closeRunnerDownloadModal();
   });
 
