@@ -2000,11 +2000,11 @@ const initializeApp = async () => {
   // ========================================
   if (runBotBtn) {
     if (IS_WINDOWS) {
-      // Windowsでボタンを表示 (HTMLの 'hidden' クラスを削除)
-      runBotBtn.classList.remove('hidden');
+      // Windowsでボタンを表示（デスクトップのみ）
+      // 'hidden' クラスは残してモバイルでは非表示、'md:inline-flex' でデスクトップのみ表示
       runBotBtn.classList.add('md:inline-flex');
     } else {
-      // Windows以外のシステムでボタンを非表示
+      // Windows以外のシステムでボタンを完全に非表示
       runBotBtn.classList.add('hidden');
       runBotBtn.classList.remove('md:inline-flex');
     }
