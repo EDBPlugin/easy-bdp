@@ -30,7 +30,8 @@
 
     <link rel="icon" type="image/svg+xml" href="../static/icon.svg">
 
-    <!-- Tailwind CSS (JIT) - Note: Use the Tailwind CLI for production builds to avoid the browser console warning. -->
+    <!-- Tailwind CSS (JIT) - Note: CDN warning in console is expected during development. 
+         For production builds, use Tailwind CLI: https://tailwindcss.com/docs/installation -->
     <script src="https://cdn.tailwindcss.com/3.4.1"></script>
 
     <script>
@@ -299,10 +300,17 @@
                             </button>
                         </div>
                     </div>
-                    <div class="flex gap-1.5">
-                        <div class="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                        <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                        <div class="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                    <div class="flex items-center gap-2">
+                        <button id="splitViewConsoleCloseBtn"
+                            class="hidden p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            title="パネルを閉じる">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                        <div class="flex gap-1.5">
+                            <div class="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                        </div>
                     </div>
                 </div>
                 <div class="relative flex-grow bg-white dark:bg-[#0f172a] shadow-inner">
@@ -311,7 +319,8 @@
                     </div>
                     <div id="splitViewConsolePanel" class="absolute inset-0 overflow-hidden hidden">
                         <div class="h-full flex flex-col">
-                            <div class="px-4 py-2 border-b border-slate-200 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400">
+                            <div
+                                class="px-4 py-2 border-b border-slate-200 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400">
                                 <span id="splitRunnerConsoleStateText">接続待機中</span>
                             </div>
                             <pre id="splitRunnerConsoleOutput"
@@ -1098,7 +1107,8 @@
             <div
                 class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm sticky top-0 z-10">
                 <div class="flex items-center gap-3">
-                    <div class="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                    <div
+                        class="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
                         <i data-lucide="terminal-square" class="w-5 h-5"></i>
                     </div>
                     <div>

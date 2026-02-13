@@ -7,6 +7,34 @@ import { initShareFeature } from "./share.js";
 import { PluginManager } from "./plugin.js";
 import { PluginUI } from "./plugin-ui.js";
 
+// ========================================
+// OS検出 (プラットフォーム固有機能用)
+// ========================================
+// ユーザーのOSを検出します
+// 「起動」ボタンなど、プラットフォーム固有の機能の表示/非表示に使用されます
+// 将来的にLinux、macOSなどのサポートを追加する場合はここを更新してください
+const detectOS = () => {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  const platform = window.navigator.platform.toLowerCase();
+
+  if (userAgent.indexOf('win') !== -1 || platform.indexOf('win') !== -1) {
+    return 'windows';
+  } else if (userAgent.indexOf('mac') !== -1 || platform.indexOf('mac') !== -1) {
+    return 'macos';
+  } else if (userAgent.indexOf('android') !== -1 || platform.indexOf('android') !== -1) {
+    // Android検出（Linuxより先にチェック。AndroidのuserAgentにも'linux'が含まれるため）
+    return 'android';
+  } else if (userAgent.indexOf('linux') !== -1 || platform.indexOf('linux') !== -1) {
+    return 'linux';
+  } else {
+    return 'unknown';
+  }
+};
+
+const USER_OS = detectOS();
+const IS_WINDOWS = USER_OS === 'windows';
+// ========================================
+
 const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
 
 let workspace;
@@ -1959,6 +1987,33 @@ const initializeApp = async () => {
   const showCodeBtn = document.getElementById('showCodeBtn');
   const runBotBtn = document.getElementById('runBotBtn');
   const runBotBtnLabel = runBotBtn?.querySelector('span');
+
+  // ========================================
+  // OSベースの機能制御: Windowsのみ「起動」ボタンを表示
+  // 
+  // 【Linuxをサポートする場合の変更例】
+  // 以下の条件を変更してください：
+  //   if (IS_WINDOWS) {
+  // ↓ このように変更
+  //   if (IS_WINDOWS || USER_OS === 'linux') {
+  // 
+  // または、複数OSをサポートする場合：
+  //   const SUPPORTED_OS = ['windows', 'linux'];
+  //   if (SUPPORTED_OS.includes(USER_OS)) {
+  // ========================================
+  if (runBotBtn) {
+    if (IS_WINDOWS) {
+      // Windowsでボタンを表示（デスクトップのみ）
+      // 'hidden' クラスは残してモバイルでは非表示、'md:inline-flex' でデスクトップのみ表示
+      runBotBtn.classList.add('md:inline-flex');
+    } else {
+      // Windows以外のシステムでボタンを完全に非表示
+      runBotBtn.classList.add('hidden');
+      runBotBtn.classList.remove('md:inline-flex');
+    }
+  }
+  // ========================================
+
   // モーダル関連
   const codeModal = document.getElementById('codeModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
@@ -2020,6 +2075,8 @@ const initializeApp = async () => {
     if (hljsThemeDark) hljsThemeDark.disabled = !useDark;
     const liveCodeOutput = document.getElementById('codePreviewContent');
     if (liveCodeOutput?.textContent?.trim()) {
+      // Remove highlighted dataset to prevent re-highlighting warning
+      delete liveCodeOutput.dataset.highlighted;
       hljs.highlightElement(liveCodeOutput);
     }
   };
@@ -2228,6 +2285,8 @@ const initializeApp = async () => {
     }
     try {
       liveCodeOutput.textContent = generatePythonCode();
+      // Remove highlighted dataset to prevent re-highlighting warning
+      delete liveCodeOutput.dataset.highlighted;
       hljs.highlightElement(liveCodeOutput);
     } catch (error) {
       liveCodeOutput.textContent = `# Code preview update failed\n# ${error?.message || 'unknown error'}`;
@@ -2241,11 +2300,18 @@ const initializeApp = async () => {
     });
   };
   let splitViewActiveTab = 'code';
+  const splitViewConsoleCloseBtn = document.getElementById('splitViewConsoleCloseBtn');
+
   const setSplitViewTab = (tab) => {
     splitViewActiveTab = tab === 'console' ? 'console' : 'code';
     const showConsole = splitViewActiveTab === 'console';
     splitViewCodePanel?.classList.toggle('hidden', showConsole);
     splitViewConsolePanel?.classList.toggle('hidden', !showConsole);
+
+    // Always show close button when split view is active (not just on console tab)
+    // The button will close the entire split view panel
+    const isSplitView = workspaceContainer?.classList.contains('split-view');
+    splitViewConsoleCloseBtn?.classList.toggle('hidden', !isSplitView);
 
     if (splitViewTabCodeBtn && splitViewTabConsoleBtn) {
       splitViewTabCodeBtn.classList.toggle('bg-emerald-500/20', !showConsole);
@@ -2280,6 +2346,10 @@ const initializeApp = async () => {
     }
     setSplitViewTab('console');
     startRunnerConsolePolling(false);
+  });
+  splitViewConsoleCloseBtn?.addEventListener('click', () => {
+    // Close the entire split view (right panel)
+    setLayout('block');
   });
   setSplitViewTab('code');
 
@@ -2584,6 +2654,11 @@ const initializeApp = async () => {
         }
       }
     } catch (error) {
+      // Silently handle connection errors when runner is not available
+      // Only log if it's an unexpected error (not connection refused)
+      if (error.name !== 'TypeError' && !error.message?.includes('Failed to fetch')) {
+        console.warn('Runner console polling error:', error);
+      }
       setRunnerConsoleState('Runner に接続できません');
       if (runBotButtonState !== 'running') {
         setRunBotButtonState('idle');
@@ -2828,6 +2903,9 @@ const initializeApp = async () => {
       // Show download modal after a short delay
       setTimeout(() => {
         if (runnerDownloadModal) {
+          // Stop polling when showing the download modal
+          stopRunnerConsolePolling();
+          setRunBotButtonState('idle');
           toggleModal(runnerDownloadModal, true);
         }
       }, 500);
