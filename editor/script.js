@@ -2441,20 +2441,24 @@ const initializeApp = async () => {
   const pluginManager = new PluginManager(workspace);
   workspace.pluginManager = pluginManager; // storage.js からアクセスできるようにする
   storage.pluginManager = pluginManager; // share.js からアクセスできるようにする
+  let pluginUIRef = null;
 
   // プラグインの状態が変更されたら共有ボタンの状態を更新する
   const originalEnable = pluginManager.enablePlugin.bind(pluginManager);
   pluginManager.enablePlugin = async (id) => {
     await originalEnable(id);
+    pluginUIRef?.applyBlockVisibilityConfig?.();
     shareFeature?.updateShareButtonState?.();
   };
   const originalDisable = pluginManager.disablePlugin.bind(pluginManager);
   pluginManager.disablePlugin = async (id) => {
     await originalDisable(id);
+    pluginUIRef?.applyBlockVisibilityConfig?.();
     shareFeature?.updateShareButtonState?.();
   };
 
   const pluginUI = new PluginUI(pluginManager);
+  pluginUIRef = pluginUI;
   pluginManager.onPluginsSuggested((entries) => {
     pluginUI.handleBulkInstall(entries.join(','));
   });
