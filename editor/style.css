@@ -1290,4 +1290,8 @@ button:active {
   display: block;
   margin: 0.5rem 0;
 }
-
+/* Lift Blockly floating controls (trash, zoom +/-) slightly upward */
+.blocklyTrash,
+.blocklyZoom {
+  translate: 0 -35px;
+}
