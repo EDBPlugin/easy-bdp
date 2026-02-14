@@ -48,10 +48,13 @@ Blocklyとdiscord.pyの両方に精通しており、既存の `editor/blocks.js
    - `init` 関数内で定義。
    - アイコン絵文字を `appendField` の冒頭に使用。
    - `setColour` は適切な色相値 (0-360) を指定。
+   - イベント系は `30`、メッセージ系は `160`、制御系は `210`、変数系は `330` など。
 2. **Blockly.Python.forBlock['id']**:
-   - `getBranchCode(block, 'NAME')` を活用してステータス入力（ブロックの塊）を処理。
-   - 変数取得には `Blockly.Python.valueToCode` を使用し、デフォルト値を設定。
+   - **ステートメント入力の取得**: `Blockly.Python.statementToCode(block, 'NAME')` を使用。空の場合は `'    pass\\n'` をデフォルト値として設定。
+   - **値入力の取得**: `Blockly.Python.valueToCode(block, 'NAME', Blockly.Python.ORDER_NONE)` を使用し、デフォルト値（`|| "'デフォルト値'"`）を必ず設定。
+   - **フィールド値の取得**: `block.getFieldValue('FIELD_NAME')` を使用。
    - 出力するPythonコードは `discord.py` の最新仕様（スラッシュコマンド、Interaction対応）に準拠させる。
+   - **Pythonの構文を厳守**: `async def` (NOT `async function`), インデントは4スペース、コロン `:` を忘れない。
 3. **日本語対応**: UIテキスト、ツールチップ、ヘルプは全て日本語。
 
 #### 【出力ファイルの必須要件】
@@ -60,9 +63,12 @@ Blocklyとdiscord.pyの両方に精通しており、既存の `editor/blocks.js
 1. **manifest.json**: 
    - `spec/Plugin.md` に準拠。
    - **バージョン管理**: 指示がない限り、勝手にバージョンを上げない（既存のプラグイン更新時）。
+   - `affectsStyle`: CSSを追加する場合は `true`、しない場合は `false`。
+   - `affectsBlocks`: ブロックを追加する場合は `true`、しない場合は `false`。
 2. **plugin.js**: `Plugin` クラスを実装。クリーンアップ（`onunload`）を忘れずに。
 3. **README.md**: 
    - ユーザーが直接保存できるよう、**必ずコードブロック（\```markdown ... \```）で囲って出力してください。**
+   - プラグインの機能、追加されるブロック、使用例、注意事項を記載。
 
 #### 【完了時のアクション】
 全てのコード出力が終わったら、必ず以下の手順でタスクを完了させてください。
@@ -71,6 +77,96 @@ Blocklyとdiscord.pyの両方に精通しており、既存の `editor/blocks.js
    - **エージェント（コマンド実行権限あり）の場合**: シェルコマンドを使用して、出力したファイルを `plugin.zip` に圧縮し、ユーザーに提供してください。
    - **通常のAIチャット（コマンド実行不可）の場合**: ユーザーが生成されたコード群をローカルで簡単にZIP化できるように、**「保存用Pythonスクリプト」**（各ファイルを書き出してzip化する一連のコード）を併せて出力してください。
 2. その後、タスク完了を告げてください。
+
+#### 【よくある間違いと対策】
+
+**🚫 間違い1: Python構文エラー**
+```javascript
+// ❌ 悪い例
+const code = `
+@tasks.loop(time=datetime.time(hour=${hour}, minute=${minute}))
+async function scheduled_task():  // ← JavaScriptの構文！
+${branch}
+`;
+
+// ✅ 正しい例
+const code = `
+@tasks.loop(time=datetime.time(hour=${hour}, minute=${minute}))
+async def scheduled_task():  // ← Pythonの構文
+${branch}
+`;
+```
+
+**🚫 間違い2: ステートメント入力の取得方法**
+```javascript
+// ❌ 悪い例（getBranchCodeはプラグイン内で使用不可）
+const branch = getBranchCode(block, 'DO');
+
+// ✅ 正しい例
+const branch = Blockly.Python.statementToCode(block, 'DO') || '    pass\\n';
+```
+
+**🚫 間違い3: ツールボックスの更新（XML形式のみ対応）**
+```javascript
+// ❌ 悪い例（JSON形式に対応していない）
+applyCategory() {
+  const toolbox = this.workspace.options.languageTree;
+  if (!toolbox || toolbox.querySelector('category[name="カテゴリ名"]')) return;
+  // ...
+}
+
+// ✅ 正しい例（XML/JSON両対応）
+applyCategory() {
+  const workspace = this.workspace;
+  let toolbox = workspace.options.languageTree;
+  if (!toolbox) return;
+
+  const catName = '✨ カテゴリ名';
+
+  // XML形式の場合
+  if (typeof toolbox === 'string' || toolbox instanceof Element || toolbox instanceof Document) {
+    if (typeof toolbox === 'string') {
+      toolbox = new DOMParser().parseFromString(toolbox, 'text/xml').documentElement;
+    }
+    if (toolbox.querySelector(\`category[name="\${catName}"]\`)) return;
+
+    const newCat = document.createElement('category');
+    newCat.setAttribute('name', catName);
+    newCat.setAttribute('colour', '200');
+    newCat.innerHTML = \`<block type="my_block"></block>\`;
+    toolbox.appendChild(newCat);
+    workspace.updateToolbox(toolbox);
+  } 
+  // JSON形式の場合
+  else if (toolbox.contents) {
+    if (toolbox.contents.find(c => c.name === catName)) return;
+    toolbox.contents.push({
+      kind: 'category',
+      name: catName,
+      colour: '200',
+      contents: [{ kind: 'block', type: 'my_block' }]
+    });
+    workspace.updateToolbox(toolbox);
+  }
+}
+```
+
+**🚫 間違い4: インデントの不整合**
+```javascript
+// ❌ 悪い例（Pythonのインデントが不正）
+const branch = Blockly.Python.statementToCode(block, 'DO');
+const code = `
+async def my_function():
+${branch}  // ← branchは既にインデント済みなので、ここで追加インデント不要
+`;
+
+// ✅ 正しい例
+const branch = Blockly.Python.statementToCode(block, 'DO') || '    pass\\n';
+const code = `
+async def my_function():
+${branch}
+`;
+```
 
 #### 【実装例のテンプレート】
 ````javascript
@@ -82,7 +178,7 @@ Blocklyとdiscord.pyの両方に精通しており、既存の `editor/blocks.js
   "author": "YourName",
   "description": "説明文をここに記載",
   "tags": ["utility"],
-  "affectsStyle": true,
+  "affectsStyle": false,
   "affectsBlocks": true,
   "license": "MIT"
 }
@@ -96,8 +192,8 @@ class Plugin {
   }
 
   async onload() {
-    // 1. スタイルの適用
-    this.applyStyles();
+    // 1. スタイルの適用（必要な場合）
+    // this.applyStyles();
     // 2. ブロックの登録
     this.registerBlocks();
     // 3. カテゴリーの追加 (必要な場合)
@@ -113,23 +209,42 @@ class Plugin {
   }
 
   applyStyles() {
-    const css = `.blocklyText { font-family: 'Gothic'; }`;
+    const css = \`.blocklyText { font-family: 'Gothic'; }\`;
     this.styleElement = document.createElement('style');
     this.styleElement.textContent = css;
     document.head.appendChild(this.styleElement);
   }
 
   registerBlocks() {
+    // ブロック定義
     Blockly.Blocks['my_plugin_block'] = {
       init: function() {
-        this.appendDummyInput().appendField('💡 プラグインブロック');
+        this.appendDummyInput()
+            .appendField('💡 プラグインブロック');
+        this.appendStatementInput('DO')
+            .setCheck(null)
+            .appendField('実行内容');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(200);
+        this.setTooltip('プラグインのサンプルブロックです。');
+        this.setHelpUrl('');
       }
     };
+
+    // Python生成ロジック
     Blockly.Python.forBlock['my_plugin_block'] = function(block) {
-      return 'print("Hello from Plugin!")\\n';
+      // ステートメント入力の取得（空の場合はpassを返す）
+      const branch = Blockly.Python.statementToCode(block, 'DO') || '    pass\\n';
+      
+      // Pythonコードの生成（構文に注意！）
+      const code = \`
+async def my_plugin_function():
+\${branch}
+
+await my_plugin_function()
+\`;
+      return code;
     };
   }
 
@@ -138,18 +253,19 @@ class Plugin {
     let toolbox = workspace.options.languageTree;
     if (!toolbox) return;
 
-    // カテゴリ名
     const catName = '✨ プラグイン';
 
     // 1. XML形式のツールボックスの場合
     if (typeof toolbox === 'string' || toolbox instanceof Element || toolbox instanceof Document) {
-      if (typeof toolbox === 'string') toolbox = new DOMParser().parseFromString(toolbox, 'text/xml').documentElement;
-      if (toolbox.querySelector(`category[name="${catName}"]`)) return;
+      if (typeof toolbox === 'string') {
+        toolbox = new DOMParser().parseFromString(toolbox, 'text/xml').documentElement;
+      }
+      if (toolbox.querySelector(\`category[name="\${catName}"]\`)) return;
 
       const newCat = document.createElement('category');
       newCat.setAttribute('name', catName);
       newCat.setAttribute('colour', '200');
-      newCat.innerHTML = `<block type="my_plugin_block"></block>`;
+      newCat.innerHTML = \`<block type="my_plugin_block"></block>\`;
       toolbox.appendChild(newCat);
       workspace.updateToolbox(toolbox);
     } 
@@ -168,11 +284,26 @@ class Plugin {
 }
 
 // === (3) README.md ===
-```markdown
-# [プラグイン名]
-...
-```
-````
+\`\`\`markdown
+# プラグイン名
+
+プラグインの簡単な説明をここに記載します。
+
+## 追加されるブロック
+- **💡 プラグインブロック**: 
+    - 説明文をここに記載
+    - 使用例や注意事項など
+
+## 使用例
+\`\`\`
+（使用例のスクリーンショットや説明）
+\`\`\`
+
+## 注意事項
+- 注意点1
+- 注意点2
+\`\`\`
+\`\`\`\`
 
 #### 【高度な対応機能 (Advanced Capabilities)】
 あなたは単に新しいコードを書くだけでなく、以下の高度なタスクも実行可能です。

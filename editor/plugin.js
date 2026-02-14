@@ -588,6 +588,9 @@ export class PluginManager {
 
         const pluginMeta = this.installedPlugins[id];
         if (!pluginMeta) return;
+        const beforeBlockTypes = new Set(
+            Object.keys((typeof Blockly !== 'undefined' && Blockly?.Blocks) ? Blockly.Blocks : {})
+        );
 
         try {
             if (pluginMeta.script) {
@@ -610,6 +613,17 @@ export class PluginManager {
                 this.plugins.set(id, pluginClass);
             } else if (pluginMeta.affectsStyle) {
                 this.plugins.set(id, { onunload: () => { } });
+            }
+
+            const afterBlockTypes = Object.keys(
+                (typeof Blockly !== 'undefined' && Blockly?.Blocks) ? Blockly.Blocks : {}
+            );
+            const detectedTypes = afterBlockTypes.filter((type) => !beforeBlockTypes.has(type));
+            const existingTypes = Array.isArray(pluginMeta.blockTypes) ? pluginMeta.blockTypes : [];
+            const mergedTypes = Array.from(new Set([...existingTypes, ...detectedTypes]));
+            if (mergedTypes.length > 0) {
+                pluginMeta.blockTypes = mergedTypes;
+                this.saveInstalledPlugins();
             }
 
             this.enabledPlugins.add(id);
@@ -654,6 +668,11 @@ export class PluginManager {
     }
 
     // プラグインインストール用のURLを生成
+    getPluginBlockTypes(id) {
+        const plugin = this.installedPlugins[id];
+        return Array.isArray(plugin?.blockTypes) ? plugin.blockTypes : [];
+    }
+
     getInstallUrl(id) {
         const meta = this.installedPlugins[id];
         if (!meta || meta.installedFrom !== 1 || !meta.repo) return null;

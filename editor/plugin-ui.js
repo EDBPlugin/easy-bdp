@@ -3,6 +3,7 @@
  * Market-style plugin management with integrated search and uninstallation.
  */
 const PLUGIN_MOBILE_WARNING_SKIP_KEY = 'edbb_plugin_mobile_warning_skip';
+const PLUGIN_BLOCK_VISIBILITY_STORAGE_KEY = 'edbb_plugin_block_visibility_v1';
 
 export class PluginUI {
     constructor(pluginManager) {
@@ -30,6 +31,13 @@ export class PluginUI {
         this.bulkInstallConfirmBtn = document.getElementById('pluginBulkInstallConfirmBtn');
         this.bulkInstallCancelBtn = document.getElementById('pluginBulkInstallCancelBtn');
         this.bulkInstallCloseBtn = document.getElementById('pluginBulkInstallClose');
+        this.settingsModal = document.getElementById('pluginSettingsModal');
+        this.settingsCloseBtn = document.getElementById('pluginSettingsClose');
+        this.settingsSearchInput = document.getElementById('pluginSettingsSearchInput');
+        this.settingsResetBtn = document.getElementById('pluginSettingsResetBtn');
+        this.settingsList = document.getElementById('pluginSettingsList');
+        this.settingsTargetPluginId = null;
+        this.pluginBlockVisibility = this.loadPluginBlockVisibility();
 
         this.init();
     }
@@ -111,6 +119,8 @@ export class PluginUI {
         this.bulkInstallModal?.addEventListener('click', (e) => {
             if (e.target === this.bulkInstallModal) this.closeBulkInstall();
         });
+        this.initSettingsModal();
+        this.applyBlockVisibilityConfig();
 
         // URLパラメータによるプラグインインストールのチェック
         this.handleUrlParams();
@@ -153,6 +163,165 @@ export class PluginUI {
                 });
             });
         }
+    }
+
+    initSettingsModal() {
+        this.settingsCloseBtn?.addEventListener('click', () => this.closeSettingsModal());
+        this.settingsModal?.addEventListener('click', (e) => {
+            if (e.target === this.settingsModal) this.closeSettingsModal();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && this.settingsModal && !this.settingsModal.classList.contains('hidden')) {
+                this.closeSettingsModal();
+            }
+        });
+        this.settingsSearchInput?.addEventListener('input', () => this.renderSettingsList());
+        this.settingsResetBtn?.addEventListener('click', () => {
+            if (!this.settingsTargetPluginId) return;
+            delete this.pluginBlockVisibility[this.settingsTargetPluginId];
+            this.savePluginBlockVisibility();
+            this.applyBlockVisibilityConfig();
+            this.renderSettingsList();
+        });
+    }
+
+    openSettingsModal(pluginId = null) {
+        this.settingsTargetPluginId = pluginId;
+        if (!this.settingsModal) return;
+        this.renderSettingsList();
+        this.settingsModal.classList.remove('hidden');
+        this.settingsModal.classList.add('flex');
+        this.settingsModal.setAttribute('aria-hidden', 'false');
+        void this.settingsModal.offsetWidth;
+        this.settingsModal.classList.add('show-modal');
+    }
+
+    closeSettingsModal() {
+        if (!this.settingsModal) return;
+        this.settingsModal.classList.remove('show-modal');
+        this.settingsModal.setAttribute('aria-hidden', 'true');
+        setTimeout(() => {
+            this.settingsModal?.classList.remove('flex');
+            this.settingsModal?.classList.add('hidden');
+        }, 300);
+    }
+
+    loadPluginBlockVisibility() {
+        try {
+            const raw = localStorage.getItem(PLUGIN_BLOCK_VISIBILITY_STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return (parsed && typeof parsed === 'object') ? parsed : {};
+        } catch (error) {
+            return {};
+        }
+    }
+
+    savePluginBlockVisibility() {
+        localStorage.setItem(PLUGIN_BLOCK_VISIBILITY_STORAGE_KEY, JSON.stringify(this.pluginBlockVisibility));
+    }
+
+    getHiddenBlockSetForPlugin(pluginId) {
+        if (!pluginId) return new Set();
+        const raw = this.pluginBlockVisibility[pluginId];
+        if (!Array.isArray(raw)) return new Set();
+        return new Set(raw);
+    }
+
+    getHiddenBlockTypesUnion() {
+        const allHidden = new Set();
+        Object.values(this.pluginBlockVisibility).forEach((items) => {
+            if (!Array.isArray(items)) return;
+            items.forEach((type) => allHidden.add(type));
+        });
+        return allHidden;
+    }
+
+    getToolboxTemplate() {
+        const toolbox = document.getElementById('toolbox');
+        if (!toolbox) return null;
+        return toolbox.cloneNode(true);
+    }
+
+    applyBlockVisibilityConfig() {
+        const workspace = this.pluginManager.workspace;
+        const template = this.getToolboxTemplate();
+        if (!workspace || !template || typeof workspace.updateToolbox !== 'function') return;
+        const hiddenBlockTypes = this.getHiddenBlockTypesUnion();
+
+        const filtered = template.cloneNode(true);
+        const categories = Array.from(filtered.querySelectorAll('category'));
+        categories.forEach((category) => {
+            Array.from(category.querySelectorAll('block')).forEach((block) => {
+                const type = block.getAttribute('type');
+                if (type && hiddenBlockTypes.has(type)) {
+                    block.remove();
+                }
+            });
+
+            const hasCustom = category.hasAttribute('custom');
+            const hasBlocks = !!category.querySelector('block');
+            if (!hasCustom && !hasBlocks) {
+                category.remove();
+            }
+        });
+
+        const remainingCategories = filtered.querySelectorAll('category').length;
+        if (remainingCategories === 0) {
+            workspace.updateToolbox(template.cloneNode(true));
+            return;
+        }
+
+        workspace.updateToolbox(filtered);
+    }
+
+    renderSettingsList() {
+        if (!this.settingsList) return;
+        const query = (this.settingsSearchInput?.value || '').trim().toLowerCase();
+        this.settingsList.innerHTML = '';
+        const pluginId = this.settingsTargetPluginId;
+        if (!pluginId) {
+            this.settingsList.innerHTML = '<div class="text-sm text-slate-500 dark:text-slate-400">No plugin selected.</div>';
+            return;
+        }
+        const targetPlugin = this.pluginManager.getRegistry().find((item) => item.id === pluginId);
+        const pluginName = targetPlugin?.name || pluginId;
+        const titleEl = document.getElementById('pluginSettingsTargetLabel');
+        if (titleEl) titleEl.textContent = pluginName;
+        const blockTypes = (this.pluginManager.getPluginBlockTypes?.(pluginId) || []).filter(Boolean);
+        if (blockTypes.length === 0) {
+            this.settingsList.innerHTML = '<div class="text-sm text-slate-500 dark:text-slate-400">このプラグインのブロック情報がありません。プラグインを有効化してから再度開いてください。</div>';
+            return;
+        }
+        const hiddenSet = this.getHiddenBlockSetForPlugin(pluginId);
+        const visibleTypes = blockTypes.filter((type) => !query || String(type).toLowerCase().includes(query));
+        if (visibleTypes.length === 0) {
+            this.settingsList.innerHTML = '<div class="text-sm text-slate-500 dark:text-slate-400">検索結果がありません。</div>';
+            return;
+        }
+
+        const listHtml = visibleTypes.map((type) => {
+            const checked = hiddenSet.has(type) ? '' : 'checked';
+            return `
+                <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                    <input data-block-type="${this.escapeHtml(type)}" type="checkbox" ${checked} class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="font-mono">${this.escapeHtml(type)}</span>
+                </label>
+            `;
+        }).join('');
+        this.settingsList.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${listHtml}</div>`;
+
+        this.settingsList.querySelectorAll('input[data-block-type]').forEach((el) => {
+            el.addEventListener('change', (event) => {
+                const type = event.target.getAttribute('data-block-type');
+                if (!type || !this.settingsTargetPluginId) return;
+                const mutableSet = this.getHiddenBlockSetForPlugin(this.settingsTargetPluginId);
+                if (event.target.checked) mutableSet.delete(type);
+                else mutableSet.add(type);
+                this.pluginBlockVisibility[this.settingsTargetPluginId] = Array.from(mutableSet);
+                this.savePluginBlockVisibility();
+                this.applyBlockVisibilityConfig();
+            });
+        });
     }
 
     async handleUrlParams() {
@@ -971,6 +1140,17 @@ export class PluginUI {
             </div>
         `;
         lucide.createIcons();
+        const shareBtn = document.getElementById('sharePluginBtn');
+        if (shareBtn && shareBtn.parentElement) {
+            const settingsBtn = document.createElement('button');
+            settingsBtn.id = 'pluginSettingsBtn';
+            settingsBtn.className = 'p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-900/20 transition-all';
+            settingsBtn.title = 'Settings';
+            settingsBtn.innerHTML = '<i data-lucide="settings" class="w-5 h-5"></i>';
+            shareBtn.parentElement.insertBefore(settingsBtn, shareBtn);
+            settingsBtn.addEventListener('click', () => this.openSettingsModal(plugin.id));
+            lucide.createIcons();
+        }
 
         this.loadLocalREADME(plugin);
 
