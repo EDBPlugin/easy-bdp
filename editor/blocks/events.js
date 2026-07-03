@@ -67,9 +67,10 @@ export function initEvents() {
         },
     };
     Blockly.Python.forBlock['on_reaction_add'] = function (block) {
-        const msgId = (block.getFieldValue('MESSAGE_ID') || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const emoji = (block.getFieldValue('EMOJI') || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        // JSON.stringify で Python 文字列リテラルとしても安全な形にエスケープする
+        const msgId = JSON.stringify(String(block.getFieldValue('MESSAGE_ID') || '').trim());
+        const emoji = JSON.stringify(String(block.getFieldValue('EMOJI') || '').trim());
         const branch = getBranchCode(block, 'DO');
-        return `\n@bot.event\nasync def on_raw_reaction_add(payload):\n    if payload.user_id == bot.user.id:\n        return\n    if '${msgId}' and str(payload.message_id) != '${msgId}':\n        return\n    if '${emoji}' and str(payload.emoji) != '${emoji}':\n        return\n    channel = bot.get_channel(payload.channel_id) or await bot.fetch_channel(payload.channel_id)\n    if not channel:\n        return\n    message = await channel.fetch_message(payload.message_id)\n    user = payload.member or bot.get_user(payload.user_id)\n    ctx = message\n${branch.trimEnd()}\n`;
+        return `\n@bot.event\nasync def on_raw_reaction_add(payload):\n    if payload.user_id == bot.user.id:\n        return\n    if ${msgId} and str(payload.message_id) != ${msgId}:\n        return\n    if ${emoji} and str(payload.emoji) != ${emoji}:\n        return\n    channel = bot.get_channel(payload.channel_id) or await bot.fetch_channel(payload.channel_id)\n    if not channel:\n        return\n    message = await channel.fetch_message(payload.message_id)\n    user = payload.member or bot.get_user(payload.user_id)\n    ctx = message\n${branch.trimEnd()}\n`;
     };
 }

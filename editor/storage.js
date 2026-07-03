@@ -1,3 +1,5 @@
+import { showTopRightToast } from './core/ui.js';
+
 // 共有リンク用にワークスペースのJSONを極小化・圧縮するクラス
 // IDデータを削除し、LZStringで圧縮してURLエンコード可能な形式に変換する
 class WorkspaceShareCodec {
@@ -101,9 +103,16 @@ class WorkspaceShareCodec {
       }
 
       // 最後にワークスペースを読み込む
+      // イベントを止めて読み込むことで、自動保存などのリスナーが
+      // 共有データでローカルの保存内容を上書きしてしまうのを防ぐ
       try {
         if (workspaceData) {
-          Blockly.serialization.workspaces.load(workspaceData, workspace);
+          Blockly.Events.disable();
+          try {
+            Blockly.serialization.workspaces.load(workspaceData, workspace);
+          } finally {
+            Blockly.Events.enable();
+          }
         }
       } catch (loadError) {
         console.warn('Blockly load encountered errors (possibly missing block definitions):', loadError);
@@ -139,6 +148,7 @@ export default class WorkspaceStorage {
 
   #workspace;
   #titleProvider = () => WorkspaceStorage.DEFAULT_TITLE;
+  #saveFailureNotified = false;
 
   constructor(workspace) {
     this.#workspace = workspace;
@@ -258,13 +268,25 @@ export default class WorkspaceStorage {
   }
 
   // 現在のワークスペース状態をlocalStorageへ保存
+  // 成功時は true、失敗時は false を返す
   save() {
     const json = this.exportText({ pretty: false });
-    if (!json) return;
+    if (!json) return false;
     try {
       localStorage.setItem(WorkspaceStorage.STORAGE_KEY, json);
+      this.#saveFailureNotified = false;
+      return true;
     } catch (error) {
       console.error('ワークスペースの保存に失敗しました。', error);
+      // 容量超過などの保存失敗をユーザーへ通知（成功するまで1回だけ）
+      if (!this.#saveFailureNotified) {
+        this.#saveFailureNotified = true;
+        showTopRightToast(
+          '自動保存に失敗しました。ブラウザの保存容量が不足している可能性があります。JSONエクスポートでバックアップしてください。',
+          { icon: 'error', timer: 6000 },
+        );
+      }
+      return false;
     }
   }
 

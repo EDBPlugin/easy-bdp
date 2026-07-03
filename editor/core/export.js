@@ -3,16 +3,25 @@
 const indentBlock = (block, spaces = 4) =>
   block
     .split('\n')
-    .map((line) => (line.trim() === '' ? '' : `${' '.repeat(spaces)}${line} `))
+    .map((line) => (line.trim() === '' ? '' : `${' '.repeat(spaces)}${line}`))
     .join('\n');
 
 const addSelfParam = (block) =>
   block.replace(/async def ([^(]+)\(([^)]*)\)/, (match, name, params) => {
     const trimmed = params.trim();
-    if (!trimmed) return `async def ${name} (self)`;
-    if (trimmed.startsWith('self')) return `async def ${name} (${trimmed})`;
-    return `async def ${name} (self, ${trimmed})`;
+    if (!trimmed) return `async def ${name}(self)`;
+    if (trimmed.startsWith('self')) return `async def ${name}(${trimmed})`;
+    return `async def ${name}(self, ${trimmed})`;
   });
+
+// innerHTML へ埋め込む文字列のエスケープ（属性値でも安全なようにクォートも対象）
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const convertEventBlock = (block) => {
   let updated = block.replace('@bot.event', '@commands.Cog.listener()');
@@ -120,14 +129,15 @@ export const renderSplitFiles = (files) => {
     const item = document.createElement('div');
     item.className =
       'rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden';
+    const safePath = escapeHtml(path);
     item.innerHTML = `
       <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-mono text-xs">
-        <div class="text-slate-600 dark:text-slate-300 font-bold overflow-hidden text-ellipsis whitespace-nowrap" title="${path}">${path}</div>
+        <div class="text-slate-600 dark:text-slate-300 font-bold overflow-hidden text-ellipsis whitespace-nowrap" title="${safePath}">${safePath}</div>
         <div class="flex items-center gap-2 shrink-0">
-          <button class="splitCopyBtn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" data-path="${path}">
+          <button class="splitCopyBtn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" data-path="${safePath}">
             <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
           </button>
-          <button class="splitDownloadBtn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm" data-path="${path}">
+          <button class="splitDownloadBtn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm" data-path="${safePath}">
             <i data-lucide="download" class="w-3.5 h-3.5"></i> DL
           </button>
         </div>

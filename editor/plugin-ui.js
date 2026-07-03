@@ -934,7 +934,7 @@ export class PluginUI {
                             prose-h3:text-lg prose-h3:font-bold prose-h3:mt-4 prose-h3:mb-2
                             prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-p:leading-relaxed">${this.renderMarkdown(readme)}</div>`;
                     } catch (err) {
-                        detailView.innerHTML = `<p class="text-xs text-red-500">READMEの取得に失敗しました: ${err.message}</p>`;
+                        detailView.innerHTML = `<p class="text-xs text-red-500">READMEの取得に失敗しました: ${this.escapeHtml(err?.message || String(err))}</p>`;
                     }
                 } else {
                     detailView.classList.add('hidden');
@@ -2572,7 +2572,7 @@ export class PluginUI {
             container.innerHTML = `<div class="font-sans text-sm leading-relaxed"><div class="readme-content">${this.renderMarkdown(readme)}</div>${showReadmeAd ? this.getReadmeAdHtml() : ''}</div>`;
             this.initReadmeAds(container);
         } else {
-            container.innerHTML = `<p class="text-sm text-slate-500">${plugin.description}</p>`;
+            container.innerHTML = `<p class="text-sm text-slate-500">${this.escapeHtml(plugin.description || '')}</p>`;
         }
     }
 

@@ -17,9 +17,10 @@ export function initUI() {
     };
     Blockly.Python.forBlock['send_button_message'] = function (block) {
         const msg = Blockly.Python.valueToCode(block, 'MESSAGE', Blockly.Python.ORDER_NONE) || '""';
-        const label = (block.getFieldValue('LABEL') || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const customId = (block.getFieldValue('CUSTOM_ID') || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        return `\nview = discord.ui.View()\nview.add_item(discord.ui.Button(label="${label}", custom_id="${customId}"))\nif 'ctx' in locals():\n    if isinstance(ctx, discord.Interaction):\n        await ctx.response.send_message(content=${msg}, view=view)\n    else:\n        await ctx.send(content=${msg}, view=view)\n`;
+        // JSON.stringify で Python 文字列リテラルとしても安全な形にエスケープする
+        const label = JSON.stringify(String(block.getFieldValue('LABEL') || ''));
+        const customId = JSON.stringify(String(block.getFieldValue('CUSTOM_ID') || ''));
+        return `\nview = discord.ui.View()\nview.add_item(discord.ui.Button(label=${label}, custom_id=${customId}))\nif 'ctx' in locals():\n    if isinstance(ctx, discord.Interaction):\n        await ctx.response.send_message(content=${msg}, view=view)\n    else:\n        await ctx.send(content=${msg}, view=view)\n`;
     };
 
     Blockly.Blocks['on_button_click'] = {
@@ -60,14 +61,15 @@ export function initUI() {
         },
     };
     Blockly.Python.forBlock['show_modal'] = function (block) {
-        const title = (block.getFieldValue('TITLE') || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const customId = (block.getFieldValue('CUSTOM_ID') || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const label1 = (block.getFieldValue('LABEL1') || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const label2 = (block.getFieldValue('LABEL2') || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        let inputs = `[{"label": "${label1}", "id": "input_0"}]`;
-        if (label2)
-            inputs = `[{"label": "${label1}", "id": "input_0"}, {"label": "${label2}", "id": "input_1"}]`;
-        return `\nif isinstance(ctx, discord.Interaction):\n    await ctx.response.send_modal(EasyModal(title="${title}", custom_id="${customId}", inputs=${inputs}))\n`;
+        // JSON.stringify で Python リテラルとしても安全な形にエスケープする
+        const title = JSON.stringify(String(block.getFieldValue('TITLE') || ''));
+        const customId = JSON.stringify(String(block.getFieldValue('CUSTOM_ID') || ''));
+        const label1 = String(block.getFieldValue('LABEL1') || '');
+        const label2 = String(block.getFieldValue('LABEL2') || '');
+        const inputEntries = [{ label: label1, id: 'input_0' }];
+        if (label2) inputEntries.push({ label: label2, id: 'input_1' });
+        const inputs = JSON.stringify(inputEntries);
+        return `\nif isinstance(ctx, discord.Interaction):\n    await ctx.response.send_modal(EasyModal(title=${title}, custom_id=${customId}, inputs=${inputs}))\n`;
     };
 
     Blockly.Blocks['on_modal_submit'] = {

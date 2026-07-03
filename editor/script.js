@@ -983,6 +983,10 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
       closeModal();
     }
   });
+  // 他のモーダルと同様に背景クリックでも閉じられるようにする
+  modal?.addEventListener('click', (event) => {
+    if (event.target === modal) closeModal();
+  });
   window.addEventListener('beforeunload', saveNow);
 
   const applyShareViewState = (isViewOnly) => {
@@ -1484,22 +1488,44 @@ const initializeApp = async () => {
   });
   setSplitViewTab('code');
 
+  const saveStatusEl = document.getElementById('saveStatus');
+  let workspaceAutoSaveTimer = null;
+  let saveStatusHideTimer = null;
+  const runWorkspaceAutoSave = () => {
+    // 共有リンクの閲覧モード中はローカルプロジェクトを上書きしない
+    if (shareFeature.isShareViewMode()) return;
+    const saved = storage?.save();
+    if (saved && saveStatusEl) {
+      saveStatusEl.setAttribute('data-show', 'true');
+      clearTimeout(saveStatusHideTimer);
+      saveStatusHideTimer = setTimeout(() => saveStatusEl.setAttribute('data-show', 'false'), 2000);
+    }
+  };
+  const flushWorkspaceAutoSave = () => {
+    if (!workspaceAutoSaveTimer) return;
+    clearTimeout(workspaceAutoSaveTimer);
+    workspaceAutoSaveTimer = null;
+    runWorkspaceAutoSave();
+  };
   workspace.addChangeListener((e) => {
     if (workspaceContainer.classList.contains('split-view')) {
       scheduleLiveCodeRefresh();
     }
 
-    // Auto-save
+    // Auto-save (300msデバウンス)
     if (
       !e.isUiEvent &&
-      e.type !== Blockly.Events.FINISHED_LOADING
+      e.type !== Blockly.Events.FINISHED_LOADING &&
+      !shareFeature.isShareViewMode()
     ) {
-      storage?.save();
-      const saveStatus = document.getElementById('saveStatus');
-      saveStatus.setAttribute('data-show', 'true');
-      setTimeout(() => saveStatus.setAttribute('data-show', 'false'), 2000);
+      clearTimeout(workspaceAutoSaveTimer);
+      workspaceAutoSaveTimer = setTimeout(() => {
+        workspaceAutoSaveTimer = null;
+        runWorkspaceAutoSave();
+      }, 300);
     }
   });
+  window.addEventListener('beforeunload', flushWorkspaceAutoSave);
 
   // --- Toolbox Pin Button (Re-implementation) ---
   const pinBtn = document.createElement('button');
@@ -1696,6 +1722,36 @@ const initializeApp = async () => {
   };
 
   themeToggle.addEventListener('click', toggleTheme);
+
+  const newProjectBtn = document.getElementById('newProjectBtn');
+  newProjectBtn?.addEventListener('click', async () => {
+    if (shareFeature.isShareViewMode()) return;
+    if (workspace.getAllBlocks(false).length === 0) {
+      showTopRightToast('ワークスペースは既に空です', { icon: 'info' });
+      return;
+    }
+    const ok = await showConfirmDialog(
+      '現在のブロックをすべて削除して新規プロジェクトを開始しますか？この操作は元に戻せません。',
+      { icon: 'warning', confirmButtonText: '削除して新規作成' },
+    );
+    if (!ok) return;
+    workspace.clear();
+    storage?.save();
+    showTopRightToast('新規プロジェクトを開始しました', { icon: 'success' });
+  });
+
+  // Ctrl/Cmd+S でプロジェクトの保存（JSONエクスポート）ダイアログを開く
+  document.addEventListener('keydown', (event) => {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      !event.shiftKey &&
+      !event.altKey &&
+      event.key.toLowerCase() === 's'
+    ) {
+      event.preventDefault();
+      exportBtn?.click();
+    }
+  });
 
   importBtn.addEventListener('click', () => importInput.click());
   importInput.addEventListener('change', (e) => {

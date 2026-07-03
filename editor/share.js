@@ -511,6 +511,8 @@ class ShareHistoryManager {
       }
     }
     this.viewStateController?.setMode(false);
+    // 復元した編集内容をローカル保存へ反映する
+    this.storage?.save?.();
     this.statusNotifier?.show('編集ビューへ戻りました', 'info');
     this.skipShareViewOnBack = true;
   }
@@ -893,6 +895,8 @@ class ShareImportModalController {
           this.historyManager?.beginEditingTransition?.() ?? false; // pushState 成功時はURLを書き換え済み
         this.pendingShareEncoded = '';
         this.viewStateController?.setMode(false);
+        // 共有読込中はイベント抑止で自動保存が走らないため、編集開始時に明示的に保存する
+        this.storage?.save?.();
         if (!historyHandled) {
           this.cleanupShareQuery();
         }
