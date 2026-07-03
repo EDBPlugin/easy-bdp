@@ -242,12 +242,21 @@ const PYTHON_IDENTIFIER_PATTERN = (() => {
 
 const isPythonIdentifierLike = (value) => PYTHON_IDENTIFIER_PATTERN.test(String(value ?? ''));
 
+const normalizeSlashCommandName = (rawName) => String(rawName ?? '').trim().toLowerCase().replace(/\s+/g, '_');
+
 const COMMAND_VALIDATION_RULES = {
   on_command_executed: {
     label: 'スラッシュコマンド',
     normalize: (rawName) => String(rawName ?? '').trim().toLowerCase(),
     invalidMessage:
       'このエディターではコマンド名を Python の関数名にも使うため、先頭は文字または_、以降は文字/数字/_のみ使用できます。',
+  },
+  bc_slash_command: {
+    label: '\u5f15\u6570\u4ed8\u304d\u30b9\u30e9\u30c3\u30b7\u30e5\u30b3\u30de\u30f3\u30c9',
+    fieldName: 'NAME',
+    normalize: normalizeSlashCommandName,
+    invalidMessage:
+      '\u3053\u306e\u30a8\u30c7\u30a3\u30bf\u30fc\u3067\u306f\u30b3\u30de\u30f3\u30c9\u540d\u3092 Python \u306e\u95a2\u6570\u540d\u306b\u3082\u4f7f\u3046\u305f\u3081\u3001\u5148\u982d\u306f\u6587\u5b57\u307e\u305f\u306f_\u3001\u4ee5\u964d\u306f\u6587\u5b57\u30fb\u6570\u5b57\u30fb_\u306e\u307f\u4f7f\u7528\u3067\u304d\u307e\u3059\u3002',
   },
   prefix_command: {
     label: 'プレフィックスコマンド',
@@ -278,7 +287,7 @@ export const analyzeWorkspaceForCodegen = (workspaceRef) => {
     const rule = COMMAND_VALIDATION_RULES[block.type];
     if (!rule) return;
 
-    const rawName = block.getFieldValue('COMMAND_NAME');
+    const rawName = block.getFieldValue(rule.fieldName || 'COMMAND_NAME');
     const normalizedName = rule.normalize(rawName);
     const blockRef = formatBlockRef(block);
     const shownName = normalizedName || '(空)';
@@ -464,6 +473,7 @@ export const generatePythonCode = (workspace) => {
     'on_member_join',
     'on_member_remove',
     'on_command_executed',
+    'bc_slash_command',
     'prefix_command',
     'on_reaction_add',
     'on_button_click',
@@ -693,7 +703,7 @@ const deriveGroupMeta = (block) => {
 
   if (['on_ready', 'on_message_create', 'on_member_join', 'on_member_remove', 'on_reaction_add'].includes(type)) {
     kind = 'event';
-  } else if (type === 'on_command_executed') {
+  } else if (type === 'on_command_executed' || type === 'bc_slash_command') {
     kind = 'slash';
   } else if (type === 'prefix_command') {
     kind = 'prefix';
@@ -703,8 +713,8 @@ const deriveGroupMeta = (block) => {
     kind = 'modal';
   }
 
-  if (type === 'on_command_executed' || type === 'prefix_command') {
-    label = block.getFieldValue('COMMAND_NAME') || type;
+  if (type === 'on_command_executed' || type === 'bc_slash_command' || type === 'prefix_command') {
+    label = block.getFieldValue(type === 'bc_slash_command' ? 'NAME' : 'COMMAND_NAME') || type;
   } else if (type === 'on_button_click' || type === 'on_modal_submit') {
     label = block.getFieldValue('CUSTOM_ID') || type;
   }
