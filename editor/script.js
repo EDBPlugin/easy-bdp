@@ -754,14 +754,14 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
   const createTypeSelect = (value) => {
     const select = document.createElement('select');
     select.className =
-      'json-gui__cell-select rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs';
+      'json-gui__cell-select w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs';
     const options = [
-      ['string', '文字列'],
-      ['number', '数値'],
-      ['boolean', '真偽値'],
-      ['null', 'ヌル(null)'],
-      ['object', 'オブジェクト'],
-      ['array', '配列'],
+      ['string', '文字 (あいうえお)'],
+      ['number', '数値 (123)'],
+      ['boolean', 'はい/いいえ'],
+      ['null', 'なし (null)'],
+      ['object', 'オブジェクト {}'],
+      ['array', 'リスト []'],
     ];
     options.forEach(([raw, label]) => {
       const option = document.createElement('option');
@@ -771,6 +771,62 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
     });
     select.value = value;
     return select;
+  };
+
+  const CELL_INPUT_CLASS =
+    'json-gui__cell-input w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs';
+
+  // 型に合わせた値エディタを作る (真偽値はドロップダウン、null は入力不要 など)
+  const createValueEditor = (row, index) => {
+    const commitValue = (value) => {
+      jsonDataStore.updateRow(selectedDataset, index, { value });
+      renderPreview();
+      scheduleSave();
+    };
+
+    if (row.type === 'null') {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = 'null（値は保存されません）';
+      input.disabled = true;
+      input.className = `${CELL_INPUT_CLASS} opacity-60 cursor-not-allowed`;
+      input.title = '「なし (null)」を選んだ場合、値の入力は不要です';
+      return input;
+    }
+
+    if (row.type === 'boolean') {
+      const select = document.createElement('select');
+      select.className =
+        'json-gui__cell-select w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs';
+      [
+        ['true', 'はい (true)'],
+        ['false', 'いいえ (false)'],
+      ].forEach(([raw, label]) => {
+        const option = document.createElement('option');
+        option.value = raw;
+        option.textContent = label;
+        select.appendChild(option);
+      });
+      const normalized = String(row.value ?? '').trim().toLowerCase();
+      select.value = ['true', '1', 'yes', 'on'].includes(normalized) ? 'true' : 'false';
+      select.addEventListener('change', () => commitValue(select.value));
+      return select;
+    }
+
+    const input = document.createElement('input');
+    if (row.type === 'number') {
+      input.type = 'number';
+      input.step = 'any';
+      input.placeholder = '例: 100';
+    } else {
+      input.type = 'text';
+      input.placeholder =
+        row.type === 'object' ? '例: {"id": 1}' : row.type === 'array' ? '例: ["a", "b"]' : '例: こんにちは';
+    }
+    input.value = row.value;
+    input.className = CELL_INPUT_CLASS;
+    input.addEventListener('input', () => commitValue(input.value));
+    return input;
   };
 
   const renderRows = () => {
@@ -785,7 +841,7 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
     if (!rows.length) {
       const emptyRow = document.createElement('tr');
       emptyRow.innerHTML =
-        '<td colspan="4" class="px-3 py-4 text-center text-xs text-slate-500 dark:text-slate-400">行がありません。「行を追加」を押してください。</td>';
+        '<td colspan="4" class="px-3 py-8 text-center text-sm text-slate-500 dark:text-slate-400">まだデータがありません。<br>下の「行を追加」ボタンから最初のデータを作りましょう！</td>';
       rowsBody.appendChild(emptyRow);
       renderPreview();
       return;
@@ -793,16 +849,16 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
 
     rows.forEach((row, index) => {
       const tr = document.createElement('tr');
-      tr.className = 'border-b border-slate-100 dark:border-slate-800';
+      tr.className =
+        'border-b border-slate-100 dark:border-slate-800 odd:bg-white even:bg-slate-50/60 dark:odd:bg-slate-900 dark:even:bg-slate-950/40 hover:bg-indigo-50/40 dark:hover:bg-indigo-900/10 transition-colors';
 
       const keyCell = document.createElement('td');
       keyCell.className = 'px-2 py-2 align-top';
       const keyInput = document.createElement('input');
       keyInput.type = 'text';
       keyInput.value = row.key;
-      keyInput.placeholder = 'キー名';
-      keyInput.className =
-        'json-gui__cell-input w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs';
+      keyInput.placeholder = '例: welcome_message';
+      keyInput.className = CELL_INPUT_CLASS;
       keyInput.addEventListener('input', () => {
         jsonDataStore.updateRow(selectedDataset, index, { key: keyInput.value });
         renderPreview();
@@ -814,35 +870,35 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
       typeCell.className = 'px-2 py-2 align-top';
       const typeSelect = createTypeSelect(row.type);
       typeSelect.addEventListener('change', () => {
-        jsonDataStore.updateRow(selectedDataset, index, { type: typeSelect.value });
-        renderPreview();
+        const nextType = typeSelect.value;
+        const patch = { type: nextType };
+        // 型に合わない値が残ってエラーにならないように正規化する
+        if (nextType === 'boolean') {
+          const normalized = String(row.value ?? '').trim().toLowerCase();
+          patch.value = ['true', '1', 'yes', 'on'].includes(normalized) ? 'true' : 'false';
+        } else if (nextType === 'number') {
+          const parsed = Number(String(row.value ?? '').trim());
+          patch.value = Number.isFinite(parsed) ? String(parsed) : '0';
+        }
+        jsonDataStore.updateRow(selectedDataset, index, patch);
+        // 値エディタを新しい型に合わせて切り替える
+        renderRows();
         scheduleSave();
       });
       typeCell.appendChild(typeSelect);
 
       const valueCell = document.createElement('td');
       valueCell.className = 'px-2 py-2 align-top';
-      const valueInput = document.createElement('input');
-      valueInput.type = 'text';
-      valueInput.value = row.value;
-      valueInput.placeholder =
-        row.type === 'object' ? '{"id": 1}' : row.type === 'array' ? '["a", "b"]' : '値';
-      valueInput.className =
-        'json-gui__cell-input w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs';
-      valueInput.addEventListener('input', () => {
-        jsonDataStore.updateRow(selectedDataset, index, { value: valueInput.value });
-        renderPreview();
-        scheduleSave();
-      });
-      valueCell.appendChild(valueInput);
+      valueCell.appendChild(createValueEditor(row, index));
 
       const actionCell = document.createElement('td');
       actionCell.className = 'px-2 py-2 align-top text-right';
       const deleteBtn = document.createElement('button');
       deleteBtn.type = 'button';
       deleteBtn.className =
-        'inline-flex items-center justify-center rounded-lg border border-rose-200 dark:border-rose-700 px-2 py-1 text-xs font-semibold text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20';
-      deleteBtn.textContent = '削除';
+        'inline-flex items-center justify-center rounded-lg border border-transparent p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20 transition-colors';
+      deleteBtn.title = 'この行を削除';
+      deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i>';
       deleteBtn.addEventListener('click', () => {
         jsonDataStore.removeRow(selectedDataset, index);
         renderRows();
@@ -857,6 +913,7 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
       rowsBody.appendChild(tr);
     });
 
+    if (typeof lucide !== 'undefined') lucide.createIcons();
     renderPreview();
   };
 
@@ -978,14 +1035,20 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
     scheduleSave();
   });
 
+  const copyPreviewBtn = document.getElementById('jsonGuiCopyPreviewBtn');
+  copyPreviewBtn?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(preview?.value || '{}');
+      showTopRightToast('JSONをコピーしました', { icon: 'success' });
+    } catch (error) {
+      showTopRightToast('コピーに失敗しました', { icon: 'error' });
+    }
+  });
+
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
       closeModal();
     }
-  });
-  // 他のモーダルと同様に背景クリックでも閉じられるようにする
-  modal?.addEventListener('click', (event) => {
-    if (event.target === modal) closeModal();
   });
   window.addEventListener('beforeunload', saveNow);
 
@@ -2023,6 +2086,7 @@ const initializeApp = async () => {
     showCodegenErrors(diagnostics);
     if (codeOutput) {
       codeOutput.textContent = '';
+      updateCodeStats('');
     }
     toggleModal(codeModal, true);
     return false;
@@ -2106,12 +2170,30 @@ const initializeApp = async () => {
     }
   });
 
+  const updateCodeStats = (code) => {
+    const statsEl = document.getElementById('codeStats');
+    if (!statsEl) return;
+    if (!code) {
+      statsEl.textContent = '';
+      return;
+    }
+    const lines = code.split('\n').length;
+    const bytes = new Blob([code]).size;
+    const size = bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`;
+    statsEl.textContent = `(${lines}行 / ${size})`;
+  };
+
   showCodeBtn.addEventListener('click', () => {
     showCodeBtn.blur();
     // Blocklyの選択ハイライトなどを解除
     if (workspace) Blockly.hideChaff();
     if (!validateBeforeCodegen()) return;
-    codeOutput.textContent = generatePythonCode(workspace);
+    const generatedCode = generatePythonCode(workspace);
+    codeOutput.textContent = generatedCode;
+    updateCodeStats(generatedCode);
+    // シンタックスハイライトを適用
+    delete codeOutput.dataset.highlighted;
+    if (typeof hljs !== 'undefined') hljs.highlightElement(codeOutput);
     toggleModal(codeModal, true);
   });
 
@@ -2288,13 +2370,13 @@ const initializeApp = async () => {
     if (!validateBeforeCodegen()) return;
     let code = generatePythonCode(workspace);
 
-    // Inject imports for .env support
+    // Inject imports for .env support (import os は生成コード側で常に含まれる)
     if (!code.includes('from dotenv import load_dotenv')) {
-      code = code.replace('import discord', 'import os\nfrom dotenv import load_dotenv\nimport discord');
+      code = code.replace('import discord', 'from dotenv import load_dotenv\nimport discord');
     }
 
     // Replace the main execution block to use .env
-    const mainBlockRegex = /if __name__ == "__main__":[\s\S]+?bot\.run\("TOKEN"\)/;
+    const mainBlockRegex = /if __name__ == "__main__":[\s\S]+?bot\.run\((?:token|"TOKEN")\)/;
     const newMainBlock = `if __name__ == "__main__":
     load_dotenv()
     token = os.getenv("TOKEN")

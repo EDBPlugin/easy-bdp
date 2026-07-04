@@ -377,6 +377,19 @@ html.is-mobile .blocklyFlyout {
   padding: 0 !important;
 }
 
+/* コード生成モーダル本文 (.hljs のリセットより優先し、ライト/ダーク両方で読みやすくする) */
+#codeOutput {
+  padding: 1.25rem !important;
+  background: #ffffff !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dark #codeOutput {
+  background: #0f172a !important;
+}
+
 /* Tailwind CSSの仕様によってBlocklyのSVG非表示設定が上書きされるのを防ぐ */
 svg[display='none'] {
   display: none !important;

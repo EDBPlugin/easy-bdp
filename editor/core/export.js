@@ -23,6 +23,34 @@ const escapeHtml = (value) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+// 生成コードの整形: 行末の空白を除去し、3行以上の連続空行を2行に圧縮してファイルを軽くする
+const normalizePythonOutput = (code) => {
+  const cleaned = String(code || '')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+$/, ''))
+    .join('\n')
+    .replace(/\n{4,}/g, '\n\n\n')
+    .trim();
+  return cleaned ? `${cleaned}\n` : '';
+};
+
+// 使用しているブロックに必要な intent だけを有効化する
+// (不要な特権インテントを要求しないことで、Developer Portal での設定ミスも防ぐ)
+const buildIntentsSection = (bodyCode) => {
+  const source = String(bodyCode || '');
+  const flags = [];
+  if (/async def on_message|process_commands|@(?:bot|commands)\.command\b|message\.content/.test(source)) {
+    flags.push('intents.message_content = True');
+  }
+  if (/on_member_join|on_member_remove|\.members\b|fetch_members/.test(source)) {
+    flags.push('intents.members = True');
+  }
+  if (/voice|FFmpeg/i.test(source)) {
+    flags.push('intents.voice_states = True');
+  }
+  return ['intents = discord.Intents.default()', ...flags].join('\n');
+};
+
 const convertEventBlock = (block) => {
   let updated = block.replace('@bot.event', '@commands.Cog.listener()');
   updated = addSelfParam(updated);
@@ -558,31 +586,19 @@ export const generatePythonCode = (workspace) => {
   const fullBoiler = `
 # Easy Discord Bot Builderによって作成されました！ 製作：@himais0giiiin
 # Created with Easy Discord Bot Builder! created by @himais0giiiin!
-# Optimized Version
 
 ${header}
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-intents.voice_states = True
+# 使用しているブロックに必要な intent のみ有効化しています
+${buildIntentsSection(bodyCode)}
 
-# Botの作成
 bot = commands.Bot(command_prefix='!', intents=intents)
-
-# ----------------------------
-
-# --- ユーザー作成部分 ---
 ${helperSection}
 ${bodyCode}
-# --------------------------
 
 if __name__ == "__main__":
-    # トークンの設定
-    # Set your token here
+    # トークンの設定 / Set your token here
     token = "TOKEN"
-
-    # Token check
     token = os.getenv("DISCORD_TOKEN", token) # 環境変数DISCORD_TOKENがあればそちらを優先 (If DISCORD_TOKEN environment variable is set, it will be used)
     if token == "TOKEN":
         print('\\x1b[31m!!!!注意!!!! トークンを設定していない場合は、環境変数DISCORD_TOKENを設定するか、上のtoken変数を書き換えてください。\\x1b[0m')
@@ -592,7 +608,7 @@ if __name__ == "__main__":
     bot.run(token)
 `;
 
-  return fullBoiler.trim();
+  return normalizePythonOutput(fullBoiler).trim();
 };
 
 const buildSharedModule = (bodyCode) => {
@@ -842,10 +858,8 @@ import os
 import discord
 from discord.ext import commands
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-intents.voice_states = True
+# 使用しているブロックに必要な intent のみ有効化しています
+${buildIntentsSection(allCleaned)}
 
 class EasyBot(commands.Bot):
     async def setup_hook(self):
@@ -870,5 +884,12 @@ if __name__ == "__main__":
 `.trim();
 
   files['bot.py'] = botFile;
+
+  // 各ファイルの末尾スペース・余分な空行を除去して軽量化する
+  Object.keys(files).forEach((path) => {
+    if (path.endsWith('.py') && files[path]) {
+      files[path] = normalizePythonOutput(files[path]);
+    }
+  });
   return files;
 };
