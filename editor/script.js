@@ -1385,6 +1385,7 @@ const initializeApp = async () => {
   const collabManager = new CollabManager(workspace);
   const collabUI = new CollabUI(collabManager);
   window.__edbb_collab = { manager: collabManager, ui: collabUI };
+  window.__edbb_storage = storage;
   setupListManager({
     workspace,
     storage,
@@ -1773,6 +1774,8 @@ const initializeApp = async () => {
     storage?.load();
     // Keep block interactivity aligned with current (non-share) mode.
     shareFeature.applyUiState();
+    // Check URL params for realtime collab only after storage is restored
+    collabUI.checkUrlParams();
   }
 
   const toggleTheme = () => {

@@ -2,6 +2,15 @@
  * Realtime Collaborative Editing UI Module for Easy Discord Bot Builder
  */
 
+const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
+
+function sanitizeColor(color) {
+    if (typeof color === 'string' && HEX_COLOR_REGEX.test(color.trim())) {
+        return color.trim();
+    }
+    return '#3b82f6';
+}
+
 export class CollabUI {
     constructor(collabManager) {
         this.manager = collabManager;
@@ -9,11 +18,10 @@ export class CollabUI {
         this.btn = document.getElementById('collabBtn');
         this.statusBadge = document.getElementById('collabStatusBadge');
         this.userCountBadge = document.getElementById('collabUserCount');
-        this.activeHighlights = new Map(); // peerId -> { blockId, styleElement }
+        this.blockSelections = new Map(); // blockId -> Map<peerId, { user, path, originalStyle, safeColor }>
 
         this.initElements();
         this.initListeners();
-        this.checkUrlParams();
     }
 
     initElements() {
@@ -139,6 +147,9 @@ export class CollabUI {
                 case 'all_selections_cleared':
                     this.clearAllRemoteSelections();
                     break;
+                case 'host_disconnected':
+                    this.promptHostDisconnected(data);
+                    break;
                 case 'info':
                     this.showToast(data.message, 'info');
                     break;
@@ -155,6 +166,46 @@ export class CollabUI {
                 this.manager.broadcastTitleChange(e.target.value);
             }
         });
+    }
+
+    async promptHostDisconnected(data) {
+        let shouldKeep = true;
+        if (typeof Swal !== 'undefined') {
+            const result = await Swal.fire({
+                title: '⚠️ ホストとの接続が切断されました',
+                text: 'ホストが退出したか、通信が切断されました。現在の編集内容を維持してローカルで作業を続けますか？それとも破棄して参加前の状態に戻しますか？',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'このまま進める（維持）',
+                cancelButtonText: '破棄して元に戻す',
+                allowOutsideClick: false,
+            });
+            shouldKeep = result.isConfirmed;
+        } else {
+            shouldKeep = window.confirm(
+                'ホストとの接続が切断されました。\n現在の編集内容を維持して進めますか？\n（[キャンセル]で破棄して参加前の状態に戻します）'
+            );
+        }
+
+        if (shouldKeep) {
+            this.showToast('現在の内容を維持して編集を継続します', 'success');
+            // Auto save current state
+            try {
+                window.__edbb_storage?.save?.();
+            } catch (e) { }
+        } else {
+            const restored = this.manager.restoreInitialBackup();
+            if (restored) {
+                this.showToast('参加前の状態に復元しました', 'info');
+            } else {
+                try {
+                    window.__edbb_storage?.load?.();
+                } catch (e) { }
+                this.showToast('保存済みの状態に戻しました', 'info');
+            }
+        }
     }
 
     openModal() {
@@ -226,16 +277,35 @@ export class CollabUI {
             const li = document.createElement('div');
             li.className = 'flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm';
 
-            li.innerHTML = `
-                <div class="flex items-center gap-2.5">
-                    <div class="w-3.5 h-3.5 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-sm" style="background-color: ${user.color};"></div>
-                    <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">${this.escapeHtml(user.name)}</span>
-                    ${isMe ? '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">あなた</span>' : ''}
-                </div>
-                <div>
-                    ${user.isHost ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">👑 ホスト</span>' : '<span class="text-[10px] font-medium text-slate-400">ゲスト</span>'}
-                </div>
-            `;
+            const userLeft = document.createElement('div');
+            userLeft.className = 'flex items-center gap-2.5';
+
+            const dot = document.createElement('div');
+            dot.className = 'w-3.5 h-3.5 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-sm';
+            dot.style.backgroundColor = sanitizeColor(user.color);
+            userLeft.appendChild(dot);
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'text-sm font-semibold text-slate-800 dark:text-slate-100';
+            nameSpan.textContent = user.name || 'ユーザー';
+            userLeft.appendChild(nameSpan);
+
+            if (isMe) {
+                const meBadge = document.createElement('span');
+                meBadge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400';
+                meBadge.textContent = 'あなた';
+                userLeft.appendChild(meBadge);
+            }
+
+            const userRight = document.createElement('div');
+            if (user.isHost) {
+                userRight.innerHTML = '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">👑 ホスト</span>';
+            } else {
+                userRight.innerHTML = '<span class="text-[10px] font-medium text-slate-400">ゲスト</span>';
+            }
+
+            li.appendChild(userLeft);
+            li.appendChild(userRight);
             this.elements.userList.appendChild(li);
         });
     }
@@ -244,44 +314,71 @@ export class CollabUI {
         this.clearRemoteSelection(peerId);
         if (!blockId) return;
 
-        // Try to find the block element in SVG
         const blockGroup = document.querySelector(`g.blocklyDraggable[data-id="${blockId}"]`);
         if (!blockGroup) return;
 
         const path = blockGroup.querySelector('path.blocklyPath');
         if (!path) return;
 
-        // Create overlay / custom glow filter
-        const originalStroke = path.style.stroke;
-        const originalStrokeWidth = path.style.strokeWidth;
-        const originalFilter = path.style.filter;
+        if (!this.blockSelections.has(blockId)) {
+            this.blockSelections.set(blockId, new Map());
+        }
 
-        path.style.stroke = user.color;
+        const peerMap = this.blockSelections.get(blockId);
+        const originalStyle = peerMap.size > 0
+            ? Array.from(peerMap.values())[0].originalStyle
+            : {
+                stroke: path.style.stroke,
+                strokeWidth: path.style.strokeWidth,
+                filter: path.style.filter,
+            };
+
+        const safeColor = sanitizeColor(user.color);
+        peerMap.set(peerId, { user, path, originalStyle, safeColor });
+
+        // Apply latest peer color highlight
+        path.style.stroke = safeColor;
         path.style.strokeWidth = '3.5px';
-        path.style.filter = `drop-shadow(0 0 6px ${user.color})`;
-
-        this.activeHighlights.set(peerId, {
-            path,
-            originalStroke,
-            originalStrokeWidth,
-            originalFilter,
-        });
+        path.style.filter = `drop-shadow(0 0 6px ${safeColor})`;
     }
 
     clearRemoteSelection(peerId) {
-        const item = this.activeHighlights.get(peerId);
-        if (item && item.path) {
-            item.path.style.stroke = item.originalStroke;
-            item.path.style.strokeWidth = item.originalStrokeWidth;
-            item.path.style.filter = item.originalFilter;
+        for (const [blockId, peerMap] of this.blockSelections.entries()) {
+            if (peerMap.has(peerId)) {
+                const { path, originalStyle } = peerMap.get(peerId);
+                peerMap.delete(peerId);
+
+                if (peerMap.size === 0) {
+                    // Restore original style if no peers selecting this block
+                    if (path) {
+                        path.style.stroke = originalStyle.stroke;
+                        path.style.strokeWidth = originalStyle.strokeWidth;
+                        path.style.filter = originalStyle.filter;
+                    }
+                    this.blockSelections.delete(blockId);
+                } else {
+                    // Reapply style of a remaining peer
+                    const remainingPeer = Array.from(peerMap.values())[peerMap.size - 1];
+                    if (path && remainingPeer) {
+                        path.style.stroke = remainingPeer.safeColor;
+                        path.style.strokeWidth = '3.5px';
+                        path.style.filter = `drop-shadow(0 0 6px ${remainingPeer.safeColor})`;
+                    }
+                }
+            }
         }
-        this.activeHighlights.delete(peerId);
     }
 
     clearAllRemoteSelections() {
-        for (const [peerId] of this.activeHighlights) {
-            this.clearRemoteSelection(peerId);
+        for (const [blockId, peerMap] of this.blockSelections.entries()) {
+            const firstEntry = Array.from(peerMap.values())[0];
+            if (firstEntry && firstEntry.path) {
+                firstEntry.path.style.stroke = firstEntry.originalStyle.stroke;
+                firstEntry.path.style.strokeWidth = firstEntry.originalStyle.strokeWidth;
+                firstEntry.path.style.filter = firstEntry.originalStyle.filter;
+            }
         }
+        this.blockSelections.clear();
     }
 
     checkUrlParams() {

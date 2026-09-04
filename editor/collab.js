@@ -41,6 +41,9 @@ export class CollabManager {
         this.remoteUsers = new Map(); // peerId -> user object
         this.remoteSelections = new Map(); // peerId -> blockId
         this.isApplyingRemote = false;
+        this.isSyncing = false;
+        this.pendingJoinPromise = null;
+        this.initialLocalBackup = null;
         this.listeners = new Set();
         this.blocklyListener = null;
 
@@ -59,6 +62,27 @@ export class CollabManager {
             } catch (err) {
                 console.error('CollabManager listener error:', err);
             }
+        }
+    }
+
+    restoreInitialBackup() {
+        if (!this.initialLocalBackup) return false;
+        this.isApplyingRemote = true;
+        try {
+            if (this.initialLocalBackup.state && this.workspace) {
+                this.workspace.clear();
+                Blockly.serialization.workspaces.load(this.initialLocalBackup.state, this.workspace);
+            }
+            if (this.initialLocalBackup.title != null) {
+                const titleInput = document.getElementById('projectTitleInput');
+                if (titleInput) titleInput.value = this.initialLocalBackup.title;
+            }
+            return true;
+        } catch (e) {
+            console.error('Failed to restore initial backup:', e);
+            return false;
+        } finally {
+            this.isApplyingRemote = false;
         }
     }
 
@@ -84,7 +108,7 @@ export class CollabManager {
     setupBlocklyListener() {
         if (!this.workspace) return;
         this.blocklyListener = (event) => {
-            if (this.isApplyingRemote || !this.isConnected()) return;
+            if (this.isApplyingRemote || this.isSyncing || !this.isConnected()) return;
 
             // Handle Selection Event
             if (event.type === Blockly.Events.SELECTED) {
@@ -178,14 +202,37 @@ export class CollabManager {
         const cleanRoomId = roomId.trim();
         this.disconnect();
 
+        // Backup current local workspace so user can restore if disconnected
+        try {
+            this.initialLocalBackup = {
+                state: this.workspace ? Blockly.serialization.workspaces.save(this.workspace) : null,
+                title: document.getElementById('projectTitleInput')?.value || '',
+            };
+        } catch (e) {
+            console.warn('Failed to backup initial workspace before join:', e);
+        }
+
         this.isHost = false;
         this.roomId = cleanRoomId;
         this.myUser.isHost = false;
+        this.isSyncing = true;
 
         return new Promise((resolve, reject) => {
             if (typeof Peer === 'undefined') {
+                this.isSyncing = false;
                 return reject(new Error('PeerJS ライブラリが読み込まれていません。'));
             }
+
+            const syncTimeout = setTimeout(() => {
+                if (this.pendingJoinPromise) {
+                    this.isSyncing = false;
+                    this.pendingJoinPromise = null;
+                    this.disconnect(true);
+                    reject(new Error('ホストからの初期同期がタイムアウトしました。'));
+                }
+            }, 15000);
+
+            this.pendingJoinPromise = { resolve, reject, timer: syncTimeout };
 
             this.peer = new Peer({
                 debug: 1,
@@ -199,13 +246,13 @@ export class CollabManager {
 
                 conn.on('open', () => {
                     this.connections.set(cleanRoomId, conn);
+                    this.notify('status_change', { status: 'connecting', isHost: false, roomId: this.roomId });
+
                     // Send user info to host
                     conn.send({
                         type: 'user_join',
                         user: this.myUser,
                     });
-                    this.notify('status_change', { status: 'connected', isHost: false, roomId: this.roomId });
-                    resolve(cleanRoomId);
                 });
 
                 conn.on('data', (data) => {
@@ -213,25 +260,41 @@ export class CollabManager {
                 });
 
                 conn.on('close', () => {
-                    this.notify('info', { message: 'ホストとの接続が切断されました。' });
-                    this.disconnect();
+                    const wasConnected = !this.isSyncing && this.isConnected();
+                    if (this.pendingJoinPromise) {
+                        clearTimeout(this.pendingJoinPromise.timer);
+                        this.pendingJoinPromise.reject(new Error('ホストとの接続が切断されました。'));
+                        this.pendingJoinPromise = null;
+                    }
+                    this.disconnect(true /* preserve backup */);
+                    if (wasConnected) {
+                        this.notify('host_disconnected', { hasBackup: !!this.initialLocalBackup });
+                    }
                 });
 
                 conn.on('error', (err) => {
                     console.error('Connection to host error:', err);
+                    if (this.pendingJoinPromise) {
+                        clearTimeout(this.pendingJoinPromise.timer);
+                        this.pendingJoinPromise.reject(err);
+                        this.pendingJoinPromise = null;
+                    }
                     this.notify('error', { error: 'ホストへの接続に失敗しました。' });
-                    reject(err);
                 });
             });
 
             this.peer.on('error', (err) => {
                 console.error('PeerJS Client Error:', err);
+                if (this.pendingJoinPromise) {
+                    clearTimeout(this.pendingJoinPromise.timer);
+                    this.pendingJoinPromise.reject(err);
+                    this.pendingJoinPromise = null;
+                }
                 this.notify('error', { error: err.message || '接続エラーが発生しました' });
-                reject(err);
             });
 
             this.peer.on('close', () => {
-                this.disconnect();
+                this.disconnect(true);
             });
         });
     }
@@ -259,6 +322,21 @@ export class CollabManager {
         });
 
         conn.on('data', (data) => {
+            if (!data || typeof data !== 'object') return;
+
+            // Enforce sender identity binding for incoming guest messages
+            if (this.isHost) {
+                if (data.type === 'user_join' || data.type === 'user_update') {
+                    if (!data.user) data.user = {};
+                    data.user.id = conn.peer;
+                } else if (data.type === 'selection_change') {
+                    data.senderId = conn.peer;
+                } else if (data.type === 'user_leave') {
+                    // Reject client-supplied user_leave to prevent forged departures
+                    return;
+                }
+            }
+
             this.handleIncomingData(data, conn);
 
             // As Host, relay message to all other guests
@@ -370,6 +448,13 @@ export class CollabManager {
             console.error('Failed to load synced workspace:', err);
         } finally {
             this.isApplyingRemote = false;
+            this.isSyncing = false;
+            if (this.pendingJoinPromise) {
+                clearTimeout(this.pendingJoinPromise.timer);
+                this.pendingJoinPromise.resolve(this.roomId);
+                this.pendingJoinPromise = null;
+            }
+            this.notify('status_change', { status: 'connected', isHost: false, roomId: this.roomId });
         }
     }
 
@@ -403,7 +488,7 @@ export class CollabManager {
     }
 
     broadcast(data) {
-        if (!this.isConnected()) return;
+        if (!this.isConnected() || this.isSyncing) return;
         for (const conn of this.connections.values()) {
             if (conn.open) {
                 try {
@@ -422,10 +507,17 @@ export class CollabManager {
         });
     }
 
-    disconnect() {
-        if (this.blocklyListener && this.workspace) {
-            // Keep listener active for reconnect
+    disconnect(preserveBackup = false) {
+        if (!preserveBackup) {
+            this.initialLocalBackup = null;
         }
+
+        if (this.pendingJoinPromise) {
+            clearTimeout(this.pendingJoinPromise.timer);
+            this.pendingJoinPromise.reject(new Error('切断されました。'));
+            this.pendingJoinPromise = null;
+        }
+        this.isSyncing = false;
 
         // Close all connections
         for (const conn of this.connections.values()) {
