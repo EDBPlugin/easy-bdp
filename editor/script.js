@@ -4,6 +4,8 @@
 
 import WorkspaceStorage from './storage.js';
 import { initShareFeature } from "./share.js";
+import { CollabManager } from "./collab.js";
+import { CollabUI } from "./collab-ui.js";
 import { PluginManager } from "./plugin.js";
 import { PluginUI, PLUGIN_FEATURE_TOGGLES_STORAGE_KEY } from "./plugin-ui.js";
 import { BlockSearch } from "./block-search.js";
@@ -1378,6 +1380,12 @@ const initializeApp = async () => {
     workspace,
     storage,
   });
+
+  // --- リアルタイム共同編集機能の初期化 ---
+  const collabManager = new CollabManager(workspace);
+  const collabUI = new CollabUI(collabManager);
+  window.__edbb_collab = { manager: collabManager, ui: collabUI };
+  window.__edbb_storage = storage;
   setupListManager({
     workspace,
     storage,
@@ -1766,6 +1774,8 @@ const initializeApp = async () => {
     storage?.load();
     // Keep block interactivity aligned with current (non-share) mode.
     shareFeature.applyUiState();
+    // Check URL params for realtime collab only after storage is restored
+    collabUI.checkUrlParams();
   }
 
   const toggleTheme = () => {
