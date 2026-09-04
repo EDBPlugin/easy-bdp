@@ -4,6 +4,8 @@
 
 import WorkspaceStorage from './storage.js';
 import { initShareFeature } from "./share.js";
+import { CollabManager } from "./collab.js";
+import { CollabUI } from "./collab-ui.js";
 import { PluginManager } from "./plugin.js";
 import { PluginUI, PLUGIN_FEATURE_TOGGLES_STORAGE_KEY } from "./plugin-ui.js";
 import { BlockSearch } from "./block-search.js";
@@ -1378,6 +1380,11 @@ const initializeApp = async () => {
     workspace,
     storage,
   });
+
+  // --- リアルタイム共同編集機能の初期化 ---
+  const collabManager = new CollabManager(workspace);
+  const collabUI = new CollabUI(collabManager);
+  window.__edbb_collab = { manager: collabManager, ui: collabUI };
   setupListManager({
     workspace,
     storage,
