@@ -22,6 +22,8 @@ export class CollabUI {
 
         this.initElements();
         this.initListeners();
+        this.updateViewByStatus(this.manager.status);
+        this.updateBackupView();
     }
 
     initElements() {
@@ -40,6 +42,7 @@ export class CollabUI {
             userNameInput: document.getElementById('collabUserNameInput'),
             userList: document.getElementById('collabUserList'),
             statusText: document.getElementById('collabStatusText'),
+            restoreBtn: document.getElementById('collabRestoreBtn'),
         };
 
         if (this.elements.userNameInput) {
@@ -63,6 +66,19 @@ export class CollabUI {
         this.modal?.addEventListener('click', (e) => {
             if (e.target === this.modal) this.closeModal();
         });
+        this.modal?.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.closeModal();
+            if (e.key === 'Tab') {
+                const items = [...this.modal.querySelectorAll('button, input')].filter(el => !el.disabled && el.getClientRects().length);
+                const first = items[0], last = items.at(-1);
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+            }
+        });
+        this.elements.roomIdInput?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') this.elements.joinBtn?.click();
+        });
+        this.elements.restoreBtn?.addEventListener('click', () => this.restoreBackup());
 
         // Create room
         this.elements.createBtn?.addEventListener('click', async () => {
@@ -110,28 +126,31 @@ export class CollabUI {
         });
 
         // Copy Room ID
-        this.elements.copyIdBtn?.addEventListener('click', () => {
+        this.elements.copyIdBtn?.addEventListener('click', async () => {
             if (this.manager.roomId) {
-                navigator.clipboard.writeText(this.manager.roomId);
-                this.showCopyFeedback(this.elements.copyIdBtn, 'コピー完了');
+                await this.copyText(this.manager.roomId, this.elements.copyIdBtn, 'コピー完了');
             }
         });
 
         // Copy Share Link
-        this.elements.copyLinkBtn?.addEventListener('click', () => {
+        this.elements.copyLinkBtn?.addEventListener('click', async () => {
             if (this.manager.roomId) {
                 const url = new URL(window.location.href);
+                url.search = '';
+                url.hash = '';
                 url.searchParams.set('collab', this.manager.roomId);
-                navigator.clipboard.writeText(url.toString());
-                this.showCopyFeedback(this.elements.copyLinkBtn, 'リンクをコピーしました');
+                await this.copyText(url.toString(), this.elements.copyLinkBtn, 'リンクをコピーしました');
             }
         });
 
         // Disconnect
-        this.elements.disconnectBtn?.addEventListener('click', () => {
-            this.removeCollabUrlParam();
-            this.manager.disconnect();
-            this.showToast('共同編集を切断しました', 'info');
+        this.elements.disconnectBtn?.addEventListener('click', async () => {
+            if (this.manager.status === 'connecting') { this.manager.disconnect(); return; }
+            if (!this.manager.isHost) { await this.promptHostDisconnected({ voluntary: true }); return; }
+            const result = typeof Swal !== 'undefined'
+                ? await Swal.fire({ title: '共同編集を終了しますか？', text: '全員との接続が終了します。作品は各参加者の画面に残ります。', icon: 'question', showCancelButton: true, confirmButtonText: 'ルームを終了', cancelButtonText: '続ける' })
+                : { isConfirmed: window.confirm('全員との共同編集を終了しますか？') };
+            if (result.isConfirmed) this.manager.disconnect();
         });
 
         // CollabManager events
@@ -145,6 +164,9 @@ export class CollabUI {
                     break;
                 case 'users_updated':
                     this.renderUsers(data);
+                    break;
+                case 'backup_changed':
+                    this.updateBackupView();
                     break;
                 case 'selection_updated':
                     this.applyRemoteSelection(data.peerId, data.blockId, data.user);
@@ -177,30 +199,36 @@ export class CollabUI {
     }
 
     async promptHostDisconnected(data) {
+        if (this.exitPromptOpen) return;
+        this.exitPromptOpen = true;
         this.removeCollabUrlParam();
         let shouldKeep = true;
         if (typeof Swal !== 'undefined') {
             const result = await Swal.fire({
-                title: '⚠️ ホストとの接続が切断されました',
+                title: data.voluntary ? '共同編集から退出しますか？' : 'ホストとの接続が切断されました',
                 html: `
                     <p class="text-sm text-slate-600 dark:text-slate-300">
-                        共同編集セッションが終了しました。
+                        ${data.voluntary ? '退出後の作品を選んでください。' : '共同編集セッションが終了しました。'}
                     </p>
                     <div class="mt-3.5 p-3.5 text-left rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
                         <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                             ・<strong>このまま進める</strong>: 共同編集で同期された最新状態を維持して作業を続けます。<br>
-                            ・<strong>参加前のデータに復活</strong>: 参加時に自動保存された<strong>元の作業データに復活（復元）</strong>します。
+                            ・<strong>参加前の作品に戻す</strong>: このタブに保存したバックアップを復元します。
                         </p>
                     </div>
                 `,
                 icon: 'warning',
-                showCancelButton: true,
+                showCancelButton: !!data.voluntary,
+                showDenyButton: !!this.manager.initialLocalBackup,
                 confirmButtonColor: '#4f46e5',
                 cancelButtonColor: '#059669',
                 confirmButtonText: 'このまま進める（維持）',
-                cancelButtonText: '参加前のデータに復活',
+                denyButtonText: '参加前の作品に戻す',
+                cancelButtonText: '編集を続ける',
                 allowOutsideClick: false,
+                allowEscapeKey: false,
             });
+            if (!result.isConfirmed && !result.isDenied) { this.exitPromptOpen = false; return; }
             shouldKeep = result.isConfirmed;
         } else {
             shouldKeep = window.confirm(
@@ -208,6 +236,8 @@ export class CollabUI {
             );
         }
 
+        if (data.voluntary) this.manager.disconnect();
+        this.exitPromptOpen = false;
         if (shouldKeep) {
             this.showToast('現在の内容を維持してローカル編集を継続します', 'success');
             // Auto save current state
@@ -215,31 +245,47 @@ export class CollabUI {
                 window.__edbb_storage?.save?.();
             } catch (e) { }
         } else {
-            const restored = this.manager.restoreInitialBackup();
-            if (restored) {
-                this.showToast('参加前の保存データに復活しました！', 'success');
-            } else {
-                try {
-                    window.__edbb_storage?.load?.();
-                } catch (e) { }
-                this.showToast('参加前の保存データに復活しました！', 'success');
-            }
+            this.restoreBackup();
         }
+    }
+
+    restoreBackup() {
+        if (!this.manager.restoreInitialBackup()) {
+            this.showToast('バックアップを復元できませんでした。', 'error');
+            return;
+        }
+        window.__edbb_storage?.save?.();
+        this.showToast('参加前の作品を復元しました', 'success');
+    }
+
+    updateBackupView() {
+        this.elements.restoreBtn?.classList.toggle('hidden', !this.manager.initialLocalBackup || this.manager.status !== 'disconnected');
+    }
+
+    async copyText(text, button, message) {
+        try { await navigator.clipboard.writeText(text); this.showCopyFeedback(button, message); }
+        catch { this.showToast('コピーできませんでした。表示されたルームIDを選択してコピーしてください。', 'error'); }
     }
 
     openModal() {
         if (!this.modal) return;
+        clearTimeout(this.closeTimer);
+        this.previousFocus = document.activeElement;
+        this.modal.setAttribute('aria-hidden', 'false');
         this.modal.classList.remove('hidden');
         this.modal.classList.add('flex');
         void this.modal.offsetWidth;
         this.modal.classList.add('show-modal');
+        this.elements.closeBtn?.focus();
         if (window.lucide) window.lucide.createIcons();
     }
 
     closeModal() {
         if (!this.modal) return;
+        this.modal.setAttribute('aria-hidden', 'true');
+        this.previousFocus?.focus();
         this.modal.classList.remove('show-modal');
-        setTimeout(() => {
+        this.closeTimer = setTimeout(() => {
             this.modal.classList.remove('flex');
             this.modal.classList.add('hidden');
         }, 200);
@@ -247,6 +293,17 @@ export class CollabUI {
 
     updateViewByStatus(status) {
         const isConnected = status === 'connected';
+        const connecting = status === 'connecting';
+        for (const element of [this.elements.createBtn, this.elements.joinBtn, this.elements.roomIdInput]) {
+            if (element) element.disabled = connecting || isConnected;
+        }
+        for (const element of [this.elements.copyIdBtn, this.elements.copyLinkBtn]) {
+            if (element) element.disabled = !isConnected;
+        }
+        if (this.elements.statusText) this.elements.statusText.textContent = connecting ? '接続・初期同期中…' : this.manager.isHost ? 'ホストとして共同編集中' : '共同編集中';
+        if (this.elements.disconnectBtn) this.elements.disconnectBtn.textContent = connecting ? '接続をキャンセル' : this.manager.isHost ? 'ルームを終了する' : '共同編集から退出';
+        this.btn?.setAttribute('aria-label', connecting ? '共同編集に接続中' : isConnected ? '共同編集の参加者と接続状態' : '共同編集を開始');
+        this.updateBackupView();
 
         // Update header button & badges
         if (this.statusBadge) {
@@ -260,7 +317,7 @@ export class CollabUI {
         }
 
         if (this.elements.activeSection && this.elements.hostSection && this.elements.joinSection) {
-            if (isConnected) {
+            if (isConnected || connecting) {
                 this.elements.hostSection.classList.add('hidden');
                 this.elements.joinSection.classList.add('hidden');
                 this.elements.activeSection.classList.remove('hidden');
@@ -333,7 +390,7 @@ export class CollabUI {
         this.clearRemoteSelection(peerId);
         if (!blockId) return;
 
-        const blockGroup = document.querySelector(`g.blocklyDraggable[data-id="${blockId}"]`);
+        const blockGroup = this.manager.workspace.getBlockById(blockId)?.getSvgRoot();
         if (!blockGroup) return;
 
         const path = blockGroup.querySelector('path.blocklyPath');
@@ -443,7 +500,7 @@ export class CollabUI {
                         </div>
                         <p class="text-xs text-emerald-900/90 dark:text-emerald-200/90 leading-relaxed">
                             参加する際、<strong>現在の作業データはローカルに自動保存</strong>されます。<br>
-                            共同編集が切断された場合、<strong>このデータは確実に復活</strong>できます。
+                            退出後は「参加前の作品を復元」から戻せます。ホストのブロックと作品データが共有されます。
                         </p>
                     </div>
                 `,

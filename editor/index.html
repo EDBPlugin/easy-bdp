@@ -1158,7 +1158,7 @@
     <!-- 共同編集モーダル -->
     <div id="collabModal"
         class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-        aria-hidden="true">
+        aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="collabHeading">
         <div
             class="flex flex-col w-full max-w-lg overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-800 ring-1 ring-black/5">
             <!-- Modal Header -->
@@ -1168,8 +1168,8 @@
                         <i data-lucide="users" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-slate-900 dark:text-white">リアルタイム共同編集</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">WebRTC (P2P) で安全に同時編集できます</p>
+                        <h3 id="collabHeading" class="text-base font-bold text-slate-900 dark:text-white">リアルタイム共同編集</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">ブロック・作品名・リスト・JSONデータを一緒に編集</p>
                     </div>
                 </div>
                 <button id="collabModalClose"
@@ -1219,7 +1219,7 @@
                     <div class="flex gap-2">
                         <input id="collabRoomIdInput" type="text"
                             class="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 px-3.5 py-2 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            placeholder="edbb-xxxxxxx">
+                            placeholder="ルームID または 招待リンク" aria-label="ルームID または 招待リンク">
                         <button id="collabJoinRoomBtn"
                             class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold text-white rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 transition-all shrink-0">
                             <i data-lucide="log-in" class="w-4 h-4"></i> 参加
@@ -1232,11 +1232,13 @@
                 </div>
 
                 <!-- Active Session Section (when connected) -->
+                <button id="collabRestoreBtn" class="hidden w-full rounded-xl border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 dark:text-emerald-300">参加前の作品を復元</button>
+                <p class="text-xs text-slate-500 dark:text-slate-400">招待リンクを知っている人は編集できます。信頼する相手に共有してください。プラグインは各自で同じものを有効にしてください。ホストが退出するとルームは終了します。</p>
                 <div id="collabActiveSection" class="hidden flex flex-col gap-4">
                     <div class="p-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex flex-col gap-2.5">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> 共同編集に接続中
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> <span id="collabStatusText" role="status" aria-live="polite">共同編集中</span>
                             </span>
                             <span id="collabActiveRoomId" class="text-xs font-mono font-bold text-emerald-900 dark:text-emerald-200 px-2 py-0.5 rounded bg-emerald-200/60 dark:bg-emerald-900/60"></span>
                         </div>

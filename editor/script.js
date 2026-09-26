@@ -469,6 +469,7 @@ const setupListManager = ({ workspace, storage, shareFeature, workspaceContainer
   workspaceContainer.appendChild(panel);
 
   const scheduleListSave = () => {
+    window.__edbb_collab?.manager.broadcastExtraChange({ [LIST_STORE_KEY]: listStore.toJSON(workspace) });
     storage?.save();
   };
 
@@ -675,6 +676,7 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
   };
 
   const scheduleSave = () => {
+    window.__edbb_collab?.manager.broadcastExtraChange({ [JSON_DATA_STORE_KEY]: jsonDataStore.toJSON() });
     hasPendingAutoSave = true;
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(() => {
@@ -1505,6 +1507,20 @@ const initializeApp = async () => {
       refreshLiveCodePreview();
     });
   };
+  collabManager.onStateChange((type, data) => {
+    if (type === 'workspace_updated') {
+      scheduleLiveCodeRefresh();
+      if (!shareFeature.isShareViewMode()) storage.save();
+      try { localStorage.setItem(PROJECT_TITLE_STORAGE_KEY, resolveProjectTitle()); } catch { /* optional */ }
+    }
+    if (type === 'status_change') {
+      const connecting = data.status === 'connecting';
+      // Keep the document intact but prevent unsent edits while the first snapshot is loading.
+      document.getElementById('blocklyDiv').inert = connecting;
+      const title = document.getElementById('projectTitleInput');
+      if (title) title.disabled = connecting;
+    }
+  });
   let splitViewActiveTab = 'code';
   const splitViewConsoleCloseBtn = document.getElementById('splitViewConsoleCloseBtn');
 

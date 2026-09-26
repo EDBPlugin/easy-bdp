@@ -1,583 +1,426 @@
-/**
- * Realtime Collaborative Editing Core Module for Easy Discord Bot Builder
- * Powered by PeerJS (WebRTC P2P)
- */
-
-const USER_COLORS = [
-    '#3b82f6', // blue
-    '#10b981', // emerald
-    '#f59e0b', // amber
-    '#ec4899', // pink
-    '#8b5cf6', // purple
-    '#06b6d4', // cyan
-    '#f97316', // orange
-    '#14b8a6', // teal
-];
-
-function getRandomColor() {
-    return USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)];
-}
-
-function generateRandomName() {
-    const animals = ['ねこ', 'いぬ', 'きつね', 'ペンギン', 'パンダ', 'コアラ', 'フクロウ', 'うさぎ'];
-    const animal = animals[Math.floor(Math.random() * animals.length)];
-    const num = Math.floor(100 + Math.random() * 900);
-    return `${animal}_${num}`;
-}
+/** Host-ordered collaboration. Guests retain unacknowledged edits across snapshots. */
+const PROTOCOL = 2;
+const BACKUP_KEY = 'edbb_collab_backup_v2';
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
+const clone = value => JSON.parse(JSON.stringify(value));
+const titleInput = () => document.getElementById('projectTitleInput');
 
 export class CollabManager {
     constructor(workspace) {
         this.workspace = workspace;
         this.peer = null;
-        this.connections = new Map(); // peerId -> DataConnection
+        this.connections = new Map();
+        this.remoteUsers = new Map();
+        this.remoteSelections = new Map();
+        this.listeners = new Set();
+        this.status = 'disconnected';
         this.isHost = false;
         this.roomId = null;
-        this.myUser = {
-            id: null,
-            name: localStorage.getItem('edbb_collab_user_name') || generateRandomName(),
-            color: getRandomColor(),
-            isHost: false,
-        };
-        this.remoteUsers = new Map(); // peerId -> user object
-        this.remoteSelections = new Map(); // peerId -> blockId
         this.isApplyingRemote = false;
         this.isSyncing = false;
-        this.pendingJoinPromise = null;
+        this.pending = [];
+        this.sequence = 0;
+        this.acknowledged = new Map();
+        this.revision = 0;
+        this.lastRevision = -1;
+        this.generation = 0;
         this.initialLocalBackup = null;
-        this.listeners = new Set();
-        this.blocklyListener = null;
-
-        this.setupBlocklyListener();
+        let name;
+        try { name = localStorage.getItem('edbb_collab_user_name'); } catch { /* optional preference */ }
+        this.myUser = { id: null, name: name || `ねこ_${Math.floor(Math.random() * 900 + 100)}`,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)], isHost: false };
+        // Session storage separates backups when two rooms are open in different tabs.
+        try { this.initialLocalBackup = JSON.parse(sessionStorage.getItem(BACKUP_KEY)); } catch { /* unavailable */ }
+        this.blocklyListener = event => {
+            if (this.isApplyingRemote || !this.isConnected()) return;
+            if (event.type === Blockly.Events.SELECTED) {
+                this.broadcast({ type: 'selection_change', blockId: event.newElementId || null, senderId: this.myUser.id });
+                return;
+            }
+            if (event.isUiEvent || event.type === Blockly.Events.FINISHED_LOADING) return;
+            const allowed = this.eventTypes();
+            if (allowed.has(event.type)) this.submit({ type: 'event', event: event.toJson() });
+        };
+        workspace.addChangeListener(this.blocklyListener);
     }
 
-    onStateChange(listener) {
-        this.listeners.add(listener);
-        return () => this.listeners.delete(listener);
+    eventTypes() {
+        return new Set(['BLOCK_CREATE', 'BLOCK_DELETE', 'BLOCK_CHANGE', 'BLOCK_MOVE',
+            'VAR_CREATE', 'VAR_DELETE', 'VAR_RENAME', 'COMMENT_CREATE', 'COMMENT_DELETE',
+            'COMMENT_CHANGE', 'COMMENT_MOVE'].map(key => Blockly.Events[key]).filter(Boolean));
     }
 
-    notify(eventType, data = {}) {
+    onStateChange(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+    notify(type, data = {}) {
         for (const listener of this.listeners) {
-            try {
-                listener(eventType, data);
-            } catch (err) {
-                console.error('CollabManager listener error:', err);
-            }
+            try { listener(type, data); } catch (error) { console.error('Collaboration UI:', error); }
         }
     }
-
-    restoreInitialBackup() {
-        if (!this.initialLocalBackup) return false;
-        this.isApplyingRemote = true;
-        try {
-            if (this.initialLocalBackup.state && this.workspace) {
-                this.workspace.clear();
-                Blockly.serialization.workspaces.load(this.initialLocalBackup.state, this.workspace);
-            }
-            if (this.initialLocalBackup.title != null) {
-                const titleInput = document.getElementById('projectTitleInput');
-                if (titleInput) titleInput.value = this.initialLocalBackup.title;
-            }
-            return true;
-        } catch (e) {
-            console.error('Failed to restore initial backup:', e);
-            return false;
-        } finally {
-            this.isApplyingRemote = false;
-        }
+    setStatus(status) {
+        this.status = status;
+        this.isSyncing = status === 'connecting';
+        this.notify('status_change', { status, isHost: this.isHost, roomId: this.roomId });
     }
-
+    isConnected() { return this.status === 'connected'; }
+    getAllUsers() { return [this.myUser, ...this.remoteUsers.values()]; }
     setUserName(name) {
-        if (!name || !name.trim()) return;
-        this.myUser.name = name.trim();
-        localStorage.setItem('edbb_collab_user_name', this.myUser.name);
-        this.broadcast({
-            type: 'user_update',
-            user: this.myUser,
-        });
+        if (typeof name !== 'string' || !name.trim()) return;
+        this.myUser.name = name.trim().slice(0, 20);
+        try { localStorage.setItem('edbb_collab_user_name', this.myUser.name); } catch { /* optional */ }
+        if (this.isHost) this.publishUsers();
+        else this.broadcast({ type: 'user_update', user: this.myUser });
         this.notify('users_updated', this.getAllUsers());
     }
 
-    getAllUsers() {
-        return [this.myUser, ...Array.from(this.remoteUsers.values())];
+    capture() {
+        return clone({ state: Blockly.serialization.workspaces.save(this.workspace),
+            extra: this.workspace.getExtraState?.() || {}, title: titleInput()?.value || '' });
     }
-
-    isConnected() {
-        return this.peer && !this.peer.destroyed && (this.isHost || this.connections.size > 0);
+    withoutEvents(action) {
+        this.isApplyingRemote = true;
+        Blockly.Events.disable();
+        try { return action(); }
+        finally { Blockly.Events.enable(); this.isApplyingRemote = false; }
     }
-
-    setupBlocklyListener() {
-        if (!this.workspace) return;
-        this.blocklyListener = (event) => {
-            if (this.isApplyingRemote || this.isSyncing || !this.isConnected()) return;
-
-            // Handle Selection Event
-            if (event.type === Blockly.Events.SELECTED) {
-                const blockId = event.newElementId || null;
-                this.broadcast({
-                    type: 'selection_change',
-                    senderId: this.myUser.id,
-                    blockId: blockId,
-                });
-                return;
+    loadSnapshot(snapshot) {
+        if (!snapshot || !snapshot.state || typeof snapshot.state !== 'object') throw new Error('同期データが不正です。');
+        // Unknown plugin blocks must fail before clearing the user's workspace.
+        const inspect = value => {
+            if (!value || typeof value !== 'object') return;
+            if (typeof value.type === 'string' && typeof value.id === 'string' && !Blockly.Blocks[value.type]) {
+                throw new Error(`ブロック「${value.type}」がありません。同じプラグインを有効にしてから参加してください。`);
             }
-
-            // Filter out purely UI-only events
-            if (event.isUiEvent) return;
-
-            // Only sync mutative events
-            const syncableEvents = [
-                Blockly.Events.BLOCK_CREATE,
-                Blockly.Events.BLOCK_DELETE,
-                Blockly.Events.BLOCK_CHANGE,
-                Blockly.Events.BLOCK_MOVE,
-                Blockly.Events.VAR_CREATE,
-                Blockly.Events.VAR_DELETE,
-                Blockly.Events.VAR_RENAME,
-                Blockly.Events.COMMENT_CREATE,
-                Blockly.Events.COMMENT_DELETE,
-                Blockly.Events.COMMENT_CHANGE,
-                Blockly.Events.COMMENT_MOVE,
-            ];
-
-            if (syncableEvents.includes(event.type)) {
-                try {
-                    const eventJson = event.toJson();
-                    this.broadcast({
-                        type: 'blockly_event',
-                        senderId: this.myUser.id,
-                        event: eventJson,
-                    });
-                } catch (e) {
-                    console.error('Failed to serialize Blockly event:', e);
-                }
-            }
+            Object.values(value).forEach(inspect);
         };
-
-        this.workspace.addChangeListener(this.blocklyListener);
+        inspect(snapshot.state.blocks);
+        Blockly.serialization.workspaces.load(clone(snapshot.state), this.workspace);
+        this.workspace.setExtraState?.(clone(snapshot.extra || {}));
+        if (titleInput()) titleInput().value = snapshot.title || '';
     }
-
-    async createRoom() {
-        this.disconnect();
-        const randomId = Math.random().toString(36).substring(2, 9);
-        const roomId = `edbb-${randomId}`;
-
-        this.isHost = true;
-        this.roomId = roomId;
-        this.myUser.isHost = true;
-
-        return new Promise((resolve, reject) => {
-            if (typeof Peer === 'undefined') {
-                return reject(new Error('PeerJS ライブラリが読み込まれていません。'));
-            }
-
-            this.peer = new Peer(roomId, {
-                debug: 1,
-            });
-
-            this.peer.on('open', (id) => {
-                this.myUser.id = id;
-                this.notify('status_change', { status: 'connected', isHost: true, roomId: this.roomId });
-                this.notify('users_updated', this.getAllUsers());
-                resolve(this.roomId);
-            });
-
-            this.peer.on('connection', (conn) => {
-                this.handleIncomingConnection(conn);
-            });
-
-            this.peer.on('error', (err) => {
-                console.error('PeerJS Host Error:', err);
-                this.notify('error', { error: err.message || '接続エラーが発生しました' });
-                reject(err);
-            });
-
-            this.peer.on('close', () => {
-                this.disconnect();
-            });
-        });
-    }
-
-    async joinRoom(roomId) {
-        if (!roomId || !roomId.trim()) throw new Error('ルームIDを入力してください。');
-        const cleanRoomId = roomId.trim();
-        this.disconnect();
-
-        // Backup current local workspace so user can restore if disconnected
+    restoreInitialBackup() {
+        if (!this.initialLocalBackup || this.status !== 'disconnected') return false;
+        const current = this.capture();
         try {
-            // Persist to localStorage first
-            window.__edbb_storage?.save?.();
-            this.initialLocalBackup = {
-                state: this.workspace ? Blockly.serialization.workspaces.save(this.workspace) : null,
-                title: document.getElementById('projectTitleInput')?.value || '',
-            };
-        } catch (e) {
-            console.warn('Failed to backup initial workspace before join:', e);
+            this.withoutEvents(() => this.loadSnapshot(this.initialLocalBackup));
+            this.workspace.clearUndo();
+            this.notify('workspace_updated');
+            return true;
+        } catch (error) {
+            this.withoutEvents(() => this.loadSnapshot(current));
+            this.notify('error', { error: error.message });
+            return false;
         }
-
-        // Clear local blocks and preview code upon joining
-        try {
-            this.isApplyingRemote = true;
-            if (this.workspace) {
-                this.workspace.clear();
-            }
-            const liveCodeOutput = document.getElementById('codePreviewContent');
-            if (liveCodeOutput) {
-                liveCodeOutput.textContent = '# ホストのコードを読み込み中...';
-            }
-            const codeOutput = document.getElementById('codeOutput');
-            if (codeOutput) {
-                codeOutput.textContent = '';
-            }
-        } catch (e) {
-            console.warn('Failed to clear workspace on join:', e);
-        } finally {
-            this.isApplyingRemote = false;
+    }
+    discardBackup() {
+        this.initialLocalBackup = null;
+        try { sessionStorage.removeItem(BACKUP_KEY); } catch { /* unavailable */ }
+        this.notify('backup_changed');
+    }
+    normalizeRoomId(value) {
+        let id = String(value || '').trim();
+        if (/^https?:\/\//i.test(id)) {
+            const url = new URL(id);
+            id = url.searchParams.get('collab') || url.searchParams.get('room') || '';
         }
-
-        this.isHost = false;
-        this.roomId = cleanRoomId;
-        this.myUser.isHost = false;
-        this.isSyncing = true;
-
-        return new Promise((resolve, reject) => {
-            if (typeof Peer === 'undefined') {
-                this.isSyncing = false;
-                return reject(new Error('PeerJS ライブラリが読み込まれていません。'));
-            }
-
-            const syncTimeout = setTimeout(() => {
-                if (this.pendingJoinPromise) {
-                    this.isSyncing = false;
-                    this.pendingJoinPromise = null;
-                    this.disconnect(true);
-                    reject(new Error('ホストからの初期同期がタイムアウトしました。'));
-                }
-            }, 15000);
-
-            this.pendingJoinPromise = { resolve, reject, timer: syncTimeout };
-
-            this.peer = new Peer({
-                debug: 1,
-            });
-
-            this.peer.on('open', (id) => {
-                this.myUser.id = id;
-                const conn = this.peer.connect(cleanRoomId, {
-                    reliable: true,
-                });
-
-                conn.on('open', () => {
-                    this.connections.set(cleanRoomId, conn);
-                    this.notify('status_change', { status: 'connecting', isHost: false, roomId: this.roomId });
-
-                    // Send user info to host
-                    conn.send({
-                        type: 'user_join',
-                        user: this.myUser,
-                    });
-                });
-
-                conn.on('data', (data) => {
-                    this.handleIncomingData(data, conn);
-                });
-
-                conn.on('close', () => {
-                    const wasConnected = !this.isSyncing && this.isConnected();
-                    if (this.pendingJoinPromise) {
-                        clearTimeout(this.pendingJoinPromise.timer);
-                        this.pendingJoinPromise.reject(new Error('ホストとの接続が切断されました。'));
-                        this.pendingJoinPromise = null;
-                    }
-                    this.disconnect(true /* preserve backup */);
-                    if (wasConnected) {
-                        this.notify('host_disconnected', { hasBackup: !!this.initialLocalBackup });
-                    }
-                });
-
-                conn.on('error', (err) => {
-                    console.error('Connection to host error:', err);
-                    if (this.pendingJoinPromise) {
-                        clearTimeout(this.pendingJoinPromise.timer);
-                        this.pendingJoinPromise.reject(err);
-                        this.pendingJoinPromise = null;
-                    }
-                    this.notify('error', { error: 'ホストへの接続に失敗しました。' });
-                });
-            });
-
-            this.peer.on('error', (err) => {
-                console.error('PeerJS Client Error:', err);
-                if (this.pendingJoinPromise) {
-                    clearTimeout(this.pendingJoinPromise.timer);
-                    this.pendingJoinPromise.reject(err);
-                    this.pendingJoinPromise = null;
-                }
-                this.notify('error', { error: err.message || '接続エラーが発生しました' });
-            });
-
-            this.peer.on('close', () => {
-                this.disconnect(true);
-            });
-        });
+        if (!/^edbb-[a-zA-Z0-9-]{7,64}$/.test(id)) throw new Error('有効なルームIDまたは招待リンクを入力してください。');
+        return id;
     }
 
-    handleIncomingConnection(conn) {
-        conn.on('open', () => {
-            this.connections.set(conn.peer, conn);
-
-            // Send current full workspace to new guest
+    createRoom() { return this.start(true, `edbb-${crypto.randomUUID()}`); }
+    joinRoom(value) {
+        try { return this.start(false, this.normalizeRoomId(value)); }
+        catch (error) { return Promise.reject(error); }
+    }
+    start(host, roomId) {
+        if (this.status !== 'disconnected') return Promise.reject(new Error('現在の接続を終了してから操作してください。'));
+        if (typeof Peer === 'undefined') return Promise.reject(new Error('接続ライブラリを読み込めませんでした。ページを再読み込みしてください。'));
+        if (!host) {
             try {
-                const fullState = Blockly.serialization.workspaces.save(this.workspace);
-                const titleInput = document.getElementById('projectTitleInput');
-                const projectTitle = titleInput ? titleInput.value : '';
-
-                conn.send({
-                    type: 'sync_full',
-                    state: fullState,
-                    projectTitle: projectTitle,
-                    hostUser: this.myUser,
-                    users: Array.from(this.remoteUsers.values()),
+                const backup = this.capture();
+                sessionStorage.setItem(BACKUP_KEY, JSON.stringify(backup));
+                this.initialLocalBackup = backup;
+                this.notify('backup_changed');
+            } catch { return Promise.reject(new Error('参加前のバックアップを保存できません。作品をファイルに保存し、ブラウザの保存領域を確認してください。')); }
+        }
+        this.isHost = host;
+        this.myUser.isHost = host;
+        this.roomId = roomId;
+        this.setStatus('connecting');
+        const generation = ++this.generation;
+        return new Promise((resolve, reject) => {
+            this.openPromise = { resolve, reject };
+            this.connectionTimer = setTimeout(() => this.fail(new Error('接続がタイムアウトしました。ルームIDとホストの接続を確認してください。')), 15000);
+            try {
+                const peer = host ? new Peer(roomId, { debug: 1 }) : new Peer({ debug: 1 });
+                this.peer = peer;
+                const active = () => this.generation === generation && this.peer === peer;
+                peer.on('open', id => {
+                    if (!active()) return;
+                    this.myUser.id = id;
+                    if (host) this.finishConnecting();
+                    else if (!this.connections.size) this.attachConnection(peer.connect(roomId, { reliable: true }), generation);
                 });
-            } catch (err) {
-                console.error('Failed to serialize workspace for sync_full:', err);
-            }
-        });
-
-        conn.on('data', (data) => {
-            if (!data || typeof data !== 'object') return;
-
-            // Enforce sender identity binding for incoming guest messages
-            if (this.isHost) {
-                if (data.type === 'user_join' || data.type === 'user_update') {
-                    if (!data.user) data.user = {};
-                    data.user.id = conn.peer;
-                } else if (data.type === 'selection_change') {
-                    data.senderId = conn.peer;
-                } else if (data.type === 'user_leave') {
-                    // Reject client-supplied user_leave to prevent forged departures
-                    return;
-                }
-            }
-
-            this.handleIncomingData(data, conn);
-
-            // As Host, relay message to all other guests
-            if (this.isHost && data.type !== 'sync_full') {
-                for (const [peerId, otherConn] of this.connections) {
-                    if (peerId !== conn.peer && otherConn.open) {
-                        otherConn.send(data);
+                peer.on('connection', conn => {
+                    if (active() && host) this.attachConnection(conn, generation);
+                    else conn.close();
+                });
+                peer.on('error', error => {
+                    if (!active()) return;
+                    // Signalling outages do not invalidate established data channels.
+                    if (this.isConnected() && ['network', 'socket-error', 'socket-closed'].includes(error.type)) {
+                        this.notify('info', { message: '招待サーバーへ再接続中です。接続済みの共同編集は継続します。' });
+                        return;
                     }
-                }
+                    this.fail(new Error(error.type === 'peer-unavailable' ? 'ルームが見つかりません。ホストがルームを開いているか確認してください。' : error.message));
+                });
+                peer.on('disconnected', () => {
+                    if (!active()) return;
+                    clearTimeout(this.reconnectTimer);
+                    this.reconnectTimer = setTimeout(() => {
+                        if (active() && peer.disconnected && !peer.destroyed) peer.reconnect();
+                    }, 1000);
+                });
+                peer.on('close', () => { if (active()) this.fail(new Error('共同編集の接続が終了しました。')); });
+            } catch (error) { this.fail(error); }
+        });
+    }
+    finishConnecting() {
+        clearTimeout(this.connectionTimer);
+        this.setStatus('connected');
+        const promise = this.openPromise;
+        this.openPromise = null;
+        promise?.resolve(this.roomId);
+        this.notify('users_updated', this.getAllUsers());
+    }
+    fail(error) {
+        const joined = this.isConnected() && !this.isHost;
+        const promise = this.openPromise;
+        this.openPromise = null;
+        this.disconnect(true);
+        if (promise) promise.reject(error);
+        else this.notify('error', { error: error.message || '接続に失敗しました。' });
+        if (joined) this.notify('host_disconnected', { hasBackup: !!this.initialLocalBackup });
+    }
+    attachConnection(conn, generation) {
+        if (this.connections.has(conn.peer)) { conn.close(); return; }
+        this.connections.set(conn.peer, conn);
+        const active = () => generation === this.generation && this.connections.get(conn.peer) === conn;
+        const handshakeTimer = setTimeout(() => { if (active() && !this.remoteUsers.has(conn.peer) && this.isHost) conn.close(); }, 15000);
+        conn.on('open', () => {
+            if (!active()) return;
+            if (!this.isHost) this.send(conn, { type: 'hello', protocol: PROTOCOL, user: this.myUser });
+        });
+        conn.on('data', data => {
+            if (!active()) return;
+            try { this.receive(data, conn); }
+            catch (error) {
+                if (this.isHost) {
+                    this.send(conn, { type: 'rejected', message: error.message });
+                    this.scheduleSnapshot();
+                } else this.fail(error);
             }
         });
-
         conn.on('close', () => {
-            const departingUser = this.remoteUsers.get(conn.peer);
+            clearTimeout(handshakeTimer);
+            if (!active()) return;
+            if (!this.isHost) { this.fail(new Error('ホストとの接続が切断されました。')); return; }
             this.connections.delete(conn.peer);
             this.remoteUsers.delete(conn.peer);
             this.remoteSelections.delete(conn.peer);
+            this.acknowledged.delete(conn.peer);
             this.notify('selection_cleared', { peerId: conn.peer });
-            this.notify('users_updated', this.getAllUsers());
-            if (departingUser) {
-                this.notify('info', { message: `${departingUser.name} さんが退出しました。` });
-            }
-            // Relay departure to remaining peers
-            if (this.isHost) {
-                this.broadcast({
-                    type: 'user_leave',
-                    peerId: conn.peer,
-                });
-            }
+            this.publishUsers();
         });
-
-        conn.on('error', (err) => {
-            console.error(`Connection error with ${conn.peer}:`, err);
+        conn.on('error', error => {
+            clearTimeout(handshakeTimer);
+            if (!active()) return;
+            if (!this.isHost) this.fail(error);
+            else conn.close();
         });
     }
-
-    handleIncomingData(data, conn) {
-        if (!data || !data.type) return;
-
-        switch (data.type) {
-            case 'sync_full':
-                this.applyFullSync(data);
-                break;
-
-            case 'blockly_event':
-                this.applyBlocklyEvent(data.event);
-                break;
-
-            case 'selection_change':
-                this.applySelectionChange(data.senderId, data.blockId);
-                break;
-
-            case 'user_join':
-                this.remoteUsers.set(data.user.id, data.user);
-                this.notify('users_updated', this.getAllUsers());
-                this.notify('info', { message: `${data.user.name} さんが参加しました！` });
-                break;
-
-            case 'user_update':
-                this.remoteUsers.set(data.user.id, data.user);
-                this.notify('users_updated', this.getAllUsers());
-                break;
-
-            case 'user_leave':
-                this.remoteUsers.delete(data.peerId);
-                this.remoteSelections.delete(data.peerId);
-                this.notify('selection_cleared', { peerId: data.peerId });
-                this.notify('users_updated', this.getAllUsers());
-                break;
-
-            case 'title_change':
-                if (data.title != null) {
-                    const titleInput = document.getElementById('projectTitleInput');
-                    if (titleInput && titleInput.value !== data.title) {
-                        titleInput.value = data.title;
-                    }
+    sanitizeUser(user, id, isHost = false) {
+        return { id, isHost, name: typeof user?.name === 'string' ? user.name.trim().slice(0, 20) || 'ゲスト' : 'ゲスト',
+            color: /^#[\da-f]{6}$/i.test(user?.color) ? user.color : COLORS[0] };
+    }
+    publishUsers() {
+        this.broadcast({ type: 'users', users: this.getAllUsers() });
+        this.notify('users_updated', this.getAllUsers());
+    }
+    receive(data, conn) {
+        if (!data || typeof data !== 'object') return;
+        if (this.isHost) {
+            if (data.type === 'hello') {
+                if (data.protocol !== PROTOCOL) {
+                    this.send(conn, { type: 'fatal', message: '共同編集のバージョンが異なります。全員がページを再読み込みしてください。' });
+                    return;
                 }
-                break;
-
-            default:
-                break;
+                this.remoteUsers.set(conn.peer, this.sanitizeUser(data.user, conn.peer));
+                this.publishUsers();
+                this.scheduleSnapshot();
+                return;
+            }
+            if (!this.remoteUsers.has(conn.peer)) return;
+            if (data.type === 'operation') {
+                if (!Number.isSafeInteger(data.sequence) || data.sequence < 1) return;
+                const previous = this.acknowledged.get(conn.peer) || 0;
+                if (data.sequence <= previous) return;
+                if (data.sequence !== previous + 1) throw new Error('編集の順序が一致しません。退出して再参加してください。');
+                this.acknowledged.set(conn.peer, data.sequence);
+                const before = this.capture();
+                try { this.withoutEvents(() => this.applyOperation(data.operation)); }
+                catch (error) { this.withoutEvents(() => this.loadSnapshot(before)); throw error; }
+                this.notify('workspace_updated');
+                this.scheduleSnapshot();
+            } else if (data.type === 'user_update') {
+                this.remoteUsers.set(conn.peer, this.sanitizeUser(data.user, conn.peer));
+                this.publishUsers();
+            } else if (data.type === 'selection_change') {
+                if (data.blockId !== null && typeof data.blockId !== 'string') return;
+                this.applySelectionChange(conn.peer, data.blockId);
+                this.broadcast({ type: 'selection_change', senderId: conn.peer, blockId: data.blockId });
+            }
+            // Guests cannot send snapshots, member lists, or impersonate the host.
+        } else if (conn.peer === this.roomId) {
+            if (data.type === 'snapshot') this.applySnapshot(data);
+            else if (data.type === 'users' && Array.isArray(data.users)) {
+                const previous = this.remoteUsers;
+                this.remoteUsers = new Map(data.users.filter(u => u?.id && u.id !== this.myUser.id)
+                    .map(u => [u.id, this.sanitizeUser(u, u.id, u.id === this.roomId)]));
+                for (const id of previous.keys()) if (!this.remoteUsers.has(id)) {
+                    this.remoteSelections.delete(id);
+                    this.notify('selection_cleared', { peerId: id });
+                }
+                this.notify('users_updated', this.getAllUsers());
+            } else if (data.type === 'selection_change') this.applySelectionChange(data.senderId, data.blockId);
+            else if (data.type === 'fatal') throw new Error(data.message);
+            else if (data.type === 'rejected') this.notify('error', { error: `編集を反映できませんでした: ${data.message}` });
         }
     }
-
-    applyFullSync(data) {
-        this.isApplyingRemote = true;
-        try {
-            if (data.state && this.workspace) {
-                this.workspace.clear();
-                Blockly.serialization.workspaces.load(data.state, this.workspace);
-            }
-            if (data.projectTitle != null) {
-                const titleInput = document.getElementById('projectTitleInput');
-                if (titleInput) titleInput.value = data.projectTitle;
-            }
-            if (data.hostUser) {
-                this.remoteUsers.set(data.hostUser.id, data.hostUser);
-            }
-            if (Array.isArray(data.users)) {
-                data.users.forEach((u) => {
-                    if (u.id !== this.myUser.id) {
-                        this.remoteUsers.set(u.id, u);
-                    }
-                });
-            }
-
-            // Refresh live code preview after host workspace loaded
+    submit(operation) {
+        if (!this.isConnected() || this.isApplyingRemote) return;
+        if (this.isHost) this.scheduleSnapshot();
+        else {
+            const message = { type: 'operation', sequence: ++this.sequence, operation: clone(operation) };
+            this.pending.push(message);
+            this.broadcast(message);
+        }
+    }
+    applyOperation(operation) {
+        if (operation?.type === 'event' && this.eventTypes().has(operation.event?.type)) {
+            const event = Blockly.Events.fromJson(clone(operation.event), this.workspace);
+            event.recordUndo = false;
+            event.run(true);
+        } else if (operation?.type === 'title' && typeof operation.title === 'string') {
+            if (titleInput()) titleInput().value = operation.title.slice(0, 200);
+        } else if (operation?.type === 'extra' && operation.extra && typeof operation.extra === 'object') {
+            // Each top-level data store is independent of block edits.
+            this.workspace.setExtraState?.({ ...this.workspace.getExtraState?.(), ...clone(operation.extra) });
+        } else throw new Error('対応していない編集データです。');
+    }
+    scheduleSnapshot() {
+        if (this.snapshotTimer) return;
+        this.snapshotTimer = setTimeout(() => {
+            this.snapshotTimer = null;
+            if (!this.isHost || !this.isConnected()) return;
             try {
-                const liveCodeOutput = document.getElementById('codePreviewContent');
-                if (liveCodeOutput && typeof Blockly.Python !== 'undefined') {
-                    liveCodeOutput.textContent = Blockly.Python.workspaceToCode(this.workspace);
-                    delete liveCodeOutput.dataset.highlighted;
-                    if (window.hljs) window.hljs.highlightElement(liveCodeOutput);
-                }
-            } catch (err) {
-                console.warn('Failed to refresh code preview after full sync:', err);
-            }
-
-            this.notify('users_updated', this.getAllUsers());
-            this.notify('info', { message: 'ワークスペースの同期が完了しました。' });
-        } catch (err) {
-            console.error('Failed to load synced workspace:', err);
-        } finally {
-            this.isApplyingRemote = false;
-            this.isSyncing = false;
-            if (this.pendingJoinPromise) {
-                clearTimeout(this.pendingJoinPromise.timer);
-                this.pendingJoinPromise.resolve(this.roomId);
-                this.pendingJoinPromise = null;
-            }
-            this.notify('status_change', { status: 'connected', isHost: false, roomId: this.roomId });
-        }
+                this.broadcast({ type: 'snapshot', revision: ++this.revision, snapshot: this.capture(),
+                    acknowledged: Object.fromEntries(this.acknowledged) });
+            } catch (error) { this.notify('error', { error: error.message }); }
+        }, 50);
     }
-
-    applyBlocklyEvent(eventJson) {
-        if (!eventJson || !this.workspace) return;
-        this.isApplyingRemote = true;
+    applySnapshot(data) {
+        if (!Number.isSafeInteger(data.revision) || data.revision <= this.lastRevision) return;
+        // Avoid replacing blocks while a drag or field gesture is still generating events.
+        if (this.workspace.isDragging?.() || Blockly.Gesture?.inProgress?.() || Blockly.WidgetDiv?.isVisible?.() || Blockly.DropDownDiv?.isVisible?.()) {
+            this.deferredSnapshot = data;
+            clearTimeout(this.applyTimer);
+            this.applyTimer = setTimeout(() => this.applyDeferredSnapshot(), 80);
+            return;
+        }
+        const before = this.capture();
+        const selectedId = Blockly.getSelected?.()?.id;
+        const pending = this.pending.filter(message => message.sequence > (data.acknowledged?.[this.myUser.id] || 0));
         try {
-            const event = Blockly.Events.fromJson(eventJson, this.workspace);
-            if (event) {
-                event.run(true);
-            }
-        } catch (err) {
-            console.error('Failed to apply remote Blockly event:', err);
-        } finally {
-            this.isApplyingRemote = false;
+            this.withoutEvents(() => {
+                // An acknowledgement with an identical document must not reset focus/undo.
+                if (pending.length || JSON.stringify(before) !== JSON.stringify(data.snapshot)) {
+                    this.loadSnapshot(data.snapshot);
+                    for (const message of pending) {
+                        try { this.applyOperation(message.operation); }
+                        catch { /* A concurrently deleted block wins; host will acknowledge rejection. */ }
+                    }
+                    this.workspace.clearUndo();
+                    if (selectedId) this.workspace.getBlockById(selectedId)?.select?.();
+                }
+            });
+        } catch (error) {
+            this.withoutEvents(() => this.loadSnapshot(before));
+            throw error;
+        }
+        this.pending = pending;
+        this.lastRevision = data.revision;
+        this.notify('workspace_updated');
+        for (const [peerId, blockId] of this.remoteSelections) this.applySelectionChange(peerId, blockId);
+        if (this.isSyncing) this.finishConnecting();
+    }
+    applyDeferredSnapshot() {
+        const data = this.deferredSnapshot;
+        this.deferredSnapshot = null;
+        if (data && this.status !== 'disconnected') {
+            try { this.applySnapshot(data); } catch (error) { this.fail(error); }
         }
     }
-
+    broadcastTitleChange(title) { this.submit({ type: 'title', title }); }
+    broadcastExtraChange(extra) { this.submit({ type: 'extra', extra }); }
     applySelectionChange(peerId, blockId) {
-        if (!peerId) return;
-        const user = this.remoteUsers.get(peerId);
-        if (!user) return;
-
+        if (peerId === this.myUser.id || !this.remoteUsers.has(peerId)) return;
         if (blockId) {
             this.remoteSelections.set(peerId, blockId);
-            this.notify('selection_updated', { peerId, blockId, user });
+            this.notify('selection_updated', { peerId, blockId, user: this.remoteUsers.get(peerId) });
         } else {
             this.remoteSelections.delete(peerId);
             this.notify('selection_cleared', { peerId });
         }
     }
-
+    send(conn, data) {
+        if (!conn.open) return;
+        try { conn.send(data); }
+        catch (error) { if (!this.isHost) this.fail(error); else conn.close(); }
+    }
     broadcast(data) {
-        if (!this.isConnected() || this.isSyncing) return;
         for (const conn of this.connections.values()) {
-            if (conn.open) {
-                try {
-                    conn.send(data);
-                } catch (e) {
-                    console.error('Broadcast send error:', e);
-                }
-            }
+            if (!this.isHost || this.remoteUsers.has(conn.peer)) this.send(conn, data);
         }
     }
-
-    broadcastTitleChange(newTitle) {
-        this.broadcast({
-            type: 'title_change',
-            title: newTitle,
-        });
-    }
-
-    disconnect(preserveBackup = false) {
-        if (!preserveBackup) {
-            this.initialLocalBackup = null;
+    disconnect(preserveBackup = true) {
+        ++this.generation; // Invalidate callbacks before closing transports (close may fire synchronously).
+        for (const timer of ['connectionTimer', 'snapshotTimer', 'applyTimer', 'reconnectTimer']) {
+            clearTimeout(this[timer]); this[timer] = null;
         }
-
-        if (this.pendingJoinPromise) {
-            clearTimeout(this.pendingJoinPromise.timer);
-            this.pendingJoinPromise.reject(new Error('切断されました。'));
-            this.pendingJoinPromise = null;
-        }
-        this.isSyncing = false;
-
-        // Close all connections
-        for (const conn of this.connections.values()) {
-            try {
-                conn.close();
-            } catch (e) { }
-        }
+        const promise = this.openPromise;
+        this.openPromise = null;
+        promise?.reject(new Error('接続をキャンセルしました。'));
+        const connections = [...this.connections.values()];
+        const peer = this.peer;
         this.connections.clear();
-
-        if (this.peer && !this.peer.destroyed) {
-            try {
-                this.peer.destroy();
-            } catch (e) { }
-        }
         this.peer = null;
-
+        for (const conn of connections) { try { conn.close(); } catch { /* already closed */ } }
+        try { peer?.destroy(); } catch { /* already destroyed */ }
         this.isHost = false;
         this.roomId = null;
         this.myUser.id = null;
         this.myUser.isHost = false;
+        this.pending = [];
+        this.sequence = 0;
+        this.revision = 0;
+        this.lastRevision = -1;
+        this.deferredSnapshot = null;
+        this.acknowledged.clear();
         this.remoteUsers.clear();
         this.remoteSelections.clear();
-
+        if (!preserveBackup) this.discardBackup();
+        this.setStatus('disconnected');
         this.notify('all_selections_cleared');
-        this.notify('status_change', { status: 'disconnected' });
         this.notify('users_updated', []);
     }
 }
