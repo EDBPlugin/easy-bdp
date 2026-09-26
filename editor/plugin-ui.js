@@ -143,6 +143,55 @@ export class PluginUI {
         this.showSideToast(message, 'share');
     }
 
+    /**
+     * Collaboration never installs a plugin silently. The room owner may offer a
+     * block plugin, or a guest may ask the owner to add one; both paths land here.
+     */
+    async confirmCollabPluginInstall(plugin, { requester = null } = {}) {
+        if (!plugin?.id || !plugin?.repo) {
+            this.showSideError('このプラグインは共有用のGitHub情報がないため取得できません。');
+            return false;
+        }
+        const installed = this.pluginManager.getRegistry().find(item => item.id === plugin.id);
+        const requestPrefix = requester?.name ? `${requester.name} さんから` : '共同編集ルームから';
+        const text = installed
+            ? `${requestPrefix}「${plugin.name || plugin.id}」を共同編集で使います。有効にしますか？`
+            : `${requestPrefix}「${plugin.name || plugin.id}」のブロックが追加されました。ダウンロードして共同編集に参加しますか？`;
+        const confirmed = typeof window.Swal?.fire === 'function'
+            ? (await window.Swal.fire({
+                title: 'プラグインを取得しますか？', text, icon: 'question',
+                showCancelButton: true, confirmButtonText: installed ? '有効にする' : 'ダウンロードする',
+                cancelButtonText: '今はしない', reverseButtons: true,
+            })).isConfirmed
+            : window.confirm(text);
+        if (!confirmed) return false;
+
+        try {
+            let target = installed;
+            if (!target) {
+                const repoInfo = this.pluginManager.parseGitHubUrl(plugin.repo);
+                if (!repoInfo?.fullName) throw new Error('プラグインの配布URLが不正です。');
+                target = await this.pluginManager.installFromGitHub(repoInfo.fullName, plugin.installRef || 'main');
+                const trust = this.pluginManager.getManifestTrustLevel(target);
+                if ((trust?.level ?? trust) === 'danger') {
+                    const agreed = await this.confirmDangerousInstall(target.name || plugin.name || plugin.id, trust?.reason);
+                    if (!agreed) {
+                        await this.pluginManager.uninstallPlugin(target.id);
+                        return false;
+                    }
+                }
+            }
+            await this.pluginManager.enablePlugin(target.id);
+            this.renderMarketplace?.();
+            this.showSideSuccess(`「${target.name || plugin.name || plugin.id}」を有効にしました。`);
+            return true;
+        } catch (error) {
+            console.error('Failed to install collaboration plugin:', error);
+            this.showSideError(`プラグインを取得できませんでした: ${error.message || '不明なエラー'}`);
+            return false;
+        }
+    }
+
     ensureDeleteAgreementModal() {
         if (this.deleteAgreementModal) return this.deleteAgreementModal;
         const modal = document.createElement('div');

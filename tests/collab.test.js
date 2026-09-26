@@ -195,3 +195,33 @@ test('title, extra data and member departures propagate; invalid operations reco
     guest.manager.disconnect(); await sleep(20);
     assert.equal(observer.manager.getAllUsers().length, 2);
 });
+
+test('plugin blocks advertise a downloadable GitHub plugin before a guest applies the snapshot', t => {
+    const network = room(); t.after(network.cleanup);
+    const host = network.client({}), guest = network.client({});
+    const plugin = {
+        id: 'team-tools', uuid: 'plugin-uuid', name: 'Team tools', version: '1.2.3',
+        repo: 'https://github.com/example/team-tools', installRef: 'main', affectsBlocks: true, blockTypes: ['team_note'],
+    };
+    const managerFor = enabled => ({
+        getRegistry: () => enabled ? [plugin] : [], isPluginEnabled: () => enabled,
+        isPluginSharable: () => true, getPluginBlockTypes: () => ['team_note'],
+    });
+    const block = { id: 'note', type: 'team_note' };
+    host.workspace.getAllBlocks = () => [block];
+    host.workspace.getBlockById = id => id === 'note' ? block : null;
+    host.manager.setPluginManager(managerFor(true));
+    guest.manager.setPluginManager(managerFor(false));
+    const snapshot = host.manager.capture();
+    assert.equal(JSON.stringify(snapshot.plugins), JSON.stringify([{
+        id: 'team-tools', uuid: 'plugin-uuid', name: 'Team tools', version: '1.2.3',
+        repo: 'https://github.com/example/team-tools', installRef: 'main', blockTypes: ['team_note'],
+    }]));
+    const offers = [];
+    guest.manager.onStateChange((type, data) => { if (type === 'plugin_download_offer') offers.push(data.plugin); });
+    guest.manager.applySnapshot({ revision: 1, snapshot, acknowledged: {} });
+    assert.equal(offers.length, 1);
+    assert.equal(offers[0].id, 'team-tools');
+    assert.equal(offers[0].repo, 'https://github.com/example/team-tools');
+    assert.equal(guest.manager.lastAcceptedSnapshot, null, 'workspace waits for an enabled plugin');
+});

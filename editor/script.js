@@ -1742,6 +1742,22 @@ const initializeApp = async () => {
 
   const pluginUI = new PluginUI(pluginManager);
   pluginUIRef = pluginUI;
+  collabManager.setPluginManager(pluginManager);
+  const collabPluginPrompts = new Set();
+  collabManager.onStateChange(async (type, data) => {
+    if (type !== 'plugin_download_offer' && type !== 'plugin_request') return;
+    const plugin = data.plugin;
+    if (!plugin?.id) return;
+    const key = `${type}:${plugin.id}:${plugin.installRef || 'main'}`;
+    if (collabPluginPrompts.has(key)) return;
+    collabPluginPrompts.add(key);
+    try {
+      const installed = await pluginUI.confirmCollabPluginInstall(plugin, { requester: data.user });
+      if (installed) collabManager.pluginReady(plugin);
+    } finally {
+      collabPluginPrompts.delete(key);
+    }
+  });
   pluginManager.onPluginsSuggested((entries) => {
     pluginUI.handleBulkInstall(entries.join(','));
   });

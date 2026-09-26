@@ -25,6 +25,10 @@ export class CollabManager {
         this.lastRevision = -1;
         this.generation = 0;
         this.initialLocalBackup = null;
+        this.pluginManager = null;
+        this.sessionPlugins = new Map();
+        this.offeredPlugins = new Set();
+        this.lastAcceptedSnapshot = null;
         let name;
         try { name = localStorage.getItem('edbb_collab_user_name'); } catch { /* optional preference */ }
         this.myUser = { id: null, name: name || `ねこ_${Math.floor(Math.random() * 900 + 100)}`,
@@ -39,7 +43,15 @@ export class CollabManager {
             }
             if (event.isUiEvent || event.type === Blockly.Events.FINISHED_LOADING) return;
             const allowed = this.eventTypes();
-            if (allowed.has(event.type)) this.submit({ type: 'event', event: event.toJson() });
+            if (allowed.has(event.type)) {
+                const plugin = this.getPluginForEvent(event);
+                if (plugin && !this.isHost && !this.sessionPlugins.has(plugin.id)) {
+                    this.requestPlugin(plugin);
+                    return;
+                }
+                if (plugin && this.isHost) this.announcePlugin(plugin);
+                this.submit({ type: 'event', event: event.toJson() });
+            }
         };
         workspace.addChangeListener(this.blocklyListener);
     }
@@ -63,6 +75,49 @@ export class CollabManager {
     }
     isConnected() { return this.status === 'connected'; }
     getAllUsers() { return [this.myUser, ...this.remoteUsers.values()]; }
+    setPluginManager(pluginManager) { this.pluginManager = pluginManager || null; }
+    getPluginDescriptor(id) {
+        const plugin = this.pluginManager?.getRegistry?.().find(item => item?.id === id);
+        if (!plugin?.affectsBlocks || !this.pluginManager?.isPluginEnabled?.(id)) return null;
+        if (!this.pluginManager?.isPluginSharable?.(id)) {
+            return { id, name: plugin.name || id, unshareable: true };
+        }
+        return {
+            id,
+            uuid: typeof plugin.uuid === 'string' ? plugin.uuid : '',
+            name: typeof plugin.name === 'string' ? plugin.name : id,
+            version: typeof plugin.version === 'string' ? plugin.version : '',
+            repo: typeof plugin.repo === 'string' ? plugin.repo : '',
+            installRef: typeof plugin.installRef === 'string' ? plugin.installRef : 'main',
+            blockTypes: (this.pluginManager.getPluginBlockTypes?.(id) || []).filter(type => typeof type === 'string'),
+        };
+    }
+    getPluginForBlock(block) {
+        if (!block?.type || !this.pluginManager) return null;
+        for (const plugin of this.pluginManager.getRegistry?.() || []) {
+            if (this.pluginManager.isPluginEnabled?.(plugin.id)
+                && this.pluginManager.getPluginBlockTypes?.(plugin.id)?.includes(block.type)) {
+                return this.getPluginDescriptor(plugin.id);
+            }
+        }
+        return null;
+    }
+    getPluginForEvent(event) {
+        const ids = event?.ids || [event?.blockId];
+        for (const id of ids) {
+            const descriptor = this.getPluginForBlock(this.workspace.getBlockById?.(id));
+            if (descriptor) return descriptor;
+        }
+        return null;
+    }
+    getWorkspacePlugins() {
+        const plugins = new Map();
+        for (const block of this.workspace.getAllBlocks?.(false) || []) {
+            const descriptor = this.getPluginForBlock(block);
+            if (descriptor) plugins.set(descriptor.id, descriptor);
+        }
+        return [...plugins.values()];
+    }
     setUserName(name) {
         if (typeof name !== 'string' || !name.trim()) return;
         this.myUser.name = name.trim().slice(0, 20);
@@ -74,7 +129,8 @@ export class CollabManager {
 
     capture() {
         return clone({ state: Blockly.serialization.workspaces.save(this.workspace),
-            extra: this.workspace.getExtraState?.() || {}, title: titleInput()?.value || '' });
+            extra: this.workspace.getExtraState?.() || {}, title: titleInput()?.value || '',
+            plugins: this.getWorkspacePlugins() });
     }
     withoutEvents(action) {
         this.isApplyingRemote = true;
@@ -84,7 +140,7 @@ export class CollabManager {
     }
     loadSnapshot(snapshot) {
         if (!snapshot || !snapshot.state || typeof snapshot.state !== 'object') throw new Error('同期データが不正です。');
-        // Unknown plugin blocks must fail before clearing the user's workspace.
+        // Unknown blocks must be checked before clearing the user's workspace.
         const inspect = value => {
             if (!value || typeof value !== 'object') return;
             if (typeof value.type === 'string' && typeof value.id === 'string' && !Blockly.Blocks[value.type]) {
@@ -96,6 +152,72 @@ export class CollabManager {
         Blockly.serialization.workspaces.load(clone(snapshot.state), this.workspace);
         this.workspace.setExtraState?.(clone(snapshot.extra || {}));
         if (titleInput()) titleInput().value = snapshot.title || '';
+    }
+    sanitizePlugin(plugin) {
+        if (!plugin || typeof plugin !== 'object' || typeof plugin.id !== 'string') return null;
+        const id = plugin.id.trim().slice(0, 100);
+        const repo = typeof plugin.repo === 'string' ? plugin.repo.trim() : '';
+        if (!id) return null;
+        return {
+            id,
+            uuid: typeof plugin.uuid === 'string' ? plugin.uuid.slice(0, 200) : '',
+            name: typeof plugin.name === 'string' ? plugin.name.slice(0, 100) : id,
+            version: typeof plugin.version === 'string' ? plugin.version.slice(0, 100) : '',
+            repo: /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/i.test(repo) ? repo.replace(/\/$/, '') : '',
+            installRef: typeof plugin.installRef === 'string' ? plugin.installRef.slice(0, 100) : 'main',
+            blockTypes: Array.isArray(plugin.blockTypes) ? plugin.blockTypes.filter(type => typeof type === 'string').slice(0, 200) : [],
+            unshareable: plugin.unshareable === true,
+        };
+    }
+    isPluginReady(plugin) {
+        const local = this.getPluginDescriptor(plugin?.id);
+        return !!local && !local.unshareable && plugin.blockTypes.every(type => Blockly.Blocks[type]);
+    }
+    missingPlugins(snapshot) {
+        const plugins = Array.isArray(snapshot?.plugins) ? snapshot.plugins.map(plugin => this.sanitizePlugin(plugin)).filter(Boolean) : [];
+        return plugins.filter(plugin => !this.isPluginReady(plugin));
+    }
+    offerPlugin(plugin, request = false) {
+        const safe = this.sanitizePlugin(plugin);
+        if (!safe) return;
+        const key = `${request ? 'request' : 'offer'}:${safe.id}:${safe.installRef}`;
+        if (this.offeredPlugins.has(key)) return;
+        this.offeredPlugins.add(key);
+        this.notify(request ? 'plugin_request' : 'plugin_download_offer', { plugin: safe });
+    }
+    announcePlugin(plugin) {
+        const safe = this.sanitizePlugin(plugin);
+        if (!safe) return;
+        if (safe.unshareable || !safe.repo) {
+            this.notify('plugin_unshareable', { plugin: safe });
+            return;
+        }
+        this.sessionPlugins.set(safe.id, safe);
+        this.broadcast({ type: 'plugin_offer', plugin: safe });
+        this.scheduleSnapshot();
+    }
+    requestPlugin(plugin) {
+        const safe = this.sanitizePlugin(plugin);
+        if (!safe) return;
+        if (safe.unshareable || !safe.repo) {
+            this.notify('plugin_unshareable', { plugin: safe });
+            return;
+        }
+        this.broadcast({ type: 'plugin_request', plugin: safe });
+        this.notify('plugin_request_sent', { plugin: safe });
+        // The host has not approved this plugin for the room; undo the local-only edit.
+        if (this.lastAcceptedSnapshot) {
+            try { this.withoutEvents(() => this.loadSnapshot(this.lastAcceptedSnapshot)); }
+            catch (error) { this.notify('error', { error: error.message }); }
+        }
+    }
+    pluginReady(plugin) {
+        const safe = this.sanitizePlugin(plugin);
+        if (!safe || !this.isPluginReady(safe)) return false;
+        this.offeredPlugins.delete(`offer:${safe.id}:${safe.installRef}`);
+        if (this.isHost) this.announcePlugin(safe);
+        else this.broadcast({ type: 'snapshot_request' });
+        return true;
     }
     restoreInitialBackup() {
         if (!this.initialLocalBackup || this.status !== 'disconnected') return false;
@@ -278,10 +400,22 @@ export class CollabManager {
                 if (data.blockId !== null && typeof data.blockId !== 'string') return;
                 this.applySelectionChange(conn.peer, data.blockId);
                 this.broadcast({ type: 'selection_change', senderId: conn.peer, blockId: data.blockId });
+            } else if (data.type === 'plugin_request') {
+                const plugin = this.sanitizePlugin(data.plugin);
+                if (plugin) this.notify('plugin_request', { plugin, user: this.remoteUsers.get(conn.peer) });
+            } else if (data.type === 'snapshot_request') {
+                this.scheduleSnapshot();
             }
             // Guests cannot send snapshots, member lists, or impersonate the host.
         } else if (conn.peer === this.roomId) {
             if (data.type === 'snapshot') this.applySnapshot(data);
+            else if (data.type === 'plugin_offer') {
+                const plugin = this.sanitizePlugin(data.plugin);
+                if (plugin) {
+                    this.sessionPlugins.set(plugin.id, plugin);
+                    if (!this.isPluginReady(plugin)) this.offerPlugin(plugin);
+                }
+            }
             else if (data.type === 'users' && Array.isArray(data.users)) {
                 const previous = this.remoteUsers;
                 this.remoteUsers = new Map(data.users.filter(u => u?.id && u.id !== this.myUser.id)
@@ -337,6 +471,19 @@ export class CollabManager {
             this.applyTimer = setTimeout(() => this.applyDeferredSnapshot(), 80);
             return;
         }
+        const missing = this.missingPlugins(data.snapshot);
+        if (missing.length) {
+            this.blockedSnapshot = data;
+            missing.forEach(plugin => {
+                this.sessionPlugins.set(plugin.id, plugin);
+                this.offerPlugin(plugin);
+            });
+            return;
+        }
+        for (const plugin of data.snapshot?.plugins || []) {
+            const safe = this.sanitizePlugin(plugin);
+            if (safe) this.sessionPlugins.set(safe.id, safe);
+        }
         const before = this.capture();
         const selectedId = Blockly.getSelected?.()?.id;
         const pending = this.pending.filter(message => message.sequence > (data.acknowledged?.[this.myUser.id] || 0));
@@ -359,6 +506,8 @@ export class CollabManager {
         }
         this.pending = pending;
         this.lastRevision = data.revision;
+        this.lastAcceptedSnapshot = clone(data.snapshot);
+        this.blockedSnapshot = null;
         this.notify('workspace_updated');
         for (const [peerId, blockId] of this.remoteSelections) this.applySelectionChange(peerId, blockId);
         if (this.isSyncing) this.finishConnecting();

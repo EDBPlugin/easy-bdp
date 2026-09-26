@@ -180,6 +180,12 @@ export class CollabUI {
                 case 'host_disconnected':
                     this.promptHostDisconnected(data);
                     break;
+                case 'plugin_request_sent':
+                    this.showToast(`「${data.plugin.name}」の利用をホストへリクエストしました`, 'info');
+                    break;
+                case 'plugin_unshareable':
+                    this.showToast(`「${data.plugin.name}」は配布URLがないため共同編集では利用できません`, 'error');
+                    break;
                 case 'info':
                     this.showToast(data.message, 'info');
                     break;
