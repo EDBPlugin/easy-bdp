@@ -1093,10 +1093,9 @@ const setupJsonDataManager = ({ workspace, storage, shareFeature }) => {
     if (hasJsonStore) {
       jsonDataStore.fromJSON(state?.[JSON_DATA_STORE_KEY]);
     } else {
-      const fallbackState = readJsonDatasetLocalState();
-      if (fallbackState) {
-        jsonDataStore.fromJSON(fallbackState);
-      }
+      // A project without embedded JSON data must not inherit another
+      // project's browser-local datasets.
+      jsonDataStore.fromJSON(null);
     }
     persistJsonDatasetLocalState();
     resolveDatasetSelection();
@@ -1734,8 +1733,8 @@ const initializeApp = async () => {
     shareFeature?.updateShareButtonState?.();
   };
   const originalDisable = pluginManager.disablePlugin.bind(pluginManager);
-  pluginManager.disablePlugin = async (id) => {
-    await originalDisable(id);
+  pluginManager.disablePlugin = async (id, options) => {
+    await originalDisable(id, options);
     pluginUIRef?.applyBlockVisibilityConfig?.();
     shareFeature?.updateShareButtonState?.();
   };
@@ -1790,8 +1789,8 @@ const initializeApp = async () => {
       }
     };
     const originalDisable = pluginManager.disablePlugin.bind(pluginManager);
-    pluginManager.disablePlugin = async (id) => {
-      await originalDisable(id);
+    pluginManager.disablePlugin = async (id, options) => {
+      await originalDisable(id, options);
       await blockSearch.buildIndex();
       if (searchInput.value) {
         blockSearch.updateToolbox();
@@ -1831,16 +1830,18 @@ const initializeApp = async () => {
   const newProjectBtn = document.getElementById('newProjectBtn');
   newProjectBtn?.addEventListener('click', async () => {
     if (shareFeature.isShareViewMode()) return;
-    if (workspace.getAllBlocks(false).length === 0) {
-      showTopRightToast('ワークスペースは既に空です', { icon: 'info' });
-      return;
-    }
     const ok = await showConfirmDialog(
       '現在のブロックをすべて削除して新規プロジェクトを開始しますか？この操作は元に戻せません。',
       { icon: 'warning', confirmButtonText: '削除して新規作成' },
     );
     if (!ok) return;
     workspace.clear();
+    workspace.setExtraState?.({});
+    if (projectTitleInput) projectTitleInput.value = WorkspaceStorage.DEFAULT_TITLE;
+    try {
+      localStorage.setItem(PROJECT_TITLE_STORAGE_KEY, WorkspaceStorage.DEFAULT_TITLE);
+      localStorage.removeItem(JSON_GUI_DATASET_LOCAL_KEY);
+    } catch { /* optional local state */ }
     storage?.save();
     showTopRightToast('新規プロジェクトを開始しました', { icon: 'success' });
   });
@@ -1864,7 +1865,11 @@ const initializeApp = async () => {
     if (!file || !storage) return;
     storage
       .importFile(file)
-      .then(() => {
+      .then((imported) => {
+        if (!imported) {
+          showTopRightToast('プロジェクトを読み込めませんでした。現在の内容は保持されています。', { icon: 'error' });
+          return;
+        }
         // Imported JSON/XML may contain stale block flags.
         shareFeature.applyUiState();
         resizeWorkspace();
@@ -2039,9 +2044,7 @@ const initializeApp = async () => {
         console.warn('Runner console polling error:', error);
       }
       setRunnerConsoleState('Runner に接続できません');
-      if (runBotButtonState !== 'running') {
-        setRunBotButtonState('idle');
-      }
+      setRunBotButtonState('idle');
     } finally {
       if (session === runnerConsolePollSession) {
         runnerConsolePollInFlight = false;

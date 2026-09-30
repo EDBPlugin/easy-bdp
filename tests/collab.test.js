@@ -179,6 +179,21 @@ test('cancelled setup cannot be revived by stale peer callbacks; missing library
     assert.deepEqual(actor.workspace.state, { local: true });
 });
 
+test('plugin readiness rejects incompatible UUIDs and versions', t => {
+    const network = room(); t.after(network.cleanup);
+    const actor = network.client();
+    actor.context.Blockly.Blocks.shared_block = {};
+    actor.manager.setPluginManager({
+        getRegistry: () => [{ id: 'shared', name: 'Shared', uuid: 'local-uuid', version: '1.0.0', affectsBlocks: true }],
+        isPluginEnabled: () => true,
+        isPluginSharable: () => true,
+        getPluginBlockTypes: () => ['shared_block'],
+    });
+    assert.equal(actor.manager.isPluginReady({ id: 'shared', uuid: 'remote-uuid', version: '1.0.0', blockTypes: ['shared_block'] }), false);
+    assert.equal(actor.manager.isPluginReady({ id: 'shared', uuid: 'local-uuid', version: '2.0.0', blockTypes: ['shared_block'] }), false);
+    assert.equal(actor.manager.isPluginReady({ id: 'shared', uuid: 'local-uuid', version: '1.0.0', blockTypes: ['shared_block'] }), true);
+});
+
 test('title, extra data and member departures propagate; invalid operations recover', async t => {
     const network = room(); t.after(network.cleanup);
     const host = network.client({ a: 1 }), guest = network.client(), observer = network.client();
