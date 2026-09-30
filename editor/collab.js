@@ -171,7 +171,10 @@ export class CollabManager {
     }
     isPluginReady(plugin) {
         const local = this.getPluginDescriptor(plugin?.id);
-        return !!local && !local.unshareable && plugin.blockTypes.every(type => Blockly.Blocks[type]);
+        if (!local || local.unshareable) return false;
+        if (plugin?.uuid && local.uuid !== plugin.uuid) return false;
+        if (plugin?.version && local.version !== plugin.version) return false;
+        return plugin.blockTypes.every(type => Blockly.Blocks[type]);
     }
     missingPlugins(snapshot) {
         const plugins = Array.isArray(snapshot?.plugins) ? snapshot.plugins.map(plugin => this.sanitizePlugin(plugin)).filter(Boolean) : [];
