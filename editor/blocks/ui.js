@@ -1,4 +1,4 @@
-import { getBranchCode } from './core.js';
+import { applyEventBlockStyle, getBranchCode } from './core.js';
 
 export function initUI() {
     Blockly.Blocks['send_button_message'] = {
@@ -30,7 +30,7 @@ export function initUI() {
                 .appendField('ボタンID:')
                 .appendField(new Blockly.FieldTextInput('button_1'), 'CUSTOM_ID');
             this.appendStatementInput('DO').setCheck(null).appendField('実行する処理');
-            this.setColour(350);
+            applyEventBlockStyle(this, 350);
         },
     };
     Blockly.Python.forBlock['on_button_click'] = function (block) {
@@ -79,7 +79,7 @@ export function initUI() {
                 .appendField('フォームID:')
                 .appendField(new Blockly.FieldTextInput('modal_1'), 'CUSTOM_ID');
             this.appendStatementInput('DO').setCheck(null).appendField('実行する処理');
-            this.setColour(350);
+            applyEventBlockStyle(this, 350);
         },
     };
     Blockly.Python.forBlock['on_modal_submit'] = function (block) {

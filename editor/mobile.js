@@ -1,10 +1,15 @@
 (function () {
-  const isMobile = window.innerWidth < 768;
+  const mobileQuery = window.matchMedia('(max-width: 767px)');
   // Chrome（特にモバイル）で SVG の <text> を直接編集すると
   // キャレット位置や IME が壊れる不具合があるため、
   // 回避策として <input> を同じ位置に重ねて編集させている。
-  if (!isMobile) return;
-  Blockly.FieldTextInput.prototype.showEditor_ = function () {
+  const prototype = Blockly?.FieldTextInput?.prototype;
+  if (!prototype || prototype.__edbbMobileEditorPatched) return;
+  const originalShowEditor = prototype.showEditor_;
+  prototype.showEditor_ = function (...args) {
+    if (!mobileQuery.matches) {
+      return originalShowEditor.apply(this, args);
+    }
     const field = this;
     const svgText = field.textElement_;
     if (!svgText) return;
@@ -17,7 +22,7 @@
     input.value = field.getValue();
     input.className = "blocklyMobileInput";
 
-    input.style.position = "absolute";
+    input.style.position = "fixed";
     input.style.font = font;
     input.style.lineHeight = computed.lineHeight;
     input.style.padding = "0";
@@ -27,8 +32,8 @@
 
     const syncPosition = () => {
       const r = svgText.getBoundingClientRect();
-      input.style.left = `${r.left + window.scrollX}px`;
-      input.style.top = `${r.top + window.scrollY}px`;
+      input.style.left = `${r.left}px`;
+      input.style.top = `${r.top}px`;
       input.style.width = `${r.width}px`;
       input.style.height = `${r.height}px`;
     };
@@ -106,5 +111,7 @@
     window.addEventListener("resize", syncPosition);
     window.addEventListener("scroll", syncPosition, true);
   };
+
+  prototype.__edbbMobileEditorPatched = true;
 
 })();

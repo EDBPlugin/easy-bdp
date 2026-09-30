@@ -160,6 +160,31 @@ export function initMisc() {
         return code;
     };
 
+    Blockly.Blocks['flow_return_value'] = {
+        init: function () {
+            this.appendValueInput('VALUE').appendField('↩️ 値を返す');
+            this.setPreviousStatement(true, null);
+            this.setColour(290);
+            this.setTooltip('現在の関数やイベントを終了し、指定した値を返します。');
+        },
+    };
+    Blockly.Python.forBlock['flow_return_value'] = function (block) {
+        const value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_NONE) || 'None';
+        return `return ${value}\n`;
+    };
+
+    Blockly.Blocks['flow_return'] = {
+        init: function () {
+            this.appendDummyInput().appendField('↩️ 処理を終了して戻る');
+            this.setPreviousStatement(true, null);
+            this.setColour(290);
+            this.setTooltip('現在の関数やイベントをここで終了します。');
+        },
+    };
+    Blockly.Python.forBlock['flow_return'] = function () {
+        return 'return\n';
+    };
+
     Blockly.Python.forBlock['procedures_defnoreturn'] = Blockly.Python.forBlock['procedures_defreturn'] = function (block) {
         const funcName = Blockly.Python.nameDB_.getName(
             block.getFieldValue('NAME'),

@@ -9,6 +9,7 @@ import { CollabUI } from "./collab-ui.js";
 import { PluginManager } from "./plugin.js";
 import { PluginUI, PLUGIN_FEATURE_TOGGLES_STORAGE_KEY } from "./plugin-ui.js";
 import { BlockSearch } from "./block-search.js";
+import { attachBotSettingsState } from './bot-settings.js';
 
 const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
 
@@ -432,22 +433,44 @@ const ensureListGenerator = (() => {
 
 
 const html = document.documentElement;
-const isMobileDevice =
-  typeof window !== 'undefined' && window.innerWidth < 768;
-if (isMobileDevice) {
-  html.classList.add('is-mobile');
-}
+const mobileMediaQuery = window.matchMedia('(max-width: 767px)');
+let isMobileDevice = mobileMediaQuery.matches;
+const mobileModeListeners = new Set();
+const syncMobileMode = () => {
+  const nextValue = mobileMediaQuery.matches;
+  const changed = nextValue !== isMobileDevice;
+  isMobileDevice = nextValue;
+  html.classList.toggle('is-mobile', isMobileDevice);
+  if (changed) mobileModeListeners.forEach((listener) => listener(isMobileDevice));
+};
+syncMobileMode();
+mobileMediaQuery.addEventListener?.('change', syncMobileMode);
 
-const applyMobileToolboxIcons = (toolboxEl) => {
-  if (!isMobileDevice || !toolboxEl) return;
+const applyMobileToolboxIcons = (toolboxEl, mobile = isMobileDevice) => {
+  if (!toolboxEl) return;
   const categories = toolboxEl.querySelectorAll('category');
   categories.forEach((cat) => {
     const icon = cat.getAttribute('data-icon');
     if (icon) {
       const currentName = cat.getAttribute('name') || '';
-      cat.setAttribute('data-label', currentName);
-      cat.setAttribute('name', icon);
+      const originalLabel = cat.getAttribute('data-label') || currentName;
+      cat.setAttribute('data-label', originalLabel);
+      cat.setAttribute('name', mobile ? icon : originalLabel);
     }
+  });
+};
+
+const syncRenderedToolboxLabels = (workspaceRef, mobile = isMobileDevice) => {
+  const items = workspaceRef?.getToolbox?.()?.getToolboxItems?.() || [];
+  items.forEach((item) => {
+    const definition = item?.toolboxItemDef_;
+    const icon = definition?.['data-icon'];
+    if (!icon) return;
+    const originalLabel = definition['data-label'] || item.getName?.() || '';
+    definition['data-label'] = originalLabel;
+    const nextLabel = mobile ? icon : originalLabel;
+    item.name_ = nextLabel;
+    if (item.labelDom_) item.labelDom_.textContent = nextLabel;
   });
 };
 
@@ -1117,6 +1140,18 @@ const initializeApp = async () => {
   const themeToggle = document.getElementById('themeToggle');
   const headerActions = document.getElementById('headerActions');
   const mobileHeaderToggle = document.getElementById('mobileHeaderToggle');
+  const workspaceResizeHandle = document.getElementById('workspaceResizeHandle');
+  const botSettingsBtn = document.getElementById('botSettingsBtn');
+  const botSettingsModal = document.getElementById('botSettingsModal');
+  const botSettingsCloseBtn = document.getElementById('botSettingsCloseBtn');
+  const botSettingsCancelBtn = document.getElementById('botSettingsCancelBtn');
+  const botSettingsSaveBtn = document.getElementById('botSettingsSaveBtn');
+  const commandPrefixInput = document.getElementById('commandPrefixInput');
+  const autoDetectIntentsInput = document.getElementById('autoDetectIntentsInput');
+  const messageContentIntentInput = document.getElementById('messageContentIntentInput');
+  const membersIntentInput = document.getElementById('membersIntentInput');
+  const presencesIntentInput = document.getElementById('presencesIntentInput');
+  const voiceStatesIntentInput = document.getElementById('voiceStatesIntentInput');
   // ヘッダーのコード生成ボタン
   const showCodeBtn = document.getElementById('showCodeBtn');
   const runBotBtn = document.getElementById('runBotBtn');
@@ -1267,6 +1302,10 @@ const initializeApp = async () => {
       availableWidth < requiredWidth || aspectRatio < SPLIT_LAYOUT_MIN_ASPECT_RATIO;
 
     workspaceContainer.classList.toggle('split-view-compact', shouldUseCompactLayout);
+    workspaceResizeHandle?.setAttribute(
+      'aria-orientation',
+      shouldUseCompactLayout ? 'horizontal' : 'vertical',
+    );
   };
 
   const resizeWorkspace = (delayMs = 0) => {
@@ -1398,25 +1437,140 @@ const initializeApp = async () => {
     storage,
     shareFeature,
   });
-  if (isMobileDevice && headerActions && mobileHeaderToggle) {
-    mobileHeaderToggle.classList.remove('hidden');
-    let headerExpanded = false;
-    const syncHeaderVisibility = () => {
-      headerActions.classList.toggle('collapsed', !headerExpanded);
-      mobileHeaderToggle.setAttribute('aria-expanded', headerExpanded ? 'true' : 'false');
-      const label = mobileHeaderToggle.querySelector('#mobileHeaderToggleText');
-      if (label) label.textContent = headerExpanded ? '操作を閉じる' : '操作を表示';
-      const icon = mobileHeaderToggle.querySelector('svg');
-      if (icon) icon.style.transform = headerExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
-      resizeWorkspace(150);
-    };
-    syncHeaderVisibility();
-    mobileHeaderToggle.addEventListener('click', () => {
-      headerExpanded = !headerExpanded;
-      syncHeaderVisibility();
+
+  const botSettingsState = attachBotSettingsState(workspace);
+  const syncBotSettingsForm = () => {
+    const settings = botSettingsState.get();
+    if (commandPrefixInput) commandPrefixInput.value = settings.commandPrefix;
+    if (autoDetectIntentsInput) autoDetectIntentsInput.checked = settings.autoDetectIntents;
+    if (messageContentIntentInput) messageContentIntentInput.checked = settings.messageContent;
+    if (membersIntentInput) membersIntentInput.checked = settings.members;
+    if (presencesIntentInput) presencesIntentInput.checked = settings.presences;
+    if (voiceStatesIntentInput) voiceStatesIntentInput.checked = settings.voiceStates;
+  };
+  const closeBotSettings = () => {
+    botSettingsModal?.classList.remove('show-modal');
+    setTimeout(() => botSettingsModal?.classList.add('hidden'), 180);
+    botSettingsBtn?.focus();
+  };
+  const openBotSettings = () => {
+    syncBotSettingsForm();
+    botSettingsModal?.classList.remove('hidden');
+    requestAnimationFrame(() => botSettingsModal?.classList.add('show-modal'));
+    setTimeout(() => commandPrefixInput?.focus(), 80);
+  };
+  botSettingsBtn?.addEventListener('click', openBotSettings);
+  botSettingsCloseBtn?.addEventListener('click', closeBotSettings);
+  botSettingsCancelBtn?.addEventListener('click', closeBotSettings);
+  botSettingsModal?.addEventListener('click', (event) => {
+    if (event.target === botSettingsModal) closeBotSettings();
+  });
+  botSettingsSaveBtn?.addEventListener('click', () => {
+    botSettingsState.set({
+      commandPrefix: commandPrefixInput?.value,
+      autoDetectIntents: Boolean(autoDetectIntentsInput?.checked),
+      messageContent: Boolean(messageContentIntentInput?.checked),
+      members: Boolean(membersIntentInput?.checked),
+      presences: Boolean(presencesIntentInput?.checked),
+      voiceStates: Boolean(voiceStatesIntentInput?.checked),
     });
-  } else if (headerActions) {
-    headerActions.classList.remove('collapsed');
+    storage?.save();
+    flashSaveStatus('Bot設定を保存しました');
+    closeBotSettings();
+  });
+
+  [
+    ['mobileNewProjectBtn', 'newProjectBtn'],
+    ['mobileImportBtn', 'importBtn'],
+    ['mobileShowCodeBtn', 'showCodeBtn'],
+    ['mobileSettingsBtn', 'botSettingsBtn'],
+    ['mobilePluginBtn', 'pluginBtn'],
+  ].forEach(([mobileId, targetId]) => {
+    document.getElementById(mobileId)?.addEventListener('click', () => {
+      document.getElementById(targetId)?.click();
+    });
+  });
+
+  let headerExpanded = false;
+  const syncHeaderVisibility = () => {
+    if (!headerActions || !mobileHeaderToggle) return;
+    mobileHeaderToggle.classList.toggle('hidden', !isMobileDevice);
+    headerActions.classList.toggle('collapsed', isMobileDevice && !headerExpanded);
+    mobileHeaderToggle.setAttribute('aria-expanded', headerExpanded ? 'true' : 'false');
+    const label = mobileHeaderToggle.querySelector('#mobileHeaderToggleText');
+    if (label) label.textContent = headerExpanded ? '操作を閉じる' : '操作を表示';
+    const icon = mobileHeaderToggle.querySelector('svg');
+    if (icon) icon.style.transform = headerExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+    resizeWorkspace(100);
+  };
+  mobileHeaderToggle?.addEventListener('click', () => {
+    headerExpanded = !headerExpanded;
+    syncHeaderVisibility();
+  });
+  mobileModeListeners.add((mobile) => {
+    if (!mobile) headerExpanded = false;
+    syncRenderedToolboxLabels(workspace, mobile);
+    syncHeaderVisibility();
+  });
+  syncHeaderVisibility();
+
+  const SPLIT_RATIO_STORAGE_KEY = 'edbb_split_block_ratio_v1';
+  const clampSplitRatio = (value) => Math.min(75, Math.max(30, Number(value) || 55));
+  let splitRatio = 55;
+  try {
+    splitRatio = clampSplitRatio(localStorage.getItem(SPLIT_RATIO_STORAGE_KEY));
+  } catch (_) {
+    splitRatio = 55;
+  }
+  const applySplitRatio = (value, persist = false) => {
+    splitRatio = clampSplitRatio(value);
+    workspaceContainer?.style.setProperty('--split-block-ratio', `${splitRatio}%`);
+    workspaceResizeHandle?.setAttribute('aria-valuenow', String(Math.round(splitRatio)));
+    if (persist) {
+      try { localStorage.setItem(SPLIT_RATIO_STORAGE_KEY, String(splitRatio)); } catch (_) { /* ignore */ }
+    }
+    resizeWorkspace();
+  };
+  applySplitRatio(splitRatio);
+
+  if (workspaceResizeHandle && workspaceContainer) {
+    let dragging = false;
+    const ratioFromPointer = (event) => {
+      const rect = workspaceContainer.getBoundingClientRect();
+      const compact = workspaceContainer.classList.contains('split-view-compact');
+      return compact
+        ? ((event.clientY - rect.top) / Math.max(1, rect.height)) * 100
+        : ((event.clientX - rect.left) / Math.max(1, rect.width)) * 100;
+    };
+    const stopDragging = () => {
+      if (!dragging) return;
+      dragging = false;
+      workspaceResizeHandle.classList.remove('is-dragging');
+      applySplitRatio(splitRatio, true);
+      document.body.style.removeProperty('user-select');
+    };
+    workspaceResizeHandle.addEventListener('pointerdown', (event) => {
+      dragging = true;
+      workspaceResizeHandle.classList.add('is-dragging');
+      workspaceResizeHandle.setPointerCapture?.(event.pointerId);
+      document.body.style.userSelect = 'none';
+      applySplitRatio(ratioFromPointer(event));
+    });
+    workspaceResizeHandle.addEventListener('pointermove', (event) => {
+      if (dragging) applySplitRatio(ratioFromPointer(event));
+    });
+    workspaceResizeHandle.addEventListener('pointerup', stopDragging);
+    workspaceResizeHandle.addEventListener('pointercancel', stopDragging);
+    workspaceResizeHandle.addEventListener('dblclick', () => applySplitRatio(55, true));
+    workspaceResizeHandle.addEventListener('keydown', (event) => {
+      const compact = workspaceContainer.classList.contains('split-view-compact');
+      const decreaseKey = compact ? 'ArrowUp' : 'ArrowLeft';
+      const increaseKey = compact ? 'ArrowDown' : 'ArrowRight';
+      if (event.key !== decreaseKey && event.key !== increaseKey && event.key !== 'Home') return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? 55 : splitRatio + (event.key === increaseKey ? 2 : -2);
+      applySplitRatio(next, true);
+    });
   }
 
   // --- パレット（フライアウト）の固定設定 ---

@@ -1,5 +1,11 @@
 // editor/core/export.js
 
+import {
+  buildIntentsSection,
+  getWorkspaceBotSettings,
+  normalizeCommandPrefix,
+} from '../bot-settings.js';
+
 const indentBlock = (block, spaces = 4) =>
   block
     .split('\n')
@@ -32,23 +38,6 @@ const normalizePythonOutput = (code) => {
     .replace(/\n{4,}/g, '\n\n\n')
     .trim();
   return cleaned ? `${cleaned}\n` : '';
-};
-
-// 使用しているブロックに必要な intent だけを有効化する
-// (不要な特権インテントを要求しないことで、Developer Portal での設定ミスも防ぐ)
-const buildIntentsSection = (bodyCode) => {
-  const source = String(bodyCode || '');
-  const flags = [];
-  if (/async def on_message|process_commands|@(?:bot|commands)\.command\b|message\.content/.test(source)) {
-    flags.push('intents.message_content = True');
-  }
-  if (/on_member_join|on_member_remove|\.members\b|fetch_members/.test(source)) {
-    flags.push('intents.members = True');
-  }
-  if (/voice|FFmpeg/i.test(source)) {
-    flags.push('intents.voice_states = True');
-  }
-  return ['intents = discord.Intents.default()', ...flags].join('\n');
 };
 
 const convertEventBlock = (block) => {
@@ -501,6 +490,8 @@ const buildInlineRuntimeHelpers = ({ usesJson, usesModal, usesLogging }) => {
 
 export const generatePythonCode = (workspace) => {
   if (!workspace) return '';
+  const botSettings = getWorkspaceBotSettings(workspace);
+  const commandPrefix = normalizeCommandPrefix(botSettings.commandPrefix);
 
   // --- Filter top-level blocks (Issue #28) ---
   // Only allow event-related blocks, procedures, and specifically allowed blocks at the top level.
@@ -590,9 +581,9 @@ export const generatePythonCode = (workspace) => {
 ${header}
 
 # 使用しているブロックに必要な intent のみ有効化しています
-${buildIntentsSection(bodyCode)}
+${buildIntentsSection(bodyCode, botSettings)}
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix=${JSON.stringify(commandPrefix)}, intents=intents)
 ${helperSection}
 ${bodyCode}
 
@@ -750,6 +741,8 @@ const deriveGroupMeta = (block) => {
 
 export const generateSplitPythonFiles = (workspace) => {
   if (!workspace) return {};
+  const botSettings = getWorkspaceBotSettings(workspace);
+  const commandPrefix = normalizeCommandPrefix(botSettings.commandPrefix);
   Blockly.Python.init(workspace);
   const topBlocks = getCodegenTopBlocks(workspace);
   const topBlockEntries = topBlocks.map((block) => {
@@ -859,14 +852,14 @@ import discord
 from discord.ext import commands
 
 # 使用しているブロックに必要な intent のみ有効化しています
-${buildIntentsSection(allCleaned)}
+${buildIntentsSection(allCleaned, botSettings)}
 
 class EasyBot(commands.Bot):
     async def setup_hook(self):
         for ext in ${JSON.stringify(cogsToLoad)}:
             await self.load_extension(ext)
 
-bot = EasyBot(command_prefix='!', intents=intents)
+bot = EasyBot(command_prefix=${JSON.stringify(commandPrefix)}, intents=intents)
 
 if __name__ == "__main__":
     # トークンの設定
