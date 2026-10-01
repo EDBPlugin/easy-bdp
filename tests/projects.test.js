@@ -9,7 +9,7 @@ function fixture() {
   const library = new ProjectLibrary(store, () => time);
   return { library, store, values, tick: () => { time += 61000; } };
 }
-const state = n => JSON.stringify({ blocks: {}, edbbExtraState: { score: n, edbbBlockComments: [{ text: `note-${n}` }] } });
+const state = n => JSON.stringify({ blocks: {}, edbbExtraState: { score: n, edbb_json_store: { data: { note: `note-${n}` } } } });
 
 test('projects preserve independent workspaces, names, extras and history across reloads', () => {
   const { library, store } = fixture();

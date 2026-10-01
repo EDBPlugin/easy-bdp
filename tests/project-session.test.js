@@ -14,7 +14,7 @@ function fixture() {
   globalThis.document = { createElement: () => new Node(), body: new Node(), getElementById: id => nodes.get(id) };
   globalThis.window = { addEventListener() {} };
   globalThis.Blockly = { Blocks: {}, Events: { disable() {}, enable() {} } };
-  const workspace = { state: '{"blocks":{},"edbbExtraState":{"comments":["元のメモ"]}}', clearUndo() {} };
+  const workspace = { state: '{"blocks":{},"edbbExtraState":{"edbb_json_store":{"data":{"note":"元のデータ"}}}}', clearUndo() {} };
   let handler;
   let legacyLoads = 0;
   const storage = { exportText: () => workspace.state, importText: state => { workspace.state = state; return true; },
@@ -53,7 +53,7 @@ test('guest entry flushes latest edits and keeping a room creates a separate pro
   f.workspace.state = lastEdit;
   f.status('connecting');
   assert.equal(f.library.active.state, lastEdit);
-  f.workspace.state = '{"roomComments":["共同編集のメモ"]}'; f.title('共同編集Bot');
+  f.workspace.state = '{"roomData":{"note":"共同編集のデータ"}}'; f.title('共同編集Bot');
   f.status('connected'); f.storage.save();
   assert.equal(f.library.active.state, lastEdit);
   f.status('disconnected'); f.storage.save();

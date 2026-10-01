@@ -15,7 +15,6 @@ import { MOBILE_MEDIA_QUERY } from './mobile.js';
 import { createToolboxIcon } from './toolbox-icons.js';
 import { startAppUpdater } from './app-update.js';
 import { setupProjectUI } from './project-ui.js';
-import { setupCommentsUI } from './comments-ui.js';
 
 const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
 
@@ -1483,8 +1482,6 @@ const initializeApp = async () => {
   // Retain compatibility with settings already stored in older projects.
   // There is no longer a settings form or a way to create new settings here.
   attachBotSettingsState(workspace, () => scheduleLiveCodeRefresh(), { persistDefaults: false });
-
-  setupCommentsUI({ workspace, storage, shareFeature, collabManager });
 
   const mobileActions = setupMobileActions(document, () => isMobileDevice);
   mobileModeListeners.add((mobile) => {
