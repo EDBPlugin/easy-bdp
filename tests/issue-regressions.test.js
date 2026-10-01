@@ -17,7 +17,7 @@ test('Blockly 11 uses a compatible multiline input plugin and no deprecated numb
   assert.equal(sources.some((source) => /Blockly\.isNumber\b/.test(source)), false);
 });
 
-test('control flow, project settings, pane resizing, and mobile controls remain exposed', async () => {
+test('control flow, pane resizing, and bottom mobile controls remain exposed without a settings form', async () => {
   const [editorHtml, style, blockCore] = await Promise.all([
     read('editor/index.html'),
     read('editor/style.css'),
@@ -25,7 +25,8 @@ test('control flow, project settings, pane resizing, and mobile controls remain 
   ]);
   assert.match(editorHtml, /type="controls_flow_statements"/);
   assert.match(editorHtml, /type="flow_return_value"/);
-  assert.match(editorHtml, /id="botSettingsModal"/);
+  assert.doesNotMatch(editorHtml, /id="botSettings(?:Modal|Btn)"|id="mobileHeaderToggle"/);
+  assert.match(editorHtml, /id="mobileActionsModal"/);
   assert.match(editorHtml, /id="workspaceResizeHandle"/);
   assert.match(editorHtml, /id="mobileActionDock"/);
   assert.match(style, /#workspaceResizeHandle/);

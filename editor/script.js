@@ -9,7 +9,8 @@ import { CollabUI } from "./collab-ui.js";
 import { PluginManager } from "./plugin.js";
 import { PluginUI, PLUGIN_FEATURE_TOGGLES_STORAGE_KEY } from "./plugin-ui.js";
 import { BlockSearch } from "./block-search.js";
-import { attachBotSettingsState, BOT_SETTINGS_EXTRA_STATE_KEY } from './bot-settings.js';
+import { attachBotSettingsState } from './bot-settings.js';
+import { setupMobileActions } from './mobile-actions.js';
 import { MOBILE_MEDIA_QUERY } from './mobile.js';
 
 const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
@@ -1139,20 +1140,7 @@ const initializeApp = async () => {
   const blocklyDiv = document.getElementById('blocklyDiv');
   const toolbox = document.getElementById('toolbox');
   const themeToggle = document.getElementById('themeToggle');
-  const headerActions = document.getElementById('headerActions');
-  const mobileHeaderToggle = document.getElementById('mobileHeaderToggle');
   const workspaceResizeHandle = document.getElementById('workspaceResizeHandle');
-  const botSettingsBtn = document.getElementById('botSettingsBtn');
-  const botSettingsModal = document.getElementById('botSettingsModal');
-  const botSettingsCloseBtn = document.getElementById('botSettingsCloseBtn');
-  const botSettingsCancelBtn = document.getElementById('botSettingsCancelBtn');
-  const botSettingsSaveBtn = document.getElementById('botSettingsSaveBtn');
-  const commandPrefixInput = document.getElementById('commandPrefixInput');
-  const autoDetectIntentsInput = document.getElementById('autoDetectIntentsInput');
-  const messageContentIntentInput = document.getElementById('messageContentIntentInput');
-  const membersIntentInput = document.getElementById('membersIntentInput');
-  const presencesIntentInput = document.getElementById('presencesIntentInput');
-  const voiceStatesIntentInput = document.getElementById('voiceStatesIntentInput');
   // ヘッダーのコード生成ボタン
   const showCodeBtn = document.getElementById('showCodeBtn');
   const runBotBtn = document.getElementById('runBotBtn');
@@ -1441,105 +1429,17 @@ const initializeApp = async () => {
     shareFeature,
   });
 
-  const botSettingsState = attachBotSettingsState(workspace, (settings, source) => {
-    scheduleLiveCodeRefresh();
-    if (source === 'local') {
-      collabManager.broadcastExtraChange({ [BOT_SETTINGS_EXTRA_STATE_KEY]: settings });
-    }
-  });
-  const syncBotSettingsForm = () => {
-    const settings = botSettingsState.get();
-    if (commandPrefixInput) commandPrefixInput.value = settings.commandPrefix;
-    if (autoDetectIntentsInput) autoDetectIntentsInput.checked = settings.autoDetectIntents;
-    if (messageContentIntentInput) messageContentIntentInput.checked = settings.messageContent;
-    if (membersIntentInput) membersIntentInput.checked = settings.members;
-    if (presencesIntentInput) presencesIntentInput.checked = settings.presences;
-    if (voiceStatesIntentInput) voiceStatesIntentInput.checked = settings.voiceStates;
-  };
-  let botSettingsCloseTimer = null;
-  const canEditBotSettings = () => !shareFeature.isShareViewMode() && !collabManager.isSyncing;
-  const closeBotSettings = () => {
-    botSettingsModal?.classList.remove('show-modal');
-    clearTimeout(botSettingsCloseTimer);
-    botSettingsCloseTimer = setTimeout(() => botSettingsModal?.classList.add('hidden'), 180);
-    botSettingsBtn?.focus();
-  };
-  const openBotSettings = () => {
-    if (!canEditBotSettings()) return;
-    clearTimeout(botSettingsCloseTimer);
-    syncBotSettingsForm();
-    botSettingsModal?.classList.remove('hidden');
-    requestAnimationFrame(() => botSettingsModal?.classList.add('show-modal'));
-    setTimeout(() => commandPrefixInput?.focus(), 80);
-  };
-  botSettingsBtn?.addEventListener('click', openBotSettings);
-  botSettingsCloseBtn?.addEventListener('click', closeBotSettings);
-  botSettingsCancelBtn?.addEventListener('click', closeBotSettings);
-  botSettingsModal?.addEventListener('click', (event) => {
-    if (event.target === botSettingsModal) closeBotSettings();
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && botSettingsModal && !botSettingsModal.classList.contains('hidden')) closeBotSettings();
-  });
-  const syncBotSettingsAvailability = () => {
-    const disabled = !canEditBotSettings();
-    if (botSettingsBtn) botSettingsBtn.disabled = disabled;
-    const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
-    if (mobileSettingsBtn) mobileSettingsBtn.disabled = disabled;
-    if (disabled) closeBotSettings();
-  };
-  shareFeature.onShareViewModeChange(syncBotSettingsAvailability);
-  collabManager.onStateChange((type) => {
-    if (type === 'status_change') syncBotSettingsAvailability();
-  });
-  botSettingsSaveBtn?.addEventListener('click', () => {
-    if (!canEditBotSettings()) return;
-    botSettingsState.set({
-      commandPrefix: commandPrefixInput?.value,
-      autoDetectIntents: Boolean(autoDetectIntentsInput?.checked),
-      messageContent: Boolean(messageContentIntentInput?.checked),
-      members: Boolean(membersIntentInput?.checked),
-      presences: Boolean(presencesIntentInput?.checked),
-      voiceStates: Boolean(voiceStatesIntentInput?.checked),
-    });
-    if (storage?.save()) flashSaveStatus('Bot設定を保存しました');
-    closeBotSettings();
-  });
+  // Retain compatibility with settings already stored in older projects.
+  // There is no longer a settings form or a way to create new settings here.
+  attachBotSettingsState(workspace, () => scheduleLiveCodeRefresh(), { persistDefaults: false });
 
-  [
-    ['mobileNewProjectBtn', 'newProjectBtn'],
-    ['mobileImportBtn', 'importBtn'],
-    ['mobileShowCodeBtn', 'showCodeBtn'],
-    ['mobileSettingsBtn', 'botSettingsBtn'],
-    ['mobilePluginBtn', 'pluginBtn'],
-  ].forEach(([mobileId, targetId]) => {
-    document.getElementById(mobileId)?.addEventListener('click', () => {
-      document.getElementById(targetId)?.click();
-    });
-  });
-
-  let headerExpanded = false;
-  const syncHeaderVisibility = () => {
-    if (!headerActions || !mobileHeaderToggle) return;
-    mobileHeaderToggle.classList.toggle('hidden', !isMobileDevice);
-    headerActions.classList.toggle('collapsed', isMobileDevice && !headerExpanded);
-    mobileHeaderToggle.setAttribute('aria-expanded', headerExpanded ? 'true' : 'false');
-    const label = mobileHeaderToggle.querySelector('#mobileHeaderToggleText');
-    if (label) label.textContent = headerExpanded ? '操作を閉じる' : '操作を表示';
-    const icon = mobileHeaderToggle.querySelector('svg');
-    if (icon) icon.style.transform = headerExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
-    resizeWorkspace(100);
-  };
-  mobileHeaderToggle?.addEventListener('click', () => {
-    headerExpanded = !headerExpanded;
-    syncHeaderVisibility();
-  });
+  const mobileActions = setupMobileActions(document, () => isMobileDevice);
   mobileModeListeners.add((mobile) => {
-    if (!mobile) headerExpanded = false;
     syncRenderedToolboxLabels(workspace, mobile);
-    syncHeaderVisibility();
+    mobileActions.syncLayout();
+    resizeWorkspace(100);
   });
-  syncHeaderVisibility();
+  mobileActions.syncLayout();
 
   const SPLIT_RATIO_STORAGE_KEY = 'edbb_split_block_ratio_v1';
   const clampSplitRatio = (value) => Math.min(75, Math.max(30, Number(value) || 55));

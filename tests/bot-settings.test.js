@@ -72,3 +72,16 @@ test('distinguishes local edits from imported state to avoid collaboration feedb
   assert.deepEqual(changes.map(change => change.source), ['local', 'load', 'load']);
   assert.deepEqual(changes.map(change => change.settings.commandPrefix), ['?', '>', '!']);
 });
+
+test('removed settings UI does not add settings to new projects but retains legacy imports', () => {
+  let base = {};
+  const workspace = { getExtraState: () => base, setExtraState: state => { base = state; } };
+  const controller = attachBotSettingsState(workspace, () => {}, { persistDefaults: false });
+  assert.deepEqual(workspace.getExtraState(), {});
+  workspace.setExtraState({ other: { keep: true }, [BOT_SETTINGS_EXTRA_STATE_KEY]: { commandPrefix: '?', members: true } });
+  assert.equal(controller.get().commandPrefix, '?');
+  assert.equal(workspace.getExtraState()[BOT_SETTINGS_EXTRA_STATE_KEY].members, true);
+  assert.deepEqual(workspace.getExtraState().other, { keep: true });
+  workspace.setExtraState({ other: { keep: false } });
+  assert.deepEqual(workspace.getExtraState(), { other: { keep: false } });
+});

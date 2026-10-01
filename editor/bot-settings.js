@@ -63,10 +63,11 @@ export const buildIntentsSection = (bodyCode, settingsValue) => {
   return ['intents = discord.Intents.default()', ...flags].join('\n');
 };
 
-export const attachBotSettingsState = (workspace, onChange = () => {}) => {
+export const attachBotSettingsState = (workspace, onChange = () => {}, { persistDefaults = true } = {}) => {
   if (!workspace) throw new TypeError('workspace is required');
 
   let settings = getWorkspaceBotSettings(workspace);
+  let hasSettings = persistDefaults || Boolean(workspace.__edbbBotSettings);
   workspace.__edbbBotSettings = settings;
   const originalGetExtraState = workspace.getExtraState?.bind(workspace);
   const originalSetExtraState = workspace.setExtraState?.bind(workspace);
@@ -76,12 +77,13 @@ export const attachBotSettingsState = (workspace, onChange = () => {}) => {
   workspace.getExtraState = () => {
     const base = originalGetExtraState ? originalGetExtraState() : {};
     const safeBase = base && typeof base === 'object' && !Array.isArray(base) ? base : {};
-    return { ...safeBase, [BOT_SETTINGS_EXTRA_STATE_KEY]: { ...settings } };
+    return hasSettings ? { ...safeBase, [BOT_SETTINGS_EXTRA_STATE_KEY]: { ...settings } } : { ...safeBase };
   };
 
   workspace.setExtraState = (state) => {
     if (originalSetExtraState) originalSetExtraState(state);
     settings = normalizeBotSettings(state?.[BOT_SETTINGS_EXTRA_STATE_KEY]);
+    hasSettings = persistDefaults || Object.hasOwn(state || {}, BOT_SETTINGS_EXTRA_STATE_KEY);
     workspace.__edbbBotSettings = settings;
     notify('load');
   };
@@ -89,6 +91,7 @@ export const attachBotSettingsState = (workspace, onChange = () => {}) => {
   return {
     get: () => ({ ...settings }),
     set: (next) => {
+      hasSettings = true;
       settings = normalizeBotSettings({ ...settings, ...next });
       workspace.__edbbBotSettings = settings;
       notify('local');

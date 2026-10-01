@@ -179,11 +179,6 @@
             </div>
         </div>
 
-        <button id="mobileHeaderToggle"
-            class="hidden items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 shadow-sm">
-            <i data-lucide="chevrons-down-up" class="w-4 h-4"></i>
-            <span id="mobileHeaderToggleText">操作を表示</span>
-        </button>
 
         <div id="headerActions" class="flex items-center gap-3">
             <div class="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden md:block"></div>
@@ -247,12 +242,6 @@
             <input type="file" id="importInput" accept=".json,.xml" class="hidden">
             <input type="file" id="pluginInstallInput" accept=".zip" class="hidden">
 
-            <button id="botSettingsBtn"
-                class="ml-2 inline-flex items-center justify-center gap-2 px-3.5 py-2 font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
-                title="Bot設定">
-                <i data-lucide="settings-2" class="w-4 h-4"></i>
-                <span class="hidden sm:inline">Bot設定</span>
-            </button>
 
             <!-- Share Button -->
             <button id="shareBtn"
@@ -565,57 +554,29 @@
     <nav id="mobileActionDock" class="hidden" aria-label="スマホ用クイック操作">
         <button id="mobileNewProjectBtn" type="button"><i data-lucide="file-plus-2"></i><span>新規</span></button>
         <button id="mobileImportBtn" type="button"><i data-lucide="upload"></i><span>読込</span></button>
+        <button id="mobileExportBtn" type="button"><i data-lucide="download"></i><span>保存</span></button>
         <button id="mobileShowCodeBtn" type="button"><i data-lucide="code-2"></i><span>生成</span></button>
-        <button id="mobileSettingsBtn" type="button"><i data-lucide="settings-2"></i><span>設定</span></button>
-        <button id="mobilePluginBtn" type="button"><i data-lucide="puzzle"></i><span>追加</span></button>
+        <button id="mobileMoreBtn" type="button" aria-haspopup="dialog" aria-controls="mobileActionsModal" aria-expanded="false"><i data-lucide="ellipsis"></i><span>その他</span></button>
     </nav>
 
-    <!-- Bot Settings Modal -->
-    <div id="botSettingsModal"
-        class="modal-backdrop hidden fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-        role="dialog" aria-modal="true" aria-labelledby="botSettingsTitle">
-        <div class="modal-content flex flex-col w-full max-w-xl max-h-[90dvh] overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl">
-            <div class="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-200 dark:border-slate-800">
-                <div>
-                    <h2 id="botSettingsTitle" class="text-lg font-bold text-slate-900 dark:text-white">Bot設定</h2>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">このプロジェクトの生成コードに反映されます</p>
-                </div>
-                <button id="botSettingsCloseBtn" type="button" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="閉じる">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+    <!-- All mobile header actions are reached from the bottom dock. -->
+    <div id="mobileActionsModal" class="modal-backdrop hidden fixed inset-0 z-[60] items-end justify-center bg-slate-900/60 backdrop-blur-sm"
+        role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobileActionsTitle">
+        <div class="mobile-menu-content">
+            <div class="mobile-menu-heading">
+                <h2 id="mobileActionsTitle">その他の操作</h2>
+                <button id="mobileActionsCloseBtn" type="button" aria-label="閉じる"><i data-lucide="x"></i></button>
             </div>
-            <div class="flex-1 overflow-y-auto p-5 space-y-6">
-                <label class="block">
-                    <span class="block text-sm font-bold text-slate-800 dark:text-slate-100">コマンドprefix</span>
-                    <span class="block mt-1 text-xs text-slate-500 dark:text-slate-400">例: !、?、edb!</span>
-                    <input id="commandPrefixInput" type="text" maxlength="8" autocomplete="off"
-                        class="mt-2 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-3 font-mono text-base focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </label>
-                <fieldset>
-                    <legend class="text-sm font-bold text-slate-800 dark:text-slate-100">Gateway Intents</legend>
-                    <p class="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">特権IntentはDiscord Developer Portal側でも有効化してください。</p>
-                    <label class="bot-setting-option bot-setting-option--recommended">
-                        <input id="autoDetectIntentsInput" type="checkbox">
-                        <span><strong>使用ブロックから自動検出</strong><small>必要なIntentだけを自動で追加します（推奨）</small></span>
-                    </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                        <label class="bot-setting-option"><input id="messageContentIntentInput" type="checkbox"><span><strong>Message Content</strong><small>メッセージ本文・prefixコマンド</small></span></label>
-                        <label class="bot-setting-option"><input id="membersIntentInput" type="checkbox"><span><strong>Server Members</strong><small>参加・退出・メンバー一覧</small></span></label>
-                        <label class="bot-setting-option"><input id="presencesIntentInput" type="checkbox"><span><strong>Presence</strong><small>オンライン状態・アクティビティ</small></span></label>
-                        <label class="bot-setting-option"><input id="voiceStatesIntentInput" type="checkbox"><span><strong>Voice States</strong><small>ボイスチャンネル操作</small></span></label>
-                    </div>
-                </fieldset>
-                <div class="rounded-xl border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-950/30 p-4 text-xs leading-relaxed text-amber-900 dark:text-amber-100">
-                    Botトークンはプロジェクトへ保存されません。生成後も公開リポジトリや共有リンクへトークンを含めないでください。
-                </div>
+            <div id="mobileProjectTitleSlot"></div>
+            <div class="mobile-menu-grid">
+                <button id="mobilePluginBtn" type="button"><i data-lucide="puzzle"></i><span>プラグイン</span></button>
+                <button id="mobileShareBtn" type="button"><i data-lucide="share-2"></i><span>共有リンク</span></button>
+                <button id="mobileCollabBtn" type="button"><i data-lucide="users"></i><span>共同編集</span></button>
+                <button id="mobileJsonGuiBtn" type="button"><i data-lucide="table-2"></i><span>JSON編集</span></button>
+                <button id="mobileThemeBtn" type="button"><i data-lucide="sun-moon"></i><span>テーマ切替</span></button>
+                <a href="/terms.html" target="_blank" rel="noopener"><i data-lucide="file-text"></i><span>利用規約</span></a>
             </div>
-            <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-t border-slate-200 dark:border-slate-800">
-                <a href="/terms.html" target="_blank" rel="noopener" class="text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline">利用規約を確認</a>
-                <div class="flex gap-2">
-                    <button id="botSettingsCancelBtn" type="button" class="flex-1 sm:flex-none px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 font-semibold">キャンセル</button>
-                    <button id="botSettingsSaveBtn" type="button" class="flex-1 sm:flex-none px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-semibold">保存</button>
-                </div>
-            </div>
+            <p class="mobile-menu-note">テーマ切替はプラグイン設定で有効にできます。画面分割・Botの直接起動はPC専用です。スマホでは「生成」からコードを取得できます。</p>
         </div>
     </div>
 
