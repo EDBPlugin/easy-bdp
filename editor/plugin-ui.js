@@ -365,6 +365,10 @@ export class PluginUI {
     init() {
         this.btn.addEventListener('click', () => this.open());
         this.closeBtn.addEventListener('click', () => this.close());
+        document.getElementById('pluginMobileBackBtn')?.addEventListener('click', () => this.showEmptyDetail());
+        document.getElementById('pluginMobileSearchInput')?.addEventListener('input', (event) => {
+            this.setSearchQuery(event.target.value, { focus: false });
+        });
         const headerSettingsBtn = document.getElementById('pluginHeaderSettingsBtn');
         headerSettingsBtn?.addEventListener('click', () => this.openSettingsModal(null));
 
@@ -1108,6 +1112,7 @@ export class PluginUI {
     }
 
     showEmptyDetail() {
+        this.modal.classList.remove('detail-open');
         this.currentDetailPluginKey = null;
         this.updateSidebarSelectionState();
         this.pluginDetailContent.classList.add('hidden');
@@ -1151,8 +1156,7 @@ export class PluginUI {
         const searchInput = this.pluginDetailEmpty.querySelector('#pluginSearchFromDetailInput');
         if (searchInput) {
             searchInput.addEventListener('input', (event) => {
-                this.searchQuery = String(event.target?.value || '');
-                this.renderMarketplace();
+                this.setSearchQuery(event.target?.value, { focus: false });
             });
         }
         this.pluginDetailEmpty.querySelectorAll('[data-quick-query]').forEach((button) => {
@@ -1171,13 +1175,13 @@ export class PluginUI {
         lucide.createIcons();
     }
 
-    setSearchQuery(query) {
+    setSearchQuery(query, { focus = true } = {}) {
         this.searchQuery = String(query || '');
         const searchInput = this.pluginDetailEmpty?.querySelector('#pluginSearchFromDetailInput');
-        if (searchInput) {
-            searchInput.value = this.searchQuery;
-            searchInput.focus();
-        }
+        const mobileInput = document.getElementById('pluginMobileSearchInput');
+        if (searchInput) searchInput.value = this.searchQuery;
+        if (mobileInput) mobileInput.value = this.searchQuery;
+        if (focus) (this.isMobileDevice() ? mobileInput : searchInput)?.focus();
         this.renderMarketplace();
     }
 
@@ -1557,6 +1561,8 @@ export class PluginUI {
     }
 
     async renderMarketplace() {
+        const renderVersion = (this.marketplaceRenderVersion || 0) + 1;
+        this.marketplaceRenderVersion = renderVersion;
         this.pluginList.innerHTML = '';
         const installed = this.pluginManager.getRegistry();
         const filter = this.parseQuery(this.searchQuery);
@@ -1582,9 +1588,11 @@ export class PluginUI {
             this.pluginList.appendChild(header);
 
             const results = await this.pluginManager.searchGitHubPlugins();
+            if (this.marketplaceRenderVersion !== renderVersion) return;
             this.githubResults = results;
             if (filter.tags.length > 0 || filter.text.length > 0) {
                 await this.enrichGitHubPluginsWithManifestTags(results);
+                if (this.marketplaceRenderVersion !== renderVersion) return;
             } else {
                 void this.enrichGitHubPluginsWithManifestTags(results);
             }
@@ -1861,8 +1869,17 @@ export class PluginUI {
         }
     }
 
+    openMobileDetail() {
+        if (!this.isMobileDevice()) return;
+        this.modal.classList.add('detail-open');
+        const detail = document.getElementById('pluginDetail');
+        if (detail) detail.scrollTop = 0;
+    }
+
     async showGitHubDetail(plugin) {
         this.currentDetailPluginKey = this.getPluginSelectionKey(plugin, false);
+        this.openMobileDetail();
+        const selectedKey = this.currentDetailPluginKey;
         this.updateSidebarSelectionState();
         this.pluginDetailEmpty.classList.add('hidden');
         this.pluginDetailContent.classList.remove('hidden');
@@ -1879,10 +1896,15 @@ export class PluginUI {
             try {
                 // タイムアウト付きのフェッチ (5秒)
                 const fetchWithTimeout = async (promise, timeout = 5000) => {
-                    return Promise.race([
-                        promise,
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
-                    ]);
+                    let timer;
+                    try {
+                        return await Promise.race([
+                            promise,
+                            new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Timeout')), timeout); })
+                        ]);
+                    } finally {
+                        clearTimeout(timer);
+                    }
                 };
 
                 const safeFetch = async (promise, fallback = null) => {
@@ -1916,6 +1938,8 @@ export class PluginUI {
             readme = plugin.description || 'テスト用プラグインのデモページです。';
         }
 
+        // Ignore an old request if the user went back or selected another item.
+        if (this.currentDetailPluginKey !== selectedKey) return;
         const level = plugin.trustLevel?.level ?? plugin.trustLevel;
         const badges = [];
         if (plugin.author === 'EDBPlugin' || level === 'official') {
@@ -2156,6 +2180,7 @@ export class PluginUI {
 
     showDetail(plugin) {
         this.currentDetailPluginKey = this.getPluginSelectionKey(plugin, true);
+        this.openMobileDetail();
         this.updateSidebarSelectionState();
         this.pluginDetailEmpty.classList.add('hidden');
         this.pluginDetailContent.classList.remove('hidden');

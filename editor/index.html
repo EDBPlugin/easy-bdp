@@ -104,7 +104,6 @@
     <script src="https://unpkg.com/blockly@11.2.2/msg/ja.js"></script>
     <script src="https://unpkg.com/@blockly/field-multilineinput@5.0.17/dist/index.js"></script>
     <script type="module" src="./mobile.js"></script>
-    <script type="module" src="./plugin-mobile.js"></script>
     <link rel="stylesheet" href="./mobile.css">
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -626,7 +625,7 @@
         <div
             class="flex flex-col w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-slate-900 modal-content border border-white/20 dark:border-slate-700/50 ring-1 ring-black/5">
             <!-- Modal Header -->
-            <div
+            <div id="codeModalHeader"
                 class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
                 <div class="flex items-center gap-3">
                     <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
@@ -648,7 +647,7 @@
                         <i data-lucide="folder-archive" class="w-4 h-4"></i>
                         <span>ZIP DL</span>
                     </button>
-                    <button id="closeModalBtn"
+                    <button id="closeModalBtn" aria-label="閉じる"
                         class="p-2 transition-all rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
@@ -1182,6 +1181,11 @@
                 <div
                     class="w-80 border-r border-slate-100 dark:border-slate-800 flex flex-col bg-slate-50/50 dark:bg-slate-950/20">
                     <div class="p-4 border-b border-slate-100 dark:border-slate-800">
+                        <label id="pluginMobileSearchField" class="hidden mb-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                            プラグインを検索
+                            <input id="pluginMobileSearchInput" type="search" placeholder="名前・開発者・タグ"
+                                class="mt-2 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-base text-slate-700 dark:text-slate-200">
+                        </label>
                         <div class="flex items-center justify-between">
                             <span
                                 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">インストール済みのみ表示</span>

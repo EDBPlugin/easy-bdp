@@ -10,6 +10,7 @@ import { PluginManager } from "./plugin.js";
 import { PluginUI, PLUGIN_FEATURE_TOGGLES_STORAGE_KEY } from "./plugin-ui.js";
 import { BlockSearch } from "./block-search.js";
 import { attachBotSettingsState, BOT_SETTINGS_EXTRA_STATE_KEY } from './bot-settings.js';
+import { MOBILE_MEDIA_QUERY } from './mobile.js';
 
 const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
 
@@ -433,7 +434,7 @@ const ensureListGenerator = (() => {
 
 
 const html = document.documentElement;
-const mobileMediaQuery = window.matchMedia('(max-width: 767px)');
+const mobileMediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
 let isMobileDevice = mobileMediaQuery.matches;
 const mobileModeListeners = new Set();
 const syncMobileMode = () => {
@@ -1370,6 +1371,8 @@ const initializeApp = async () => {
 
   // --- Blocklyワークスペースの初期化 ---
   workspace = Blockly.inject(blocklyDiv, {
+    // Use Blockly's native inline inputs on touch devices, including textareas.
+    modalInputs: false,
     toolbox: toolbox,
     horizontalLayout: false,
     trashcan: true,
@@ -1598,12 +1601,12 @@ const initializeApp = async () => {
   }
 
   // --- パレット（フライアウト）の固定設定 ---
-  if (workspace.getToolbox()) {
-    const flyout = workspace.getToolbox().getFlyout();
-    if (flyout) {
-      flyout.autoClose = false;
-    }
-  }
+  const syncFlyoutAutoClose = () => {
+    const flyout = workspace.getToolbox()?.getFlyout();
+    if (flyout) flyout.autoClose = isMobileDevice;
+  };
+  syncFlyoutAutoClose();
+  mobileModeListeners.add(syncFlyoutAutoClose);
 
   // --- Layout Switching Logic ---
   const setLayout = (mode) => {

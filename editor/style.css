@@ -510,8 +510,8 @@ html.is-mobile #headerActions {
 }
 
 html.is-mobile #projectTitleField {
-  width: 100%;
-  max-width: none;
+  width: 100% !important;
+  max-width: none !important;
 }
 
 html.is-mobile #projectTitleInput {
@@ -1580,15 +1580,49 @@ html.is-mobile #collabBtn {
 
 html.is-mobile .modal-backdrop {
   padding: 0 !important;
+  height: var(--edbb-mobile-height, 100dvh);
+  top: var(--edbb-mobile-top, 0px);
+  bottom: auto;
 }
 
 html.is-mobile .modal-backdrop > .modal-content,
 html.is-mobile #botSettingsModal > .modal-content {
   width: 100%;
   max-width: none;
-  height: 100dvh;
+  height: var(--edbb-mobile-height, 100dvh);
   max-height: none;
   border-radius: 0;
+}
+
+html.is-mobile body {
+  height: var(--edbb-mobile-height, 100dvh);
+}
+
+html.is-mobile #codeModalHeader {
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+
+html.is-mobile #codeModalHeader > div {
+  min-width: 0;
+}
+
+html.is-mobile #codeModalHeader > div:last-child {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+html.is-mobile #codeModalHeader button {
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+/* Do not cover the text editor with the quick dock while the keyboard is open. */
+html.is-mobile body:has(input:focus, textarea:focus, [contenteditable="true"]:focus) #mobileActionDock {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 @media (max-width: 380px) {
