@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { EventEmitter } from 'node:events';
 import { webcrypto } from 'node:crypto';
+import { attachBotSettingsState, BOT_SETTINGS_EXTRA_STATE_KEY } from '../editor/bot-settings.js';
 
 const source = readFileSync(new URL('../editor/collab.js', import.meta.url), 'utf8')
     .replace('export class CollabManager', 'globalThis.CollabManager = class CollabManager');
@@ -147,6 +148,30 @@ test('host loss notifies once and recovery restores blocks, title and extra data
     assert.deepEqual(guest.workspace.state, { mine: true });
     assert.deepEqual(guest.workspace.extra, { lists: [1, 2] });
     assert.equal(guest.title.value, 'original');
+});
+
+test('bot settings converge across peers without rebroadcasting remote snapshots', async t => {
+    const network = room(); t.after(network.cleanup);
+    const host = network.client(), guest = network.client(), observer = network.client();
+    const controllers = [host, guest, observer].map(actor => attachBotSettingsState(actor.workspace, (settings, source) => {
+        if (source === 'local') actor.manager.broadcastExtraChange({ [BOT_SETTINGS_EXTRA_STATE_KEY]: settings });
+    }));
+    controllers[0].set({ commandPrefix: 'edb!' });
+    controllers[1].set({ commandPrefix: 'mine!' });
+    const id = await host.manager.createRoom();
+    await Promise.all([guest.manager.joinRoom(id), observer.manager.joinRoom(id)]);
+    assert.equal(controllers[1].get().commandPrefix, 'edb!');
+    controllers[1].set({ commandPrefix: '?', members: true });
+    await sleep(140);
+    for (const controller of controllers) {
+        assert.equal(controller.get().commandPrefix, '?');
+        assert.equal(controller.get().members, true);
+    }
+    assert.equal(guest.manager.pending.length, 0);
+    assert.equal(observer.manager.sequence, 0, 'remote loads never generate new operations');
+    guest.manager.disconnect();
+    assert.equal(guest.manager.restoreInitialBackup(), true);
+    assert.equal(controllers[1].get().commandPrefix, 'mine!');
 });
 
 test('guest cannot forge snapshots, host identity, departures or another user selection', async t => {

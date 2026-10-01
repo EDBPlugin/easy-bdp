@@ -60,10 +60,7 @@ export function initMisc() {
         return [`random.randint(${from}, ${to})`, Blockly.Python.ORDER_ATOMIC];
     };
 
-    Blockly.Python.forBlock['math_round'] = function (block) {
-        const num = Blockly.Python.valueToCode(block, 'NUM', Blockly.Python.ORDER_NONE) || '0';
-        return [num, Blockly.Python.ORDER_NONE];
-    };
+    // Keep Blockly's standard rounding generator (ROUND / ROUNDUP / ROUNDDOWN).
 
     Blockly.Blocks['text_replace'] = {
         init: function () {

@@ -71,7 +71,7 @@ export const attachBotSettingsState = (workspace, onChange = () => {}) => {
   const originalGetExtraState = workspace.getExtraState?.bind(workspace);
   const originalSetExtraState = workspace.setExtraState?.bind(workspace);
 
-  const notify = () => onChange({ ...settings });
+  const notify = (source) => onChange({ ...settings }, source);
 
   workspace.getExtraState = () => {
     const base = originalGetExtraState ? originalGetExtraState() : {};
@@ -83,7 +83,7 @@ export const attachBotSettingsState = (workspace, onChange = () => {}) => {
     if (originalSetExtraState) originalSetExtraState(state);
     settings = normalizeBotSettings(state?.[BOT_SETTINGS_EXTRA_STATE_KEY]);
     workspace.__edbbBotSettings = settings;
-    notify();
+    notify('load');
   };
 
   return {
@@ -91,7 +91,7 @@ export const attachBotSettingsState = (workspace, onChange = () => {}) => {
     set: (next) => {
       settings = normalizeBotSettings({ ...settings, ...next });
       workspace.__edbbBotSettings = settings;
-      notify();
+      notify('local');
       return { ...settings };
     },
   };

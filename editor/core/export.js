@@ -40,7 +40,10 @@ const normalizePythonOutput = (code) => {
   return cleaned ? `${cleaned}\n` : '';
 };
 
-const convertEventBlock = (block) => {
+const convertEventBlock = (block, isMessageEvent = false) => {
+  // Cog listeners leave Bot.on_message intact, so its built-in command
+  // processing must not be repeated. Strip only our generated final call.
+  if (isMessageEvent) block = block.replace(/\n    await bot\.process_commands\(message\)\s*$/, '\n');
   let updated = block.replace('@bot.event', '@commands.Cog.listener()');
   updated = addSelfParam(updated);
   updated = updated.replace(/\bbot\./g, 'self.bot.');
@@ -789,10 +792,12 @@ export const generateSplitPythonFiles = (workspace) => {
     const className = `${toPascalCase(fileSlug)}Cog`.replace(/^[0-9]/, 'Cog$&');
 
     const needsInteractionHandler = hasComponentEvents || hasModalEvents;
-    const imports = buildImports(cleanedCode, needsInteractionHandler);
+    const procedurePreamble = procedureDefs.length ? procedureDefs.join('\n\n') : '';
+    const moduleCode = `${procedurePreamble}\n${cleanedCode}`;
+    const imports = buildImports(moduleCode, needsInteractionHandler);
 
-    const usesJson = detectJsonUsage(cleanedCode);
-    const usesModal = cleanedCode.includes('EasyModal');
+    const usesJson = detectJsonUsage(moduleCode);
+    const usesModal = moduleCode.includes('EasyModal');
     const sharedSymbols = [];
     if (usesJson) sharedSymbols.push('_load_json_data', '_save_json_data', '_resolve_json_path', '_save_json_dataset_cache');
     if (usesModal) sharedSymbols.push('EasyModal');
@@ -802,12 +807,10 @@ export const generateSplitPythonFiles = (workspace) => {
         : '';
 
     let fileContent = '';
-    const procedurePreamble = procedureDefs.length ? procedureDefs.join('\n\n') : '';
-
     if (kind === 'event') {
       fileContent = buildCogFile(
         className,
-        [convertEventBlock(cleanedCode)],
+        [convertEventBlock(cleanedCode, block.type === 'on_message_create')],
         imports,
         sharedImports,
         procedurePreamble,

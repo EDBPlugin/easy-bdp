@@ -61,3 +61,14 @@ test('persists bot settings inside workspace extra state without dropping other 
   assert.equal(controller.get().commandPrefix, '>');
   assert.equal(controller.get().messageContent, true);
 });
+
+test('distinguishes local edits from imported state to avoid collaboration feedback', () => {
+  const changes = [];
+  const workspace = {};
+  const controller = attachBotSettingsState(workspace, (settings, source) => changes.push({ settings, source }));
+  controller.set({ commandPrefix: '?' });
+  workspace.setExtraState({ [BOT_SETTINGS_EXTRA_STATE_KEY]: { commandPrefix: '>' } });
+  workspace.setExtraState({});
+  assert.deepEqual(changes.map(change => change.source), ['local', 'load', 'load']);
+  assert.deepEqual(changes.map(change => change.settings.commandPrefix), ['?', '>', '!']);
+});

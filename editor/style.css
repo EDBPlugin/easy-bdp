@@ -426,7 +426,9 @@ svg[display='none'] {
   #headerActions {
     flex: 1 1 auto;
     min-width: 0;
-    justify-content: flex-end;
+    /* End alignment puts overflowing leading controls outside the scrollable
+       area. Start alignment keeps every action reachable in narrow windows. */
+    justify-content: flex-start;
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;

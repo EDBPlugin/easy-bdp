@@ -9,7 +9,7 @@ import { CollabUI } from "./collab-ui.js";
 import { PluginManager } from "./plugin.js";
 import { PluginUI, PLUGIN_FEATURE_TOGGLES_STORAGE_KEY } from "./plugin-ui.js";
 import { BlockSearch } from "./block-search.js";
-import { attachBotSettingsState } from './bot-settings.js';
+import { attachBotSettingsState, BOT_SETTINGS_EXTRA_STATE_KEY } from './bot-settings.js';
 
 const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
 
@@ -1438,7 +1438,12 @@ const initializeApp = async () => {
     shareFeature,
   });
 
-  const botSettingsState = attachBotSettingsState(workspace);
+  const botSettingsState = attachBotSettingsState(workspace, (settings, source) => {
+    scheduleLiveCodeRefresh();
+    if (source === 'local') {
+      collabManager.broadcastExtraChange({ [BOT_SETTINGS_EXTRA_STATE_KEY]: settings });
+    }
+  });
   const syncBotSettingsForm = () => {
     const settings = botSettingsState.get();
     if (commandPrefixInput) commandPrefixInput.value = settings.commandPrefix;
@@ -1448,12 +1453,17 @@ const initializeApp = async () => {
     if (presencesIntentInput) presencesIntentInput.checked = settings.presences;
     if (voiceStatesIntentInput) voiceStatesIntentInput.checked = settings.voiceStates;
   };
+  let botSettingsCloseTimer = null;
+  const canEditBotSettings = () => !shareFeature.isShareViewMode() && !collabManager.isSyncing;
   const closeBotSettings = () => {
     botSettingsModal?.classList.remove('show-modal');
-    setTimeout(() => botSettingsModal?.classList.add('hidden'), 180);
+    clearTimeout(botSettingsCloseTimer);
+    botSettingsCloseTimer = setTimeout(() => botSettingsModal?.classList.add('hidden'), 180);
     botSettingsBtn?.focus();
   };
   const openBotSettings = () => {
+    if (!canEditBotSettings()) return;
+    clearTimeout(botSettingsCloseTimer);
     syncBotSettingsForm();
     botSettingsModal?.classList.remove('hidden');
     requestAnimationFrame(() => botSettingsModal?.classList.add('show-modal'));
@@ -1465,7 +1475,22 @@ const initializeApp = async () => {
   botSettingsModal?.addEventListener('click', (event) => {
     if (event.target === botSettingsModal) closeBotSettings();
   });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && botSettingsModal && !botSettingsModal.classList.contains('hidden')) closeBotSettings();
+  });
+  const syncBotSettingsAvailability = () => {
+    const disabled = !canEditBotSettings();
+    if (botSettingsBtn) botSettingsBtn.disabled = disabled;
+    const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+    if (mobileSettingsBtn) mobileSettingsBtn.disabled = disabled;
+    if (disabled) closeBotSettings();
+  };
+  shareFeature.onShareViewModeChange(syncBotSettingsAvailability);
+  collabManager.onStateChange((type) => {
+    if (type === 'status_change') syncBotSettingsAvailability();
+  });
   botSettingsSaveBtn?.addEventListener('click', () => {
+    if (!canEditBotSettings()) return;
     botSettingsState.set({
       commandPrefix: commandPrefixInput?.value,
       autoDetectIntents: Boolean(autoDetectIntentsInput?.checked),
@@ -1474,8 +1499,7 @@ const initializeApp = async () => {
       presences: Boolean(presencesIntentInput?.checked),
       voiceStates: Boolean(voiceStatesIntentInput?.checked),
     });
-    storage?.save();
-    flashSaveStatus('Bot設定を保存しました');
+    if (storage?.save()) flashSaveStatus('Bot設定を保存しました');
     closeBotSettings();
   });
 
