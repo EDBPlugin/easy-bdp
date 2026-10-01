@@ -1,6 +1,7 @@
 /**
  * block-search.js - EDBB Block Search Core
  */
+import { getBlockIconSource } from './blocks/icons.js';
 
 export class BlockSearch {
     constructor(workspace, pluginManager) {
@@ -298,7 +299,7 @@ export class BlockSearch {
 
                     const fieldIcon = document.createElement('field');
                     fieldIcon.setAttribute('name', 'ICON');
-                    fieldIcon.textContent = statusIcon;
+                    fieldIcon.textContent = getBlockIconSource(statusIcon, '#475569');
                     block.appendChild(fieldIcon);
 
                     const fieldName = document.createElement('field');

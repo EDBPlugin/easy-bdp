@@ -1,7 +1,8 @@
+import { createBlockIcon } from './icons.js';
 export function initEmbeds() {
     Blockly.Blocks['create_embed'] = {
         init: function () {
-            this.appendDummyInput().appendField('✨ 新しい埋め込み(Embed)作成');
+            this.appendDummyInput().appendField(createBlockIcon('✨')).appendField('新しい埋め込み(Embed)作成');
             this.appendStatementInput('PROPERTIES').setCheck(null);
             this.setOutput(true, 'Embed');
             this.setColour(100);

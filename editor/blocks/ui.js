@@ -1,9 +1,10 @@
+import { createBlockIcon } from './icons.js';
 import { applyEventBlockStyle, getBranchCode } from './core.js';
 
 export function initUI() {
     Blockly.Blocks['send_button_message'] = {
         init: function () {
-            this.appendValueInput('MESSAGE').setCheck('String').appendField('🔘 ボタン付きメッセージ送信');
+            this.appendValueInput('MESSAGE').setCheck('String').appendField(createBlockIcon('🔘')).appendField('ボタン付きメッセージ送信');
             this.appendDummyInput()
                 .appendField('ボタン名')
                 .appendField(new Blockly.FieldTextInput('Click Me'), 'LABEL');
@@ -25,7 +26,7 @@ export function initUI() {
 
     Blockly.Blocks['on_button_click'] = {
         init: function () {
-            this.appendDummyInput().appendField('🖱️ ボタンがクリックされたとき');
+            this.appendDummyInput().appendField(createBlockIcon('🖱️')).appendField('ボタンがクリックされたとき');
             this.appendDummyInput()
                 .appendField('ボタンID:')
                 .appendField(new Blockly.FieldTextInput('button_1'), 'CUSTOM_ID');
@@ -42,7 +43,7 @@ export function initUI() {
 
     Blockly.Blocks['show_modal'] = {
         init: function () {
-            this.appendDummyInput().appendField('📝 モーダル(入力フォーム)を表示');
+            this.appendDummyInput().appendField(createBlockIcon('📝')).appendField('モーダル(入力フォーム)を表示');
             this.appendDummyInput()
                 .appendField('タイトル:')
                 .appendField(new Blockly.FieldTextInput('My Form'), 'TITLE');
@@ -74,7 +75,7 @@ export function initUI() {
 
     Blockly.Blocks['on_modal_submit'] = {
         init: function () {
-            this.appendDummyInput().appendField('📩 モーダルが送信されたとき');
+            this.appendDummyInput().appendField(createBlockIcon('📩')).appendField('モーダルが送信されたとき');
             this.appendDummyInput()
                 .appendField('フォームID:')
                 .appendField(new Blockly.FieldTextInput('modal_1'), 'CUSTOM_ID');

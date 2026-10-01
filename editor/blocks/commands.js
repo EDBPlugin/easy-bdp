@@ -1,3 +1,4 @@
+import { createBlockIcon } from './icons.js';
 import { applyEventBlockStyle, getBranchCode } from './core.js';
 
 const normalizePythonIdentifierName = (value, fallback = 'arg') => {
@@ -41,7 +42,7 @@ export function initCommands() {
     Blockly.Blocks['on_command_executed'] = {
         init: function () {
             this.appendDummyInput()
-                .appendField('⚡ スラッシュコマンド /')
+                .appendField(createBlockIcon('⚡')).appendField('スラッシュコマンド /')
                 .appendField(new Blockly.FieldTextInput('hello'), 'COMMAND_NAME')
                 .appendField('を使われたとき');
             this.appendStatementInput('DO').setCheck(null).appendField('実行する処理');
@@ -59,7 +60,7 @@ export function initCommands() {
     Blockly.Blocks['prefix_command'] = {
         init: function () {
             this.appendDummyInput()
-                .appendField('🗣️ プレフィックスコマンド')
+                .appendField(createBlockIcon('🗣️')).appendField('プレフィックスコマンド')
                 .appendField(new Blockly.FieldTextInput('!ping'), 'COMMAND_NAME')
                 .appendField('を実行したとき');
             this.appendStatementInput('DO').setCheck(null).appendField('実行する処理');
