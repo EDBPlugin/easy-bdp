@@ -7,6 +7,11 @@ const source = readFileSync(new URL('../editor/script.js', import.meta.url), 'ut
 const editorSource = source.slice(source.indexOf('  const CELL_INPUT_CLASS ='), source.indexOf('  const renderRows ='));
 const typeChangeSource = source.slice(source.indexOf('        const nextType = typeSelect.value;'), source.indexOf('        // 値エディタを新しい型'));
 
+test('JSON controls override the later utility styles with a readable touch-safe font', () => {
+  const css = readFileSync(new URL('../editor/style.css', import.meta.url), 'utf8');
+  assert.match(css, /#jsonGuiModal \.json-gui__cell-input, #jsonGuiModal \.json-gui__cell-select\s*\{[^}]*min-height: 44px;[^}]*font-size: 16px;/);
+});
+
 const makeElement = tag => {
   const element = { tagName: tag.toUpperCase(), children: [], listeners: {},
     appendChild(child) { this.children.push(child); },

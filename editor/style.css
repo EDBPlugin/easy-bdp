@@ -1835,7 +1835,7 @@ g.blocklyDraggable > path.blocklyPath {
 }
 
 .toolbox-svg-icon { display: block; margin: auto; }
-.json-gui__cell-input, .json-gui__cell-select { min-height: 44px; font-size: 1rem; padding: 10px; }
+#jsonGuiModal .json-gui__cell-input, #jsonGuiModal .json-gui__cell-select { min-height: 44px; font-size: 16px; padding: 10px; }
 textarea.json-gui__cell-input { resize: vertical; min-width: 0; }
 .json-gui__preview summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
 #jsonGuiModal button { min-height: 44px; }
