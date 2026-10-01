@@ -163,6 +163,7 @@ export default class WorkspaceStorage {
   #workspace;
   #titleProvider = () => WorkspaceStorage.DEFAULT_TITLE;
   #saveFailureNotified = false;
+  #saveHandler = null;
 
   constructor(workspace) {
     this.#workspace = workspace;
@@ -287,6 +288,8 @@ export default class WorkspaceStorage {
     }
   }
 
+  setSaveHandler(handler) { this.#saveHandler = handler; }
+
   #restoreBackup(backup) {
     if (!backup) return;
     try { loadWorkspace(backup, this.#workspace); }
@@ -309,7 +312,9 @@ export default class WorkspaceStorage {
     const json = this.exportText({ pretty: false });
     if (!json) return false;
     try {
-      localStorage.setItem(WorkspaceStorage.STORAGE_KEY, json);
+      if (this.#saveHandler) {
+        if (this.#saveHandler(json) === false) return false;
+      } else localStorage.setItem(WorkspaceStorage.STORAGE_KEY, json);
       this.#saveFailureNotified = false;
       return true;
     } catch (error) {
@@ -318,7 +323,7 @@ export default class WorkspaceStorage {
       if (!this.#saveFailureNotified) {
         this.#saveFailureNotified = true;
         showTopRightToast(
-          '自動保存に失敗しました。ブラウザの保存容量が不足している可能性があります。JSONエクスポートでバックアップしてください。',
+          `自動保存に失敗しました。${error?.message || 'ブラウザの保存容量が不足している可能性があります。'} JSONエクスポートでバックアップしてください。`,
           { icon: 'error', timer: 6000 },
         );
       }

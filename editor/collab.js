@@ -1,5 +1,5 @@
 /** Host-ordered collaboration. Guests retain unacknowledged edits across snapshots. */
-const PROTOCOL = 2;
+const PROTOCOL = 3;
 const BACKUP_KEY = 'edbb_collab_backup_v2';
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -452,6 +452,8 @@ export class CollabManager {
         } else if (operation?.type === 'extra' && operation.extra && typeof operation.extra === 'object') {
             // Each top-level data store is independent of block edits.
             this.workspace.setExtraState?.({ ...this.workspace.getExtraState?.(), ...clone(operation.extra) });
+        } else if (operation?.type === 'comment' && this.workspace.edbbComments) {
+            this.workspace.edbbComments.apply(operation);
         } else throw new Error('対応していない編集データです。');
     }
     scheduleSnapshot() {
@@ -524,6 +526,7 @@ export class CollabManager {
     }
     broadcastTitleChange(title) { this.submit({ type: 'title', title }); }
     broadcastExtraChange(extra) { this.submit({ type: 'extra', extra }); }
+    broadcastCommentChange(operation) { this.submit(operation); }
     applySelectionChange(peerId, blockId) {
         if (peerId === this.myUser.id || !this.remoteUsers.has(peerId)) return;
         if (blockId) {

@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import { EventEmitter } from 'node:events';
 import { webcrypto } from 'node:crypto';
 import { attachBotSettingsState, BOT_SETTINGS_EXTRA_STATE_KEY } from '../editor/bot-settings.js';
+import { BlockComments } from '../editor/comments.js';
 
 const source = readFileSync(new URL('../editor/collab.js', import.meta.url), 'utf8')
     .replace('export class CollabManager', 'globalThis.CollabManager = class CollabManager');
@@ -118,6 +119,38 @@ test('three peers converge after simultaneous changes, duplicates and delayed ac
     first.manager.connections.get(id).send({ type: 'operation', sequence: 1, operation: { type: 'event', event: { type: 'change', blockId: 'a', value: 99 } } });
     await sleep(110);
     assert.equal(host.workspace.state.a, 1, 'duplicate operation ignored');
+});
+
+test('comments from three peers survive delayed snapshots, resolution, deletion and reconnect', async t => {
+    const network = room(); t.after(network.cleanup);
+    const host = network.client(), first = network.client(), second = network.client();
+    for (const actor of [host, first, second]) {
+        actor.workspace.getBlockById = id => id === 'target' ? { id } : null;
+        actor.comments = new BlockComments(actor.workspace);
+    }
+    const id = await host.manager.createRoom();
+    await Promise.all([first.manager.joinRoom(id), second.manager.joinRoom(id)]);
+    first.manager.connections.get(id).delay = 90;
+    const post = (actor, text) => {
+        const operation = actor.comments.add('target', text, actor.manager.myUser.name);
+        actor.manager.broadcastCommentChange(operation);
+        return operation.comment.id;
+    };
+    const a = post(first, '質問'), b = post(second, '修正メモ'); post(host, '確認');
+    await sleep(250);
+    for (const actor of [first, second]) assert.deepEqual(actor.comments.list(), host.comments.list());
+    assert.equal(host.comments.list().length, 3);
+    const resolved = { type: 'comment', action: 'resolve', id: a, resolved: true };
+    first.comments.apply(resolved); first.manager.broadcastCommentChange(resolved);
+    const removed = { type: 'comment', action: 'delete', id: b };
+    second.comments.apply(removed); second.manager.broadcastCommentChange(removed);
+    await sleep(250);
+    assert.equal(host.comments.list().length, 2);
+    assert.equal(host.comments.list().find(c => c.id === a).resolved, true);
+    for (const actor of [first, second]) assert.deepEqual(actor.comments.list(), host.comments.list());
+    second.manager.disconnect();
+    await second.manager.joinRoom(id);
+    assert.deepEqual(second.comments.list(), host.comments.list());
 });
 
 test('failed join and malformed initial sync preserve document and reject', async t => {

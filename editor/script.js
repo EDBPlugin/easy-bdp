@@ -14,6 +14,8 @@ import { setupMobileActions } from './mobile-actions.js';
 import { MOBILE_MEDIA_QUERY } from './mobile.js';
 import { createToolboxIcon } from './toolbox-icons.js';
 import { startAppUpdater } from './app-update.js';
+import { setupProjectUI } from './project-ui.js';
+import { setupCommentsUI } from './comments-ui.js';
 
 const PROJECT_TITLE_STORAGE_KEY = 'edbb_project_title';
 
@@ -1482,6 +1484,8 @@ const initializeApp = async () => {
   // There is no longer a settings form or a way to create new settings here.
   attachBotSettingsState(workspace, () => scheduleLiveCodeRefresh(), { persistDefaults: false });
 
+  setupCommentsUI({ workspace, storage, shareFeature, collabManager });
+
   const mobileActions = setupMobileActions(document, () => isMobileDevice);
   mobileModeListeners.add((mobile) => {
     syncRenderedToolboxLabels(workspace, mobile);
@@ -1930,9 +1934,11 @@ const initializeApp = async () => {
 
 
   // --- Load Saved Data ---
+  const projects = setupProjectUI({ workspace, storage, shareFeature, collabManager,
+    onLoad: () => { scheduleLiveCodeRefresh(); resizeWorkspace(); } });
+  window.__edbb_projects = projects;
   const sharedApplied = await shareFeature.applySharedLayoutFromQuery();
   if (!sharedApplied) {
-    storage?.load();
     // Keep block interactivity aligned with current (non-share) mode.
     shareFeature.applyUiState();
     // Check URL params for realtime collab only after storage is restored
@@ -1957,25 +1963,6 @@ const initializeApp = async () => {
 
   themeToggle.addEventListener('click', toggleTheme);
 
-  const newProjectBtn = document.getElementById('newProjectBtn');
-  newProjectBtn?.addEventListener('click', async () => {
-    if (shareFeature.isShareViewMode()) return;
-    const ok = await showConfirmDialog(
-      '現在のブロックをすべて削除して新規プロジェクトを開始しますか？この操作は元に戻せません。',
-      { icon: 'warning', confirmButtonText: '削除して新規作成' },
-    );
-    if (!ok) return;
-    workspace.clear();
-    workspace.setExtraState?.({});
-    if (projectTitleInput) projectTitleInput.value = WorkspaceStorage.DEFAULT_TITLE;
-    try {
-      localStorage.setItem(PROJECT_TITLE_STORAGE_KEY, WorkspaceStorage.DEFAULT_TITLE);
-      localStorage.removeItem(JSON_GUI_DATASET_LOCAL_KEY);
-    } catch { /* optional local state */ }
-    storage?.save();
-    showTopRightToast('新規プロジェクトを開始しました', { icon: 'success' });
-  });
-
   // Ctrl/Cmd+S でプロジェクトの保存（JSONエクスポート）ダイアログを開く
   document.addEventListener('keydown', (event) => {
     if (
@@ -1993,6 +1980,12 @@ const initializeApp = async () => {
   importInput.addEventListener('change', (e) => {
     const file = e.target.files?.[0];
     if (!file || !storage) return;
+    try { projects.checkpoint('JSON読込前'); }
+    catch (error) {
+      showTopRightToast(error.message, { icon: 'error' });
+      e.target.value = '';
+      return;
+    }
     storage
       .importFile(file)
       .then((imported) => {

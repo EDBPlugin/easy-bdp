@@ -1,7 +1,7 @@
 // Only production builds carry a version. Development reloads stay with Vite.
 export const isEditing = (documentRef) => Boolean(
   documentRef.activeElement?.matches?.('input, textarea, select, [contenteditable="true"]') ||
-  documentRef.querySelector('.modal-backdrop.show-modal, .swal2-container, .blocklyWidgetDiv[style*="display: block"]')
+  documentRef.querySelector('dialog[open], .modal-backdrop.show-modal, .swal2-container, .blocklyWidgetDiv[style*="display: block"]')
 );
 
 export const updatedPageUrl = (href, version) => {

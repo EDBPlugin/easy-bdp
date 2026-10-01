@@ -1,0 +1,36 @@
+.project-dialog {
+  width: min(720px, calc(100vw - 24px)); max-height: min(85dvh, 850px);
+  padding: 0; border: 1px solid #cbd5e1; border-radius: 18px;
+  color: #0f172a; background: #fff; box-shadow: 0 24px 70px #02061755;
+}
+.project-dialog::backdrop { background: #0f172aaa; backdrop-filter: blur(5px); }
+.project-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; border-bottom: 1px solid #e2e8f0; }
+.project-dialog h2 { font-size: 18px; font-weight: 700; }
+.project-dialog h3 { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.project-dialog-body { padding: 18px 22px; }
+.project-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.project-button { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #f8fafc; }
+.project-button:hover:not(:disabled), .project-button[aria-pressed=true] { background: #eef2ff; color: #4338ca; border-color: #818cf8; }
+.project-button:disabled { opacity: .45; cursor: not-allowed; }
+.project-button:focus-visible, .project-dialog input:focus-visible, .project-dialog textarea:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+.project-dialog input:not([type=checkbox]), .project-dialog textarea { min-width: 0; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; background: transparent; font-size: 14px; }
+.project-toolbar input:not([type=checkbox]) { flex: 1; }
+.project-card { padding: 16px; margin: 12px 0; border: 1px solid #e2e8f0; border-radius: 12px; }
+.project-muted { color: #64748b; font-size: 12px; line-height: 1.7; }
+.project-notice:not(:empty) { margin: 12px 22px 0; border-radius: 8px; background: #fef3c7; color: #92400e; padding: 10px; font-size: 13px; }
+.comment-form { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.comment-form button { align-self: flex-end; }
+.comment-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; font-size: 14px; margin: 10px 0; }
+.comment-resolved { background: #f8fafc; }
+.dark .project-dialog { color: #e2e8f0; background: #0f172a; border-color: #334155; }
+.dark .project-card, .dark .project-dialog-heading { border-color: #334155; }
+.dark .project-muted { color: #94a3b8; }
+.dark .project-button, .dark .comment-resolved { background: #1e293b; border-color: #475569; }
+.dark .project-button:hover:not(:disabled), .dark .project-button[aria-pressed=true] { background: #312e81; color: #c7d2fe; }
+@media (max-width: 767px) {
+  .project-dialog { max-height: 90dvh; }
+  .project-dialog-heading, .project-dialog-body { padding: 16px; }
+  .project-dialog input:not([type=checkbox]), .project-dialog textarea { font-size: 16px; }
+  .project-button { min-height: 42px; }
+}
+body:has(.project-dialog[open]) #docsbotai-root { visibility: hidden !important; pointer-events: none !important; }
