@@ -1834,3 +1834,32 @@ g.blocklyDraggable > path.blocklyPath {
   transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
 }
 
+.toolbox-svg-icon { display: block; margin: auto; }
+.json-gui__cell-input, .json-gui__cell-select { min-height: 44px; font-size: 1rem; padding: 10px; }
+textarea.json-gui__cell-input { resize: vertical; min-width: 0; }
+.json-gui__preview summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+#jsonGuiModal button { min-height: 44px; }
+#jsonGuiModal select { min-height: 44px; font-size: 16px; }
+#jsonGuiModal thead th:first-child { width: 25%; }
+#jsonGuiError { overflow-wrap: anywhere; }
+
+@media (max-width: 1023px) {
+  #jsonGuiModal .json-gui__body { display: block; overflow-y: auto; overscroll-behavior: contain; }
+  #jsonGuiModal aside, #jsonGuiModal section { overflow: visible; }
+  #jsonGuiModal .json-gui__dataset-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #jsonGuiModal aside > p { display: none; }
+}
+html.is-mobile #jsonGuiModal .json-gui__body { display: block; overflow-y: auto; }
+html.is-mobile #jsonGuiModal aside, html.is-mobile #jsonGuiModal section { overflow: visible; padding: 12px; }
+html.is-mobile #jsonGuiModal .json-gui__dataset-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html.is-mobile #jsonGuiModal aside > p, html.is-mobile #jsonGuiHelp { display: none; }
+html.is-mobile #jsonGuiModal table, html.is-mobile #jsonGuiRows { display: block; width: 100%; }
+html.is-mobile #jsonGuiModal thead { display: none; }
+html.is-mobile #jsonGuiRows tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 10px; gap: 10px; }
+html.is-mobile #jsonGuiRows td { display: block; padding: 0; min-width: 0; }
+html.is-mobile #jsonGuiRows td[data-label]::before { content: attr(data-label); display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+html.is-mobile #jsonGuiRows td:last-child { text-align: right; }
+html.is-mobile #jsonGuiRows td:last-child button { min-width: 44px; }
+html.is-mobile #jsonGuiAddRowBtn { width: 100%; }
+html.is-mobile body:has(#jsonGuiModal.show-modal) #docsbotai-root { display: none !important; }
+

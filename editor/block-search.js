@@ -19,14 +19,9 @@ export class BlockSearch {
         // Use a temporary index to avoid clearing and leaving the search empty while building
         const newIndex = [];
 
-        // Fetch blocks.js content for static analysis
-        try {
-            const response = await fetch('blocks.js');
-            this.blocksJsContent = await response.text();
-        } catch (e) {
-            console.warn("Failed to fetch blocks.js for static analysis", e);
-            this.blocksJsContent = "";
-        }
+        // Core definitions are now split into modules; blocks.js no longer
+        // exists. Use the built-in labels rather than fetching a 404 page.
+        this.blocksJsContent = "";
 
         // 1. Core Blocks
         this.addCoreBlocksToIndex(newIndex);
